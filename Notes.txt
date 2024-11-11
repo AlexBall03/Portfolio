@@ -3,11 +3,8 @@
 
 
 -----[ Color Palette ]-----
-  Background Color: dark grayish-blue
-  Primary Accent Color: medium  blue (can be used for buttons, links, etc.)
-  Secondary Accent Color: light blueish-white (can highlight sections or hover effects)
-  Primary Text Color: light grayish-blue (body text)
-  Secondary Text Color: whiteish-blue (headings)
+  Background Color: black
+  Primary Accent Color: blue
 
 
 
@@ -45,42 +42,14 @@ Card grid layout
 
 
 
-
 -----[ PROJECT FILE SCTRUCTURE ]-----
 
->src
+>app
   >Assets
   >Data
   >Components
   >Pages
 
-
-
-
-
-
->src
-  >Assets
-  >Dummy Data
-    Projects.json
-  >Pages
-    >1-Home (React Router)
-      Home.css
-      Home.jsx
-    >2-About (React Router)
-      About.css
-      About.jsx
-    >3-Projects (React Router)
-      Projects.css
-      Projects.jsx
-    >Components
-      >Styles
-      Card.jsx
-      Footer.jsx
-      Header.jsx
-      Modal.jsx
-      Nav.jsx
-      SubNav.jsx
 
 
 
