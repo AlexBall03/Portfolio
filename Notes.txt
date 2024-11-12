@@ -1,5 +1,5 @@
 </Alex-Ball\>
-
+Software Engineer | Web Developer
 
 
 -----[ Color Palette ]-----
@@ -12,20 +12,21 @@
 (Each main section is separated into different pages)
 
 --Home--
-Headline and Photo of Me,
-A "tiny bit" about me and my career,
+Navbar (links to separate pages)
+Heading (</Alex-Ball\> Software Engineer | Web Developer)
+A "tiny bit" about me and my profile photo,
 List of core Skills,
 Featured projects (alternating sections),
 Contact form
 
 --About--
-More detail about myself and Photo of Me,
+More details about myself and a photo of me,
 List of all my Skills,
 Work experience
 
 --Projects--
 Card grid layout
-(content: IMG of the notable part of the project, Name of Project, Desc, SRC Code link and Live View link)
+(content: IMG of the notable part of the project, Name of Project, Desc, SRC Code link, and Live View link)
 
 
 
@@ -55,8 +56,8 @@ Card grid layout
 
 Similar to: https://demo.magic-portfolio.com/
  -Black background with a gradient blue blob. 
- -Make the h1 (and any other main heading) white and ever so slightly glow (like the Next.js template).
- -Make the navbar singled out in the center (at the top on desktop and on the bottom on mobile)
+ -Make the h1 (and any other main heading) white and a slight glow (like the Next.js template).
+ -Make the navbar singled out in the center (at the top on desktop and at the bottom on mobile)
 
 
 
