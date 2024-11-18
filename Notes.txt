@@ -22,7 +22,8 @@ Contact form
 --About--
 More details about myself and a photo of me,
 List of all my Skills,
-Work experience
+Work experience,
+Amazon STAR Method (3 examples per Amazon Leadership Principle)
 
 --Projects--
 Card grid layout
