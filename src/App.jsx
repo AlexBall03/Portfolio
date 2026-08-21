@@ -1,4 +1,5 @@
 import { useMemo, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AppProvider, useApp } from './context/AppContext';
 import Background from './components/Background';
 import Nav from './components/Nav';
@@ -61,6 +62,7 @@ export default function App() {
   return (
     <AppProvider>
       <AppInner />
+      <Analytics />
     </AppProvider>
   );
 }
