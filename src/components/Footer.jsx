@@ -42,7 +42,7 @@ export default function Footer() {
             ))}
           </div>
         </div>
-        <div className="f-copy">© {new Date().getFullYear()} Alexander D. Ball</div>
+        <div className="f-copy">{new Date().getFullYear()} Alexander D. Ball</div>
       </div>
     </footer>
   );
