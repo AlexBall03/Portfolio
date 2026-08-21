@@ -1,5 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AppProvider, useApp } from './context/AppContext';
 import Background from './components/Background';
 import Nav from './components/Nav';
@@ -63,6 +64,7 @@ export default function App() {
     <AppProvider>
       <AppInner />
       <Analytics />
+      <SpeedInsights />
     </AppProvider>
   );
 }
