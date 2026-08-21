@@ -1,0 +1,81 @@
+/* ============================================================
+   Background layers
+   ============================================================ */
+#bg-layer { --px: 0; --py: 0; }
+
+.bg-grid {
+  position: absolute; inset: -2px;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 58px 58px;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 72%);
+  opacity: 0.7;
+}
+
+.bg-glow {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px);
+  opacity: calc(0.9 * var(--glow, 0.5));
+  pointer-events: none;
+}
+.bg-glow-blue {
+  width: 58vw; height: 44vw; top: -15vw; left: 42%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(45,127,249,0.58), transparent 62%);
+}
+.bg-glow-gold {
+  width: 50vw; height: 50vw; bottom: -6vw; right: -6vw;
+  background: radial-gradient(circle, rgba(212,175,55,0.32), transparent 64%);
+  opacity: calc(0.85 * var(--glow, 0.5));
+}
+
+.bg-parallax {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  will-change: transform;
+}
+.bg-p1 {
+  transform: translate3d(calc(var(--px) * -26px), calc(var(--py) * -20px), 0);
+  justify-content: flex-end; align-items: flex-start;
+}
+.bg-globe {
+  width: min(58vw, 720px); height: min(58vw, 720px);
+  margin-top: -6vh; margin-right: -8vw;
+  opacity: 0.5;
+  animation: globeSpin 80s linear infinite;
+}
+@keyframes globeSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .bg-globe { animation: none; } }
+
+.bg-p2 {
+  transform: translate3d(calc(var(--px) * 18px), calc(var(--py) * 14px), 0);
+  opacity: 0.9;
+}
+.bg-net { width: 100%; height: 100%; opacity: 0.6; }
+
+.bg-p3 {
+  transform: translate3d(calc(var(--px) * -12px), calc(var(--py) * -10px), 0);
+  justify-content: flex-start; align-items: flex-end;
+}
+.bg-radar {
+  width: min(40vw, 460px); height: min(40vw, 460px);
+  margin-left: -8vw; margin-bottom: -8vh; opacity: 0.8;
+}
+
+.bg-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 30%, transparent 40%, rgba(7,10,14,0.55) 100%);
+}
+.bg-noise {
+  position: absolute; inset: 0; opacity: 0.025; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- Tweak-driven toggles ---- */
+.no-grid .bg-grid { display: none; }
+.reduce-motion .status-dot,
+.reduce-motion .scroll-cue .ln::after { animation: none !important; }
+.reduce-motion .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+.reduce-motion * { scroll-behavior: auto; }
