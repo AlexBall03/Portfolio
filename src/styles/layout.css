@@ -576,9 +576,8 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
   padding: 64px 0 32px;
 }
 .footer::before {
-  content: ""; position: absolute; z-index: -1;
-  top: -20%; left: 50%; width: 900px; height: 500px; transform: translateX(-50%);
-  background: radial-gradient(circle, color-mix(in oklab, var(--accent), transparent 88%), transparent 70%);
+  content: ""; position: absolute; z-index: -1; inset: 0;
+  background: radial-gradient(ellipse 700px 320px at 50% 0%, color-mix(in oklab, var(--accent), transparent 88%), transparent 100%);
   pointer-events: none;
 }
 .footer-inner {
