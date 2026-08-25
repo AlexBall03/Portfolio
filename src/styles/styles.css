@@ -397,8 +397,9 @@ section.band {
 body.anim-ready .reveal {
   opacity: 0;
   transform: translateY(22px);
-  transition: opacity .8s var(--ease-out), transform .8s var(--ease-out);
-  transition-delay: var(--d, 0ms);
+  transition: opacity .8s var(--ease-out), transform .8s var(--ease-out),
+              border-color .4s var(--ease), box-shadow .5s var(--ease-out), background .4s var(--ease);
+  transition-delay: var(--d, 0ms), var(--d, 0ms), 0s, 0s, 0s;
   will-change: opacity, transform;
 }
 body.anim-ready .reveal.in { opacity: 1; transform: none; }
@@ -413,7 +414,8 @@ body.anim-ready .reveal.in { opacity: 1; transform: none; }
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   overflow: hidden;
 }
-main { position: relative; z-index: 1; }
+#root { min-height: 100svh; display: flex; flex-direction: column; }
+main { position: relative; z-index: 1; flex: 1 0 auto; display: flex; flex-direction: column; }
 
 /* utility */
 .stack { display: flex; flex-direction: column; }

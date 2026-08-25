@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Icon from '../ui/Icon';
 
@@ -8,32 +9,45 @@ const MOBILE_ICONS = {
 };
 
 export default function Nav({ screens }) {
-  const { screen, goToScreen } = useApp();
+  const { screen } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
   }, [menuOpen]);
 
-  const go = (e, id) => {
-    e.preventDefault();
-    setMenuOpen(false);
-    goToScreen(id);
-  };
+  useEffect(() => {
+    let raf = 0;
+    const THRESHOLD = 24;
+    const update = () => {
+      raf = 0;
+      setScrolled(window.scrollY > THRESHOLD);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <>
-      <nav className="nav scrolled">
+      <nav className={`nav ${scrolled ? 'scrolled' : ''}`}>
         <div className="nav-inner">
-          <a href="#home" className="nav-logo" onClick={(e) => go(e, 'home')}>
+          <Link to="/" className="nav-logo" onClick={closeMenu}>
             <span className="bk">&lt;/</span>Alex<span className="dash">-</span>Ball<span className="bk">\&gt;</span>
-          </a>
+          </Link>
           <div className="nav-links">
             {screens.map((n) => (
-              <a key={n.id} href={`#${n.id}`} className={screen === n.id ? 'active' : ''}
-                 onClick={(e) => go(e, n.id)}>
+              <Link key={n.id} to={n.path} className={screen === n.id ? 'active' : ''}
+                 onClick={closeMenu}>
                 {n.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -45,25 +59,25 @@ export default function Nav({ screens }) {
         </button>
       )}
 
-      <div className={`mobile-scrim ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)} />
+      <div className={`mobile-scrim ${menuOpen ? 'open' : ''}`} onClick={closeMenu} />
       <div className={`mobile-drawer ${menuOpen ? 'open' : ''}`}>
         <div className="mobile-drawer-head">
           <span className="nav-logo" style={{ padding: 0, margin: 0, border: 0 }}>
             <span className="bk">&lt;/</span>Alex<span className="dash">-</span>Ball<span className="bk">\&gt;</span>
           </span>
-          <button className="drawer-close" aria-label="Close" onClick={() => setMenuOpen(false)}>
+          <button className="drawer-close" aria-label="Close" onClick={closeMenu}>
             <Icon name="x" />
           </button>
         </div>
         <div className="mobile-drawer-links">
           {screens.map((n, i) => (
-            <a key={n.id} href={`#${n.id}`}
+            <Link key={n.id} to={n.path}
                className={`d-link ${screen === n.id ? 'active' : ''}`}
-               onClick={(e) => go(e, n.id)}>
+               onClick={closeMenu}>
               <span className="d-ic"><Icon name={MOBILE_ICONS[n.id]} /></span>
               <span className="d-label">{n.label}</span>
               <span className="d-n">{String(i + 1).padStart(2, '0')}</span>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

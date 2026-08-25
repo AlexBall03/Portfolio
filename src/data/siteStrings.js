@@ -43,8 +43,18 @@ export const STR = {
       sent_body: "— just hit send and it'll land in my inbox. I'll get back to you quickly.", send_another: 'Send another',
       opens_client: 'Opens your email client · or write me directly at',
     },
-    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Email', resume: 'Resume' },
+    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Email', resume: 'Resume', siteLabel: 'Site', connectLabel: 'Connect' },
     toggles: { theme: 'Theme', light: 'Light', dark: 'Dark', lang: 'Language' },
+    pager: {
+      descriptions: {
+        home: 'Building modern software with clarity, reliability, and purpose.',
+        about: 'The focus is software engineering. The rest is what makes the engineer.',
+        projects: 'Selected work that shows how I think, build, and ship.',
+        experience: 'Two parallel paths — professional experience and academic foundation.',
+        resume: 'Read it here or take it with you.',
+        contact: "I'm actively looking for software engineering roles where I can contribute, learn, and grow.",
+      },
+    },
   },
 
   es: {
@@ -88,7 +98,17 @@ export const STR = {
       sent_body: '— solo presiona enviar y llegará a mi bandeja. Te responderé pronto.', send_another: 'Enviar otro',
       opens_client: 'Abre tu cliente de correo · o escríbeme directamente a',
     },
-    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Correo', resume: 'Currículum' },
+    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Correo', resume: 'Currículum', siteLabel: 'Sitio', connectLabel: 'Conecta' },
     toggles: { theme: 'Tema', light: 'Claro', dark: 'Oscuro', lang: 'Idioma' },
+    pager: {
+      descriptions: {
+        home: 'Construyendo software moderno con claridad, confiabilidad y propósito.',
+        about: 'El enfoque es la ingeniería de software. El resto es lo que forma al ingeniero.',
+        projects: 'Trabajo seleccionado que muestra cómo pienso, construyo y entrego.',
+        experience: 'Dos caminos paralelos — experiencia profesional y formación académica.',
+        resume: 'Léelo aquí o llévalo contigo.',
+        contact: 'Estoy buscando activamente roles de ingeniería de software donde pueda contribuir, aprender y crecer.',
+      },
+    },
   },
 };

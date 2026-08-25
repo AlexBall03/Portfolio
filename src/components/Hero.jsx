@@ -1,13 +1,12 @@
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Reveal from '../ui/Reveal';
 import Icon from '../ui/Icon';
 
 export default function Hero() {
-  const { data, strings, goToScreen } = useApp();
+  const { data, strings } = useApp();
   const D = data.identity;
   const T = strings.hero;
-
-  const goTo = (id) => (e) => { e.preventDefault(); goToScreen(id); };
 
   return (
     <section id="home" className="hero band">
@@ -41,9 +40,9 @@ export default function Hero() {
                 <a href={`mailto:${D.email}`} className="btn btn-primary">
                   {T.cta_contact} <Icon name="arrowRight" />
                 </a>
-                <a href="#projects" className="btn btn-ghost" onClick={goTo('projects')}>
+                <Link to="/projects" className="btn btn-ghost">
                   {T.cta_projects}
-                </a>
+                </Link>
               </div>
             </Reveal>
 

@@ -1,7 +1,9 @@
 import { useMemo, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AppProvider, useApp } from './context/AppContext';
+import { SCREEN_IDS, idToPath } from './data/screens';
 import Background from './components/Background';
 import Nav from './components/Nav';
 import Footer from './components/Footer';
@@ -19,20 +21,17 @@ import Contact from './components/sections/Contact';
 function AboutScreen()    { return <><Snapshot /><About /><Stack /></>; }
 function ProjectsScreen() { return <><Projects /><GitHub /></>; }
 
+const COMPONENTS = {
+  home: Hero, about: AboutScreen, projects: ProjectsScreen,
+  experience: Experience, resume: Resume, contact: Contact,
+};
+
 function AppInner() {
-  const { strings, screen } = useApp();
+  const { strings } = useApp();
 
-  const SCREENS = useMemo(() => [
-    { id: 'home',       label: strings.nav.home,       Comp: Hero           },
-    { id: 'about',      label: strings.nav.about,      Comp: AboutScreen    },
-    { id: 'projects',   label: strings.nav.projects,   Comp: ProjectsScreen },
-    { id: 'experience', label: strings.nav.experience, Comp: Experience     },
-    { id: 'resume',     label: strings.nav.resume,     Comp: Resume         },
-    { id: 'contact',    label: strings.nav.contact,    Comp: Contact        },
-  ], [strings]);
-
-  const index = SCREENS.findIndex((s) => s.id === screen);
-  const { Comp: Current } = SCREENS[index];
+  const SCREENS = useMemo(() => SCREEN_IDS.map((id) => ({
+    id, label: strings.nav[id], path: idToPath(id), Comp: COMPONENTS[id],
+  })), [strings]);
 
   useEffect(() => {
     let id1, id2;
@@ -49,22 +48,33 @@ function AppInner() {
       <Background />
       <Nav screens={SCREENS} />
       <main>
-        <div key={screen} className="screen" data-screen-label={SCREENS[index].label}>
-          <Current />
-          <Pager index={index} screens={SCREENS} />
-        </div>
+        <Routes>
+          {SCREENS.map((s, i) => (
+            <Route key={s.id} path={s.path} element={
+              <div className="screen" data-screen-label={s.label}>
+                <div className="screen-body">
+                  <s.Comp />
+                </div>
+                <Pager index={i} screens={SCREENS} />
+              </div>
+            } />
+          ))}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
-      <Footer />
+      <Footer screens={SCREENS} />
     </>
   );
 }
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppInner />
-      <Analytics />
-      <SpeedInsights />
-    </AppProvider>
+    <BrowserRouter>
+      <AppProvider>
+        <AppInner />
+        <Analytics />
+        <SpeedInsights />
+      </AppProvider>
+    </BrowserRouter>
   );
 }
