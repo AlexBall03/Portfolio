@@ -45,6 +45,11 @@ export function AppProvider({ children }) {
     document.title = screen === 'home'
       ? `${data.identity.name} — ${data.identity.title}`
       : `${strings.nav[screen]} — ${data.identity.name}`;
+
+    const description = strings.pager?.descriptions?.[screen];
+    if (description) {
+      document.querySelector('meta[name="description"]')?.setAttribute('content', description);
+    }
   }, [screen, data, strings]);
 
   return (
