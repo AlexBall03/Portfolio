@@ -38,6 +38,7 @@ function AppInner() {
     id1 = requestAnimationFrame(() => {
       id2 = requestAnimationFrame(() => {
         document.body.classList.add('anim-ready');
+        window.__animReady = true;
       });
     });
     return () => { cancelAnimationFrame(id1); cancelAnimationFrame(id2); };
