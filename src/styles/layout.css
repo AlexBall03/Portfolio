@@ -651,7 +651,6 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
   .metric { padding: 20px 18px; }
   .hero-meta { gap: 18px; }
   .gh-stats { grid-template-columns: 1fr 1fr; }
-  .gh-contrib { grid-template-columns: repeat(20, 1fr); }
   .hero-cta { width: 100%; }
   .hero-cta .btn { flex: 1; justify-content: center; }
   .footer-inner { grid-template-columns: 1fr; text-align: center; }
