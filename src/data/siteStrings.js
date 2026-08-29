@@ -45,7 +45,7 @@ export const STR = {
       lead: "I'm actively looking for software engineering roles where I can contribute, learn, and grow. If you're hiring — or just want to talk shop — I'd love to hear from you.",
       email_k: 'Email', linkedin_k: 'LinkedIn', github_k: 'GitHub',
       name: 'Name', email: 'Email', subject: 'Subject', message: 'Message',
-      name_ph: 'Jane Recruiter', email_ph: 'jane@company.com', subject_ph: "What's this about?",
+      name_ph: 'John Doe', email_ph: 'johndoe@company.com', subject_ph: "What's this about?",
       message_ph: "We're hiring a software engineer and your profile caught my eye…",
       err_name: 'Please add your name', err_email_empty: 'Please add an email', err_email_bad: 'That email looks off',
       err_subject: 'Add a short subject', err_message: 'A short note helps',
