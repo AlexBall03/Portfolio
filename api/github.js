@@ -8,7 +8,7 @@ const GITHUB_API = 'https://api.github.com';
 // verifiable against the specific fields this endpoint depends on.
 const API_VERSION = '2022-11-28';
 
-const DEFAULT_ALLOWED_ORIGINS = ['https://alexball.dev', 'http://localhost:5173'];
+const DEFAULT_ALLOWED_ORIGINS = ['https://alexball.dev', 'https://www.alexball.dev', 'http://localhost:5173'];
 
 const REPO_PAGE_SIZE = 100;
 const MAX_REPO_PAGES = 10;
