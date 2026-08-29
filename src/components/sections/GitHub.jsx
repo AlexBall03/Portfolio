@@ -54,6 +54,10 @@ function formatRelativeTime(iso, locale) {
   return rtf.format(0, 'minute');
 }
 
+function formatCellDate(iso, locale) {
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso));
+}
+
 export default function GitHub() {
   const { data, strings, locale } = useApp();
   const T = strings.github;
@@ -61,7 +65,9 @@ export default function GitHub() {
 
   const cells = useMemo(() => {
     if (!gh?.contributionCalendar?.weeks) return null;
-    return gh.contributionCalendar.weeks.flatMap((w) => w.days.map((d) => bucketLevel(d.count)));
+    return gh.contributionCalendar.weeks.flatMap((w) =>
+      w.days.map((d) => ({ level: bucketLevel(d.count), date: d.date, count: d.count }))
+    );
   }, [gh]);
 
   const [reposRef, reposDisplay] = useCountUp(gh?.profile?.publicRepos || 0);
@@ -107,7 +113,13 @@ export default function GitHub() {
                 {cells ? (
                   <>
                     <div className="gh-contrib">
-                      {cells.map((l, i) => <span key={i} className={`gh-cell ${l ? 'l' + l : ''}`} />)}
+                      {cells.map((c, i) => (
+                        <span
+                          key={i}
+                          className={`gh-cell ${c.level ? 'l' + c.level : ''}`}
+                          title={`${c.count} ${c.count === 1 ? T.cellContribution : T.cellContributions} ${T.cellOn} ${formatCellDate(c.date, locale)}`}
+                        />
+                      ))}
                     </div>
                     <div className="gh-legend">
                       <span>{T.less}</span>
