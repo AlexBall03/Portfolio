@@ -1,0 +1,115 @@
+/* ============================================================
+   API Portal — dark developer-console styling built from the
+   portfolio's existing design tokens (src/styles/styles.css).
+   Scoped entirely under .api-portal so it never bleeds into the
+   portfolio bundle it ships alongside.
+   ============================================================ */
+
+.api-portal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(80% 60% at 15% -10%, rgba(45,127,249,0.08), transparent 55%),
+    radial-gradient(60% 50% at 100% 0%, rgba(212,175,55,0.05), transparent 50%);
+}
+
+.api-portal-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-block: clamp(48px, 8vw, 96px);
+  gap: clamp(48px, 7vw, 80px);
+}
+
+.api-portal main { flex: 1; }
+
+/* ---- Header ---- */
+.api-header { display: flex; flex-direction: column; gap: 14px; }
+.api-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.api-wordmark {
+  font-size: 0.92rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.api-version {
+  color: var(--faint);
+  font-size: 0.78rem;
+}
+.api-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  color: var(--white);
+  margin: 0;
+}
+.api-sub { color: var(--muted); font-size: 1.02rem; max-width: 520px; margin: 0; }
+.api-header .status-badge { width: fit-content; margin-top: 4px; }
+
+/* ---- Endpoint list ---- */
+.endpoint-section-title {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 0 0 20px;
+}
+.endpoint-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+.endpoint-card { padding: 26px; display: flex; flex-direction: column; gap: 10px; }
+.endpoint-head { display: flex; align-items: center; gap: 10px; }
+.endpoint-path { color: var(--text); font-size: 0.92rem; }
+.method-badge { font-weight: 600; }
+.endpoint-name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--white);
+  margin: 4px 0 0;
+}
+.endpoint-desc { color: var(--muted); font-size: 0.92rem; margin: 0; }
+.endpoint-card .link-arrow { margin-top: 8px; }
+
+/* ---- 404 ---- */
+.api-404 {
+  padding: 48px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 480px;
+}
+.api-404-code {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+}
+.api-404 h2 { font-family: var(--font-display); color: var(--white); margin: 0; }
+.api-404-links { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+
+/* ---- Footer ---- */
+.api-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--faint);
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+.api-footer-links { display: flex; gap: 18px; }
+.api-footer-links a { color: var(--muted); transition: color 0.3s var(--ease); }
+.api-footer-links a:hover { color: var(--white); }
+
+@media (max-width: 640px) {
+  .api-header-top { flex-direction: column; align-items: flex-start; gap: 12px; }
+}

@@ -67,19 +67,6 @@ export const DATA_ALL = {
       { cat: 'Data',     icon: 'database', gold: true, skills: ['Microsoft SQL Server', 'Oracle SQL'] },
     ],
     learning: ['Docker', 'CI/CD', 'Azure', 'Linux', 'Kubernetes'],
-    github: {
-      stats: [
-        { v: '—', k: 'Public Repos' },     // TODO real numbers
-        { v: '—', k: 'Contributions' },
-        { v: '—', k: 'Stars Earned' },
-        { v: '—', k: 'Followers' },
-      ],
-      repos: [
-        { name: 'ledger-app',      desc: 'Full-stack budgeting application',     lang: 'C#',         color: '#9b6dd6' },
-        { name: 'cadence',         desc: 'Music director scheduling toolkit',     lang: 'JavaScript', color: '#f1e05a' },
-        { name: 'atlas-missions',  desc: 'Missions logistics tracker',            lang: 'C#',         color: '#9b6dd6' },
-      ],
-    },
     roles: [
       { t: 'Software Engineer',  gold: false },
       { t: 'Music Director',     gold: true  },
@@ -170,19 +157,6 @@ export const DATA_ALL = {
       { cat: 'Datos',    icon: 'database', gold: true, skills: ['Microsoft SQL Server', 'Oracle SQL'] },
     ],
     learning: ['Docker', 'CI/CD', 'Azure', 'Linux', 'Kubernetes'],
-    github: {
-      stats: [
-        { v: '—', k: 'Repos Públicos' },
-        { v: '—', k: 'Contribuciones' },
-        { v: '—', k: 'Estrellas Obtenidas' },
-        { v: '—', k: 'Seguidores' },
-      ],
-      repos: [
-        { name: 'ledger-app',     desc: 'Aplicación de presupuesto full-stack',             lang: 'C#',         color: '#9b6dd6' },
-        { name: 'cadence',        desc: 'Herramienta de programación para director musical', lang: 'JavaScript', color: '#f1e05a' },
-        { name: 'atlas-missions', desc: 'Rastreador de logística de misiones',               lang: 'C#',         color: '#9b6dd6' },
-      ],
-    },
     roles: [
       { t: 'Ingeniero de Software', gold: false },
       { t: 'Director Musical',      gold: true  },

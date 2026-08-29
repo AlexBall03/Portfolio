@@ -467,7 +467,7 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 .gh-ava svg { width: 22px; height: 22px; }
 .gh-user .u-name { color: var(--white); font-weight: 600; font-family: var(--font-display); }
 .gh-user .u-handle { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
-.gh-contrib { display: grid; grid-template-columns: repeat(26, 1fr); gap: 3px; }
+.gh-contrib { display: grid; grid-template-columns: repeat(26, 1fr); grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 3px; }
 .gh-cell { aspect-ratio: 1; border-radius: 2px; background: rgba(255,255,255,0.04); }
 .gh-cell.l1 { background: rgba(45,127,249,0.28); }
 .gh-cell.l2 { background: rgba(45,127,249,0.5); }
@@ -487,6 +487,14 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 .gh-repo .r-meta { display: flex; gap: 16px; margin-top: 11px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--faint); }
 .gh-repo .r-meta .lang { display: flex; align-items: center; gap: 0.4em; }
 .gh-repo .r-meta .dot { width: 8px; height: 8px; border-radius: 50%; }
+.gh-caption { color: var(--faint); font-size: 0.78rem; margin-top: 10px; text-align: right; }
+.gh-unavailable { color: var(--faint); font-size: 0.82rem; padding: 20px 0; text-align: center; }
+.gh-activity { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.gh-activity-title { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+.gh-activity-item { display: flex; justify-content: space-between; gap: 12px; font-size: 0.82rem; color: var(--muted); }
+.gh-activity-item a { color: var(--accent-300); }
+.gh-activity-item .time { color: var(--faint); font-family: var(--font-mono); font-size: 0.72rem; white-space: nowrap; }
+.gh-last-activity { color: var(--faint); font-size: 0.78rem; margin-top: 12px; }
 
 /* ---------- About ---------- */
 .about-grid { display: grid; grid-template-columns: 1fr 0.85fr; gap: clamp(32px, 5vw, 64px); align-items: start; }
