@@ -16,7 +16,7 @@ const MAX = { name: 100, email: 254, subject: 150, message: 5000 };
 const SUBJECT_PREFIX = 'Portfolio Contact — ';
 // Sender and recipient are intentionally the same mailbox: notifications are
 // addressed from the site to itself, and Reply-To carries the visitor.
-const FROM_NAME = 'alexball.dev Contact Form';
+const FROM_NAME = 'Portfolio Contact Form';
 const DEFAULT_FROM_EMAIL = 'contact@alexball.dev';
 const DEFAULT_TO_EMAIL = 'contact@alexball.dev';
 

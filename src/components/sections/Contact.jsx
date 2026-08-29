@@ -44,7 +44,7 @@ export default function Contact() {
         message: form.message.trim(),
         company: form.company,
       });
-      setSentName(form.name.trim().split(' ')[0]);
+      setSentName(form.name.trim());
       setForm(EMPTY_FORM);
       setStatus('idle');
       setSent(true);
