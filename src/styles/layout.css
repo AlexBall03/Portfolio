@@ -570,6 +570,10 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 }
 .form-field.err input, .form-field.err textarea { border-color: #f4646c; box-shadow: 0 0 0 3px rgba(244,100,108,0.12); }
 .form-err { color: #f4949a; font-size: 0.78rem; margin-top: 7px; font-family: var(--font-mono); }
+/* Honeypot — kept out of sight without display:none, which some bots skip. */
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.form-status { font-family: var(--font-mono); font-size: 0.78rem; margin-top: 14px; text-align: center; }
+.form-status.err { color: #f4949a; }
 .form-success {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; gap: 14px; min-height: 320px; padding: 30px;

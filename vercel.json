@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/github", "has": [{ "type": "host", "value": "api.alexball.dev" }], "destination": "/api/github" },
+    { "source": "/contact", "has": [{ "type": "host", "value": "api.alexball.dev" }], "destination": "/api/contact" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

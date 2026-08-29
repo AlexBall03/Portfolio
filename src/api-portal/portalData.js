@@ -9,6 +9,13 @@ export const ENDPOINTS = [
     description: 'Public GitHub profile, repository statistics, repositories, and recent development activity.',
     status: 'operational',
   },
+  {
+    name: 'Contact',
+    method: 'POST',
+    path: '/contact',
+    description: 'Sends portfolio contact-form messages.',
+    status: 'operational',
+  },
 ];
 
 export const PORTAL_META = {

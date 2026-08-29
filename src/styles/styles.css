@@ -261,6 +261,9 @@ section.band {
 }
 .btn svg { width: 17px; height: 17px; transition: transform .35s var(--ease); }
 .btn:active { transform: translateY(0) scale(0.985); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn:disabled:hover { transform: none; }
+.btn:disabled:active { transform: none; }
 
 .btn-primary {
   background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent), #0a3a8c 32%));
