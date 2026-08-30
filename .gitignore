@@ -7,3 +7,6 @@ dist-ssr/
 !.env.example
 .DS_Store
 Thumbs.db
+
+# scratch dir for scripts/generate-icons.ps1 -> scripts/make-ico.mjs
+public/.ico-tmp/
