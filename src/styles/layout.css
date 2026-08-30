@@ -61,6 +61,14 @@
   background: var(--accent); transform: translateX(-50%);
   box-shadow: 0 0 8px var(--accent);
 }
+/* Matches the links' font size and vertical padding so the bar's height is
+   unchanged, and their 10px radius — the concentric match inside a 16px-radius
+   container with 8px of padding — rather than the .btn base's 999px pill. */
+.nav-cta {
+  font-size: 0.88rem;
+  padding: 0.55em 1.15em;
+  border-radius: 10px;
+}
 
 .screen {
   display: flex; flex-direction: column; flex: 1 0 auto;

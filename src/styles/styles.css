@@ -90,6 +90,12 @@
 [data-theme="light"] .channel:hover, [data-theme="light"] .gh-repo:hover { background: rgba(11,15,20,0.07); border-color: rgba(11,15,20,0.14); }
 [data-theme="light"] .resume-bar .dots i { background: rgba(11,15,20,0.16); }
 [data-theme="light"] .badge-live, [data-theme="light"] .proj-media .num { background: rgba(20,24,31,0.6); }
+/* --accent-300 is the accent lightened 32% — fine on the dark ground, too pale
+   on the light one. Darken the blue instead so resting label text stays legible. */
+[data-theme="light"] .btn-outline {
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  color: color-mix(in oklab, var(--accent), black 18%);
+}
 
 body, .card, .btn, .nav { transition: background-color .35s var(--ease), border-color .35s var(--ease), color .35s var(--ease); }
 
@@ -289,6 +295,26 @@ section.band {
   transform: translateY(-2px);
   border-color: rgba(212,175,55,0.4);
   background: rgba(255,255,255,0.045);
+}
+
+/* secondary CTA — outline at rest, fills on hover.
+   One tier below .btn-primary: same fill, none of the glow. */
+.btn-outline {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--accent), transparent 55%);
+  color: var(--accent-300);
+}
+.btn-outline:hover,
+.btn-outline.is-active {
+  background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent), #0a3a8c 32%));
+  border-color: transparent;
+  color: var(--white);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent), white 18%) inset,
+              0 10px 24px -14px rgba(0,0,0,0.8);
+}
+.btn-outline:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent), transparent 40%);
+  outline-offset: 2px;
 }
 
 .btn-sm { padding: 0.62em 1.05em; font-size: 0.85rem; }

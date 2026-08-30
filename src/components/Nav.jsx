@@ -8,6 +8,10 @@ const MOBILE_ICONS = {
   experience: 'briefcase', resume: 'award', contact: 'mail',
 };
 
+// Pulled out of the desktop link row and rendered as the nav's call to action.
+// The mobile drawer still lists every screen, this one included.
+const CTA_ID = 'contact';
+
 export default function Nav({ screens }) {
   const { screen } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,6 +39,9 @@ export default function Nav({ screens }) {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const navLinks = screens.filter((n) => n.id !== CTA_ID);
+  const cta = screens.find((n) => n.id === CTA_ID);
+
   return (
     <>
       <nav className={`nav ${scrolled ? 'scrolled' : ''}`}>
@@ -43,13 +50,23 @@ export default function Nav({ screens }) {
             <span className="bk">&lt;/</span>Alex<span className="dash">-</span>Ball<span className="bk">\&gt;</span>
           </Link>
           <div className="nav-links">
-            {screens.map((n) => (
+            {navLinks.map((n) => (
               <Link key={n.id} to={n.path} className={screen === n.id ? 'active' : ''}
                  onClick={closeMenu}>
                 {n.label}
               </Link>
             ))}
           </div>
+          {cta && (
+            <Link
+              to={cta.path}
+              className={`btn btn-outline nav-cta ${screen === cta.id ? 'is-active' : ''}`}
+              aria-current={screen === cta.id ? 'page' : undefined}
+              onClick={closeMenu}
+            >
+              {cta.label}
+            </Link>
+          )}
         </div>
       </nav>
 
