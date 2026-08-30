@@ -72,7 +72,7 @@ export const STR = {
     nav: { home: 'Inicio', about: 'Acerca', projects: 'Proyectos', experience: 'Experiencia', resume: 'Currículum', contact: 'Contacto' },
     hero: {
       focus_label: 'Enfoque',         focus_val: 'Desarrollo Full-Stack',
-      stack_label: 'Stack Principal',  stack_val: 'C# · .NET · SQL',
+      stack_label: 'Stack Principal',  stack_val: 'JS · C# · SQL',
       based_label: 'Ubicación',
       cta_contact: 'Contáctame', cta_projects: 'Ver Proyectos',
       chip1: 'Desarrollador Full-Stack', chip2: 'Siempre Construyendo',

@@ -16,7 +16,7 @@ export const DATA_ALL = {
       resume: '/assets/Alexander-Ball-Resume.pdf',
     },
     snapshot: [
-      { icon: 'cap',    value: 50, suffix: '%', label: 'B.S. Degree Progress', note: 'Computer Science' },
+      { icon: 'cap',    value: 50, suffix: '%', label: 'B.S. Degree Progress', note: 'Software Engineering' },
       { icon: 'code',   value: 1,  suffix: '+', label: 'Years Programming',    note: 'and counting' },
       { icon: 'cube',   value: 12, suffix: '',  label: 'Projects Built',       note: 'and growing', gold: true }, // TODO confirm count
       { icon: 'layers', value: 9,  suffix: '',  label: 'Technologies Used',    note: 'core stack' },
@@ -29,9 +29,9 @@ export const DATA_ALL = {
     ],
     career: [
       {
-        date: '2025 — Present', role: 'Software Engineer', org: 'Placeholder Company', current: true,
+        date: 'March 2026 — Present', role: 'Junior Software Developer', org: 'ENSYTE Energy Software International', current: true,
         blurb: 'Replace with your current or most recent engineering role — what you build, the stack, and the impact.',
-        tags: ['C#', '.NET', 'SQL Server'],
+        tags: ['HTML', 'CSS', 'JavaScript', 'jQuery', 'Angular', 'C#/.NET', 'Oracle/SQL Server'],
       },
       {
         date: '2024 — 2025', role: 'Software Developer (Student)', org: 'Placeholder Org',
@@ -46,9 +46,9 @@ export const DATA_ALL = {
     ],
     education: [
       {
-        date: '2024 — Present', role: 'B.S. Computer Science', org: 'Placeholder University', current: true,
-        blurb: 'In progress — 50% complete. Add concentration and notable coursework.',
-        tags: ['Algorithms', 'Databases', 'Software Eng'],
+        date: '2024 — Present', role: 'B.S. Software Engineering', org: 'Western Governors University', current: true,
+        blurb: 'In progress — ~50% complete. Emphasis in Java.',
+        tags: ['Algorithms', 'Databases', 'Software Engineering', 'Web Development', 'Data Structures', 'Java'],
       },
       {
         date: '2023', role: 'Associate / Foundations', org: 'Placeholder College',
@@ -68,10 +68,11 @@ export const DATA_ALL = {
     ],
     learning: ['Docker', 'CI/CD', 'Azure', 'Linux', 'Kubernetes'],
     roles: [
-      { t: 'Software Engineer',  gold: false },
-      { t: 'Music Director',     gold: true  },
-      { t: 'Public Speaker',     gold: false },
-      { t: 'Lifelong Learner',   gold: true  },
+      { t: 'Software Engineer',      gold: false  },
+      { t: 'Music Director',         gold: true   },
+      { t: 'Public Speaker',         gold: false  },
+      { t: 'Meteorology Enthusiast', gold: true   },
+      { t: 'Lifelong Learner',       gold: false  },
     ],
     about: [
       'I build modern software with an emphasis on clarity, reliability, and maintainability. My background blends hands-on engineering with leadership — and I bring the same discipline to code that I bring to directing a team.',
