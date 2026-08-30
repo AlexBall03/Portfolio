@@ -78,7 +78,8 @@ export default function Contact() {
               <div className="eyebrow">
                 <span className="idx">08</span><span className="bar" /><span>Contact</span>
               </div>
-              <h2 style={{ marginTop: 18 }}>{T.heading1}<br />{T.heading2}</h2>
+              {/* heading2 is optional — a locale with a one-line heading leaves it empty. */}
+              <h2 style={{ marginTop: 18 }}>{T.heading1}{T.heading2 && <><br />{T.heading2}</>}</h2>
               <p className="lead">{T.lead}</p>
               <div className="contact-channels">
                 {channels.map((c) => (
@@ -100,7 +101,8 @@ export default function Contact() {
                 <div className="form-success" role="status">
                   <span className="ok-ic"><Icon name="check" /></span>
                   <h3 style={{ fontSize: '1.5rem' }}>{T.sent_title}</h3>
-                  <p className="dim">{T.sent_thanks} {sentName} {T.sent_body}</p>
+                  {/* sent_body opens with its own punctuation, so it butts against the name. */}
+                  <p className="dim">{T.sent_thanks} {sentName}{T.sent_body}</p>
                   <button className="btn btn-ghost btn-sm" onClick={reset}>
                     {T.send_another}
                   </button>

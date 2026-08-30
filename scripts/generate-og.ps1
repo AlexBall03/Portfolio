@@ -192,12 +192,12 @@ $AVAILABILITY = 'OPEN TO SOFTWARE ENGINEERING ROLES'
 $NAME_L1      = 'Alexander'
 $NAME_L2      = 'D. Ball'
 $TITLE        = 'Software Engineer'
-$STATEMENT    = 'Building modern software with clarity, reliability, and purpose.'
+$STATEMENT    = 'Software engineer focused on full-stack development, backend systems, and DevOps.'
 $DOMAIN       = 'alexball.dev'
 $CAP_NAME     = 'Alexander D. Ball'
 $SIG          = '</AB\>'
 $CHIP1        = 'Full-Stack Developer'
-$CHIP2        = 'Always Building'
+$CHIP2        = 'Building & Learning'
 $META = @(
   @{ k = 'FOCUS';      v = 'Full-Stack Development' },
   @{ k = 'CORE STACK'; v = 'JS · C# · SQL' },
