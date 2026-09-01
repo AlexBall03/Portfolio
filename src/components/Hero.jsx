@@ -37,9 +37,9 @@ export default function Hero() {
 
             <Reveal delay={300}>
               <div className="hero-cta">
-                <a href={`mailto:${D.email}`} className="btn btn-primary">
+                <Link to="/contact" className="btn btn-primary">
                   {T.cta_contact} <Icon name="arrowRight" />
-                </a>
+                </Link>
                 <Link to="/projects" className="btn btn-ghost">
                   {T.cta_projects}
                 </Link>
