@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { buildCommands, filterCommands, GROUP_ORDER } from '../data/commands';
@@ -78,16 +78,21 @@ export default function CommandPalette({ open, onOpen, onClose, screens }) {
 
   // Opening resets the palette, locks the page behind it, and remembers who
   // opened it so focus has somewhere to go back to.
-  useEffect(() => {
+  //
+  // A layout effect, not a passive one. React flushes discrete events
+  // synchronously, so focusing here still happens inside the tap that opened
+  // the palette — and an in-gesture focus() is the only kind iOS Safari will
+  // raise the software keyboard for. Off a passive effect (or a rAF) the caret
+  // lands in the field but the keyboard stays down.
+  useLayoutEffect(() => {
     if (!open) return undefined;
     openerRef.current = document.activeElement;
     setQuery('');
     setActive(0);
     setStatus(null);
     lockScroll();
-    const raf = requestAnimationFrame(() => inputRef.current?.focus());
+    inputRef.current?.focus();
     return () => {
-      cancelAnimationFrame(raf);
       clearTimeout(copyTimer.current);
       unlockScroll();
       const opener = openerRef.current;
@@ -191,6 +196,11 @@ export default function CommandPalette({ open, onOpen, onClose, screens }) {
             autoComplete="off"
             autoCorrect="off"
             spellCheck="false"
+            // Software-keyboard hints: a search layout, no auto-capitalised
+            // first letter on a command, and a "Go" key instead of a newline.
+            inputMode="search"
+            autoCapitalize="off"
+            enterKeyHint="go"
           />
           <button ref={closeRef} type="button" className="cmdp-close" aria-label={T.close} onClick={onClose}>
             <Icon name="x" />
