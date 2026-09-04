@@ -19,6 +19,10 @@ export default function ApiPortalApp() {
       'content',
       'Public API portal for alexball.dev — live GitHub profile and activity data.'
     );
+    // The portal is served the portfolio's index.html, so it inherits the
+    // build-time JSON-LD describing alexball.dev. That graph doesn't describe
+    // this host, so drop it rather than let it be crawled here.
+    document.getElementById('ld-site')?.remove();
   }, []);
 
   const isHome = path === '/';

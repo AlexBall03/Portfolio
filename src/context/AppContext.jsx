@@ -2,7 +2,10 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { DATA_ALL } from '../data/siteData';
 import { STR, LOCALES } from '../data/siteStrings';
-import { SCREEN_IDS } from '../data/screens';
+import { SCREEN_IDS, idToPath } from '../data/screens';
+import { absUrl } from '../data/siteMeta';
+import { buildPageNode, pageTitle } from '../data/structuredData';
+import { setCanonical, setMetaProperty, setJsonLd } from '../utils/head';
 
 const AppContext = createContext(null);
 
@@ -60,13 +63,9 @@ export function AppProvider({ children }) {
     const notFound = screen === null;
     setNoindex(notFound);
 
-    if (notFound) {
-      document.title = `${strings.notFound.title} — ${data.identity.name}`;
-    } else if (screen === 'home') {
-      document.title = `${data.identity.name} — ${data.identity.title}`;
-    } else {
-      document.title = `${strings.nav[screen]} — ${data.identity.name}`;
-    }
+    document.title = notFound
+      ? `${strings.notFound.title} — ${data.identity.name}`
+      : pageTitle(screen, data, strings);
 
     const description = notFound
       ? strings.notFound.description
@@ -74,7 +73,19 @@ export function AppProvider({ children }) {
     if (description) {
       document.querySelector('meta[name="description"]')?.setAttribute('content', description);
     }
-  }, [screen, data, strings]);
+
+    // A 404 has no canonical route of its own, so it keeps pointing at home —
+    // it's already noindexed above. Every real route now canonicalises to
+    // itself instead of inheriting the homepage URL from index.html.
+    const url = absUrl(notFound ? '/' : idToPath(screen));
+    setCanonical(url);
+    setMetaProperty('og:url', url);
+
+    // Person and WebSite live in the build-time #ld-site block; this is only
+    // the page node, cross-referencing them by @id. Removed on a 404 so no
+    // structured data ever claims an invalid URL is a real page.
+    setJsonLd('ld-page', notFound ? null : buildPageNode(screen, data, strings, locale));
+  }, [screen, data, strings, locale]);
 
   return (
     <AppContext.Provider value={{
