@@ -41,7 +41,9 @@ It has since grown past a static front end: the site is backed by its own small 
 
 - **Two serverless functions** on Vercel, host-routed to a clean `api.alexball.dev` surface
 - **API portal** — a second React app rendered on the API subdomain, listing every endpoint and its status
-- **SEO** — sitemap, `robots.txt`, canonical URL, Open Graph / Twitter card, per-route title and description
+- **SEO** — per-route title, description, and canonical URL, Open Graph / Twitter card, sitemap and `robots.txt`
+- **Structured data** — Schema.org JSON-LD generated from `siteData.js`: a `Person` + `WebSite` graph inlined into `index.html` at build time, plus a per-route page node (`ProfilePage`, `CollectionPage`, `ContactPage`, `WebPage`) written at runtime
+- **Custom 404** — a real not-found screen for unmatched routes, self-`noindex`ed and excluded from the structured data
 - **Installable** — web manifest plus a full favicon and app-icon set
 - **Analytics** — Vercel Analytics, Vercel Speed Insights, and Google Analytics
 
@@ -97,11 +99,13 @@ src/
 ├── App.jsx                  # Router + screen composition
 ├── main.jsx                 # Entry point, CSS imports, portfolio/portal switch
 ├── context/
-│   └── AppContext.jsx       # Locale, theme, route-derived screen, document meta
+│   └── AppContext.jsx       # Locale, theme, route-derived screen, document head
 ├── data/
 │   ├── screens.js           # Screen ids and id -> path mapping
 │   ├── siteData.js          # All personal content (bilingual)
-│   └── siteStrings.js       # UI chrome strings (bilingual)
+│   ├── siteMeta.js          # Production URLs, JSON-LD @ids, safe serializer
+│   ├── siteStrings.js       # UI chrome strings (bilingual)
+│   └── structuredData.js    # Schema.org graph builders (Person, WebSite, pages)
 ├── services/
 │   ├── github.js            # API client + useGithubProfile hook
 │   └── contact.js           # API client for form submission
@@ -109,10 +113,11 @@ src/
 │   ├── Nav.jsx
 │   ├── Footer.jsx           # Theme + locale toggles
 │   ├── Hero.jsx
+│   ├── LocalTime.jsx        # Live Phoenix clock in the hero meta row
 │   ├── Pager.jsx            # Prev / next screen panels
 │   ├── Background.jsx
 │   └── sections/            # Snapshot, About, Stack, Projects, GitHub,
-│                            # Experience, Resume, Contact
+│                            # Experience, Resume, Contact, NotFound
 ├── api-portal/              # Second app served on api.alexball.dev
 │   ├── ApiPortalApp.jsx
 │   ├── portalData.js        # Endpoint registry
@@ -127,6 +132,9 @@ src/
 │   ├── Icon.jsx             # All SVG icons
 │   ├── Reveal.jsx           # Scroll-reveal wrapper
 │   └── SectionHead.jsx
+├── utils/
+│   ├── datetime.js          # Intl date / time formatting
+│   └── head.js              # Canonical, og:url, and JSON-LD script writers
 └── styles/
     ├── styles.css           # Design system tokens + global styles
     ├── layout.css           # Section + component layouts
@@ -210,7 +218,7 @@ All site content lives in two files:
 - **`src/data/siteData.js`** — projects, career, education, stack, identity info
 - **`src/data/siteStrings.js`** — UI labels and copy in both languages
 
-Edit those two files to make this your own.
+Edit those two files to make this your own. The JSON-LD structured data is generated from `siteData.js` as well, so identity, stack, and project changes flow into the schema automatically — there is no second list to keep in sync.
 
 ---
 
