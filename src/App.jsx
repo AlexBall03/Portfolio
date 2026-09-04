@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -8,6 +8,7 @@ import Background from './components/Background';
 import Nav from './components/Nav';
 import Footer from './components/Footer';
 import Pager from './components/Pager';
+import CommandPalette from './components/CommandPalette';
 import Hero from './components/Hero';
 import Snapshot from './components/sections/Snapshot';
 import About from './components/sections/About';
@@ -29,6 +30,12 @@ const COMPONENTS = {
 
 function AppInner() {
   const { strings } = useApp();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // Stable identities so the palette's global key listener isn't torn down and
+  // re-attached on every render of the shell.
+  const openPalette  = useCallback(() => setPaletteOpen(true),  []);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
 
   const SCREENS = useMemo(() => SCREEN_IDS.map((id) => ({
     id, label: strings.nav[id], path: idToPath(id), Comp: COMPONENTS[id],
@@ -48,7 +55,7 @@ function AppInner() {
   return (
     <>
       <Background />
-      <Nav screens={SCREENS} />
+      <Nav screens={SCREENS} onOpenPalette={openPalette} />
       <main>
         <Routes>
           {SCREENS.map((s, i) => (
@@ -69,6 +76,13 @@ function AppInner() {
         </Routes>
       </main>
       <Footer screens={SCREENS} />
+      {/* Outside <Routes>, so its shortcut listener survives navigation. */}
+      <CommandPalette
+        open={paletteOpen}
+        onOpen={openPalette}
+        onClose={closePalette}
+        screens={SCREENS}
+      />
     </>
   );
 }

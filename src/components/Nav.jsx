@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { SCREEN_ICONS } from '../data/screens';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
+import { SHORTCUT_LABEL } from '../utils/platform';
 import Icon from '../ui/Icon';
-
-const MOBILE_ICONS = {
-  home: 'bolt', about: 'user', projects: 'cube',
-  experience: 'briefcase', resume: 'award', contact: 'mail',
-};
 
 // Pulled out of the desktop link row and rendered as the nav's call to action.
 // The mobile drawer still lists every screen, this one included.
 const CTA_ID = 'contact';
 
-export default function Nav({ screens }) {
-  const { screen } = useApp();
+export default function Nav({ screens, onOpenPalette }) {
+  const { screen, strings } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  // Counted rather than set directly: tapping the drawer's search row closes
+  // the drawer and opens the palette in the same commit, and whichever effect
+  // runs second must not unlock the page under the other.
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    if (!menuOpen) return undefined;
+    lockScroll();
+    return unlockScroll;
   }, [menuOpen]);
 
   useEffect(() => {
@@ -39,8 +42,11 @@ export default function Nav({ screens }) {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const openPalette = () => { closeMenu(); onOpenPalette(); };
+
   const navLinks = screens.filter((n) => n.id !== CTA_ID);
   const cta = screens.find((n) => n.id === CTA_ID);
+  const P = strings.palette;
 
   return (
     <>
@@ -56,6 +62,19 @@ export default function Nav({ screens }) {
                 {n.label}
               </Link>
             ))}
+            {/* Inside the link row rather than beside it, so it inherits the
+                row's 2px rhythm instead of .nav-inner's 8px gap — and hides
+                with the row on mobile. */}
+            <button
+              type="button"
+              className="nav-cmdk"
+              onClick={openPalette}
+              aria-label={P.open}
+              aria-keyshortcuts="Meta+K Control+K"
+            >
+              <Icon name="search" />
+              <kbd className="mono" aria-hidden="true">{SHORTCUT_LABEL}</kbd>
+            </button>
           </div>
           {cta && (
             <Link
@@ -87,11 +106,23 @@ export default function Nav({ screens }) {
           </button>
         </div>
         <div className="mobile-drawer-links">
+          {/* Styled as the search field it opens rather than a seventh nav
+              item — there is no Cmd/Ctrl key to hint at on a phone. */}
+          <button
+            type="button"
+            className="d-search"
+            // Blur first: the drawer this sits in is about to slide off screen,
+            // and the palette restores focus to whatever opened it.
+            onClick={(e) => { e.currentTarget.blur(); openPalette(); }}
+          >
+            <Icon name="search" />
+            <span>{P.open}</span>
+          </button>
           {screens.map((n, i) => (
             <Link key={n.id} to={n.path}
                className={`d-link ${screen === n.id ? 'active' : ''}`}
                onClick={closeMenu}>
-              <span className="d-ic"><Icon name={MOBILE_ICONS[n.id]} /></span>
+              <span className="d-ic"><Icon name={SCREEN_ICONS[n.id]} /></span>
               <span className="d-label">{n.label}</span>
               <span className="d-n">{String(i + 1).padStart(2, '0')}</span>
             </Link>

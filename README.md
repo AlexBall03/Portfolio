@@ -27,6 +27,7 @@ It has since grown past a static front end: the site is backed by its own small 
 **Front end**
 
 - **6 routed screens** — Home, About, Projects, Experience, Resume, Contact, each on a real URL via React Router
+- **Command palette** — `⌘K` / `Ctrl K` from anywhere: jump to a screen, download the resume, copy my email, flip theme or language, open a profile. Accent-folding filter, arrow-key navigation, combobox semantics, no dependencies
 - **Bilingual** — full English / Spanish support, toggle in the footer, persisted in `localStorage`
 - **Dark / Light theme** — persisted in `localStorage`, honors `prefers-reduced-motion`
 - **Live GitHub section** — contribution heatmap with per-day tooltips, repositories, stars/forks/contribution counters, and a recent-activity feed, all pulled from the API at runtime
@@ -101,7 +102,8 @@ src/
 ├── context/
 │   └── AppContext.jsx       # Locale, theme, route-derived screen, document head
 ├── data/
-│   ├── screens.js           # Screen ids and id -> path mapping
+│   ├── screens.js           # Screen ids, id -> path mapping, per-screen icons
+│   ├── commands.js          # Command palette entries + filtering
 │   ├── siteData.js          # All personal content (bilingual)
 │   ├── siteMeta.js          # Production URLs, JSON-LD @ids, safe serializer
 │   ├── siteStrings.js       # UI chrome strings (bilingual)
@@ -110,7 +112,8 @@ src/
 │   ├── github.js            # API client + useGithubProfile hook
 │   └── contact.js           # API client for form submission
 ├── components/
-│   ├── Nav.jsx
+│   ├── Nav.jsx              # Desktop bar, mobile drawer, palette triggers
+│   ├── CommandPalette.jsx   # Cmd/Ctrl+K dialog
 │   ├── Footer.jsx           # Theme + locale toggles
 │   ├── Hero.jsx
 │   ├── LocalTime.jsx        # Live Phoenix clock in the hero meta row
@@ -134,7 +137,9 @@ src/
 │   └── SectionHead.jsx
 ├── utils/
 │   ├── datetime.js          # Intl date / time formatting
-│   └── head.js              # Canonical, og:url, and JSON-LD script writers
+│   ├── head.js              # Canonical, og:url, and JSON-LD script writers
+│   ├── platform.js          # Mac vs. PC shortcut label
+│   └── scrollLock.js        # Counted body scroll lock shared by overlays
 └── styles/
     ├── styles.css           # Design system tokens + global styles
     ├── layout.css           # Section + component layouts
@@ -219,6 +224,8 @@ All site content lives in two files:
 - **`src/data/siteStrings.js`** — UI labels and copy in both languages
 
 Edit those two files to make this your own. The JSON-LD structured data is generated from `siteData.js` as well, so identity, stack, and project changes flow into the schema automatically — there is no second list to keep in sync.
+
+The command palette follows the same rule: its navigation entries come from the `screens` array the nav and footer already use, and its profile, resume, and email commands read `siteData.js` directly. Adding a screen to `SCREEN_IDS` puts it in the palette. Search aliases — the terms that let "work" find Experience — live under `palette.keywords` in `siteStrings.js`, one set per language.
 
 ---
 

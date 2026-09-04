@@ -70,6 +70,37 @@
   border-radius: 10px;
 }
 
+/* Command palette trigger — last item in .nav-links, so its padding is what
+   sets its spacing against Resume. 0.75em against the links' 0.85em lands the
+   icon on the same rhythm without making the button look padded out. */
+.nav-cmdk {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0.5em 0.75em;
+  border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted);
+  font-family: var(--font-body); font-size: 0.88rem;
+  cursor: pointer;
+  transition: color .25s var(--ease), background .25s var(--ease);
+}
+.nav-cmdk svg { width: 16px; height: 16px; }
+.nav-cmdk kbd {
+  font-family: var(--font-mono); font-size: 0.66rem; line-height: 1;
+  padding: 4px 6px; border-radius: 6px;
+  border: 1px solid var(--line); background: rgba(255,255,255,0.045);
+  color: var(--faint);
+  transition: color .25s var(--ease);
+}
+.nav-cmdk:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+.nav-cmdk:hover kbd { color: var(--muted); }
+/* Same ring the nav links use, rather than the UA outline. */
+.nav-cmdk:focus-visible {
+  outline: none;
+  color: var(--white); background: rgba(255,255,255,0.04);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent), transparent 40%);
+}
+[data-theme="light"] .nav-cmdk:hover { background: rgba(11,15,20,0.045); }
+[data-theme="light"] .nav-cmdk kbd { background: rgba(11,15,20,0.045); }
+
 .screen {
   display: flex; flex-direction: column; flex: 1 0 auto;
   animation: screenIn .5s var(--ease-out);
@@ -176,6 +207,30 @@
 .d-label { font-family: var(--font-display); font-size: 1.12rem; font-weight: 500; letter-spacing: -0.01em; flex: 1; }
 .d-n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--faint); }
 .d-link.active .d-n { color: var(--gold-soft); }
+/* The palette's drawer trigger. Borrows the contact form's input treatment —
+   same padding, radius, fill and focus ring — so it reads as the search field
+   it opens instead of a seventh nav item. The --faint label stands in for a
+   placeholder. */
+.d-search {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; margin-bottom: 11px;
+  padding: 13px 15px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.025); border: 1px solid var(--line);
+  color: var(--faint);
+  font-family: var(--font-body); font-size: 0.95rem; text-align: left;
+  cursor: pointer;
+  transition: border-color .3s, background .3s, box-shadow .3s, color .3s;
+}
+.d-search svg { width: 17px; height: 17px; flex-shrink: 0; }
+.d-search:hover { background: rgba(255,255,255,0.05); border-color: var(--hair); color: var(--muted); }
+.d-search:focus-visible {
+  outline: none; border-color: var(--accent);
+  background: rgba(45,127,249,0.04);
+  box-shadow: 0 0 0 3px rgba(45,127,249,0.12);
+  color: var(--muted);
+}
+[data-theme="light"] .d-search { background: rgba(11,15,20,0.03); }
+[data-theme="light"] .d-search:hover { background: rgba(11,15,20,0.055); }
 [data-theme="light"] .mobile-scrim { background: rgba(20,24,31,0.35); }
 [data-theme="light"] .d-link:hover, [data-theme="light"] .drawer-close { background: rgba(11,15,20,0.045); }
 
@@ -660,6 +715,8 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
   .stack-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 880px) {
+  /* .nav-cmdk lives inside .nav-links, so it goes with it — no keyboard to
+     advertise here anyway, and the drawer's search row takes over. */
   .nav-links { display: none; }
   .nav-cta { display: none; }
   .nav-burger { display: flex; }
@@ -692,4 +749,175 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
   .f-col { align-items: center; }
   .footer .f-links a { justify-content: center; }
   .footer-bottom { flex-direction: column; text-align: center; }
+}
+
+/* ============================================================
+   Command palette
+   Sits above the mobile drawer (149) so the drawer can hand off to it.
+   ============================================================ */
+.cmdp-scrim {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(4, 6, 9, 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: cmdpFade .2s var(--ease-out);
+}
+.cmdp-panel {
+  position: fixed; z-index: 151;
+  left: 50%; transform: translateX(-50%);
+  top: clamp(56px, 12vh, 132px);
+  width: min(640px, calc(100vw - 28px));
+  max-height: 72vh;                    /* fallback where dvh is unsupported */
+  max-height: min(72dvh, 560px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: var(--glass-2);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+  box-shadow: var(--shadow-pop);
+  animation: cmdpIn .22s var(--ease-out);
+}
+@keyframes cmdpFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cmdpIn {
+  from { opacity: 0; transform: translate(-50%, -8px) scale(0.985); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmdp-scrim, .cmdp-panel { animation: none; }
+}
+
+.cmdp-head {
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  padding: 12px 12px 12px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  transition: border-color .25s var(--ease);
+}
+/* The input is borderless, so the head's own rule carries its focus state. */
+.cmdp-head:focus-within { border-bottom-color: color-mix(in oklab, var(--accent), transparent 55%); }
+.cmdp-head-ic { width: 17px; height: 17px; flex-shrink: 0; color: var(--faint); }
+.cmdp-input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: none;
+  color: var(--white);
+  font-family: var(--font-body);
+  /* 16px keeps iOS from zooming the page in on focus. */
+  font-size: 16px; line-height: 1.4;
+  padding: 6px 0;
+}
+.cmdp-input::placeholder { color: var(--faint); }
+.cmdp-close {
+  flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--line);
+  color: var(--muted); cursor: pointer;
+  transition: color .25s var(--ease), background .25s var(--ease);
+}
+.cmdp-close svg { width: 15px; height: 15px; }
+.cmdp-close:hover { color: var(--white); background: rgba(255,255,255,0.08); }
+.cmdp-close:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent), transparent 40%);
+  outline-offset: 2px;
+}
+
+.cmdp-list {
+  flex: 1; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px;
+}
+.cmdp-group-title {
+  font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--faint);
+  padding: 12px 12px 6px;
+}
+.cmdp-group:first-child .cmdp-group-title { padding-top: 8px; }
+
+.cmdp-item {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted); cursor: pointer;
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.cmdp-item.is-active { background: rgba(255,255,255,0.05); color: var(--white); }
+/* Same accent marker language as the active nav dot and .pager-panel hover. */
+.cmdp-item.is-active::before {
+  content: ""; position: absolute; left: 2px; top: 50%;
+  width: 3px; height: 20px; margin-top: -10px;
+  border-radius: 2px; background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.cmdp-item-ic {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--line);
+  color: var(--accent-300);
+  transition: background .18s var(--ease), border-color .18s var(--ease);
+}
+.cmdp-item-ic svg { width: 16px; height: 16px; }
+.cmdp-item.is-active .cmdp-item-ic { background: rgba(45,127,249,0.16); border-color: rgba(45,127,249,0.3); }
+.cmdp-item-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.cmdp-item-label {
+  font-size: 0.95rem; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color .18s var(--ease);
+}
+.cmdp-item.is-active .cmdp-item-label { color: var(--white); }
+.cmdp-item-hint {
+  font-size: 0.78rem; color: var(--faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cmdp-item-go {
+  width: 15px; height: 15px; flex-shrink: 0;
+  color: var(--accent-300); opacity: 0;
+  transition: opacity .18s var(--ease);
+}
+.cmdp-item.is-active .cmdp-item-go { opacity: 1; }
+
+.cmdp-empty { padding: 38px 18px; text-align: center; }
+.cmdp-empty-t { font-family: var(--font-display); font-size: 1.02rem; font-weight: 500; color: var(--white); }
+.cmdp-empty-s { font-size: 0.84rem; color: var(--muted); margin-top: 6px; }
+
+.cmdp-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-top: 1px solid var(--line-soft);
+  background: rgba(255,255,255,0.015);
+}
+.cmdp-status { font-size: 0.74rem; color: var(--faint); min-width: 0; }
+.cmdp-keys { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--faint); white-space: nowrap; }
+.cmdp-keys span { margin-right: 8px; }
+.cmdp-keys span:last-child { margin-right: 0; }
+.cmdp-keys kbd {
+  font-family: var(--font-mono); font-size: 0.68rem; line-height: 1;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 5px;
+  background: rgba(255,255,255,0.045);
+  color: var(--muted);
+}
+
+[data-theme="light"] .cmdp-scrim { background: rgba(20,24,31,0.35); }
+[data-theme="light"] .cmdp-item.is-active { background: rgba(11,15,20,0.05); }
+[data-theme="light"] .cmdp-foot { background: rgba(11,15,20,0.02); }
+[data-theme="light"] .cmdp-item-ic,
+[data-theme="light"] .cmdp-close,
+[data-theme="light"] .cmdp-keys kbd { background: rgba(11,15,20,0.045); }
+[data-theme="light"] .cmdp-close:hover { background: rgba(11,15,20,0.08); }
+
+@media (max-width: 640px) {
+  .cmdp-panel {
+    top: 14px;
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 28px);
+    max-height: calc(100dvh - 28px);
+  }
+  /* Nothing to press these keys with. */
+  .cmdp-keys { display: none; }
+  .cmdp-foot { justify-content: flex-start; }
 }
