@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import LocalTime from './LocalTime';
 import Reveal from '../ui/Reveal';
 import Icon from '../ui/Icon';
 
@@ -58,7 +59,11 @@ export default function Hero() {
                 </div>
                 <div className="m">
                   <div className="k">{T.based_label}</div>
-                  <div className="v">{D.location}</div>
+                  <div className="v">
+                    {D.location}
+                    <span className="hero-meta-sep" aria-hidden="true"> · </span>
+                    <LocalTime />
+                  </div>
                 </div>
               </div>
             </Reveal>
