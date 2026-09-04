@@ -1,11 +1,17 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { formatBuildDate } from '../utils/datetime';
 import Icon from '../ui/Icon';
 
 export default function Footer({ screens }) {
   const { data, strings, locale, setLocale, theme, setTheme, LOCALES, screen } = useApp();
   const D = data.identity;
   const T = strings.footer;
+
+  // __BUILD_TIME__ is injected by vite.config.js when the site is built, so this
+  // is the deploy date rather than whatever time the visitor's device reports.
+  const updated = useMemo(() => formatBuildDate(__BUILD_TIME__, locale), [locale]);
 
   const links = [
     { key: 'github',   label: T.github,   href: D.github,            icon: 'github' },
@@ -66,6 +72,11 @@ export default function Footer({ screens }) {
 
       <div className="wrap footer-bottom">
         <div className="f-copy">{new Date().getFullYear()} Alexander D. Ball</div>
+        {updated && (
+          <div className="f-updated mono">
+            {T.lastUpdated}: <time dateTime={__BUILD_TIME__}>{updated}</time>
+          </div>
+        )}
         <div className="f-stack mono">React · Vite · Vercel</div>
       </div>
     </footer>

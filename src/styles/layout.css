@@ -625,6 +625,8 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 .f-col-prefs { align-items: flex-start; }
 .footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .footer .f-copy { color: var(--faint); font-size: 0.8rem; font-family: var(--font-mono); }
+.footer .f-updated { color: var(--faint); font-size: 0.76rem; letter-spacing: 0.02em; }
+.footer .f-updated time { color: var(--muted); }
 .f-stack { color: var(--faint); font-size: 0.76rem; letter-spacing: 0.02em; }
 
 /* ============================================================

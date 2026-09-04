@@ -54,7 +54,7 @@ export const STR = {
       sent_body: "! Your message is in my inbox. I'll get back to you as soon as I can.", send_another: 'Send another',
       direct_note: 'This form goes straight to my inbox. You can also email me directly at',
     },
-    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Email', resume: 'Resume', siteLabel: 'Site', connectLabel: 'Connect' },
+    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Email', resume: 'Resume', siteLabel: 'Site', connectLabel: 'Connect', lastUpdated: 'Last updated' },
     toggles: { theme: 'Theme', light: 'Light', dark: 'Dark', lang: 'Language' },
     pager: {
       descriptions: {
@@ -120,7 +120,7 @@ export const STR = {
       sent_body: '! Tu mensaje ya llegó a mi bandeja. Te respondo en cuanto pueda.', send_another: 'Enviar otro',
       direct_note: 'Este formulario llega directo a mi bandeja. También puedes escribirme a',
     },
-    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Correo', resume: 'Currículum', siteLabel: 'Sitio', connectLabel: 'Conecta' },
+    footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Correo', resume: 'Currículum', siteLabel: 'Sitio', connectLabel: 'Conecta', lastUpdated: 'Última actualización' },
     toggles: { theme: 'Tema', light: 'Claro', dark: 'Oscuro', lang: 'Idioma' },
     pager: {
       descriptions: {
