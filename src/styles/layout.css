@@ -591,6 +591,25 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 .form-success .ok-ic { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: rgba(52,208,122,0.12); border: 1px solid rgba(52,208,122,0.3); color: #34d07a; }
 .form-success .ok-ic svg { width: 28px; height: 28px; }
 
+/* ---------- 404 ---------- */
+.nf { display: flex; align-items: center; min-height: min(64vh, 620px); }
+.nf-inner {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 20px;
+}
+.nf-code {
+  font-size: clamp(4rem, 14vw, 9rem);
+  font-weight: 700; line-height: 1; letter-spacing: -0.04em;
+  color: var(--faint);
+}
+.nf-code::after {
+  content: ""; display: block; margin: 22px auto 0;
+  width: 56px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.nf-lead { max-width: 48ch; color: var(--muted); }
+.nf-cta { display: flex; gap: 14px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+
 /* ---------- Footer ---------- */
 .footer {
   position: relative; z-index: 1; overflow: hidden;

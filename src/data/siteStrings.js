@@ -56,6 +56,15 @@ export const STR = {
     },
     footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Email', resume: 'Resume', siteLabel: 'Site', connectLabel: 'Connect', lastUpdated: 'Last updated' },
     toggles: { theme: 'Theme', light: 'Light', dark: 'Dark', lang: 'Language' },
+    notFound: {
+      code: '404',
+      heading: 'Page Not Found',
+      lead: "That route doesn't exist on this site. It may have been renamed, or the link that brought you here is out of date.",
+      home: 'Back to Home',
+      back: 'Go Back',
+      title: '404 — Page Not Found',
+      description: "This page doesn't exist. Head back to the homepage to keep browsing.",
+    },
     pager: {
       descriptions: {
         home: 'Software engineer focused on full-stack development, backend systems, and DevOps.',
@@ -122,6 +131,15 @@ export const STR = {
     },
     footer:  { github: 'GitHub', linkedin: 'LinkedIn', email: 'Correo', resume: 'Currículum', siteLabel: 'Sitio', connectLabel: 'Conecta', lastUpdated: 'Última actualización' },
     toggles: { theme: 'Tema', light: 'Claro', dark: 'Oscuro', lang: 'Idioma' },
+    notFound: {
+      code: '404',
+      heading: 'Página No Encontrada',
+      lead: 'Esa ruta no existe en este sitio. Puede que haya cambiado de nombre o que el enlace que te trajo aquí esté desactualizado.',
+      home: 'Volver al Inicio',
+      back: 'Regresar',
+      title: '404 — Página No Encontrada',
+      description: 'Esta página no existe. Vuelve al inicio para seguir navegando.',
+    },
     pager: {
       descriptions: {
         home: 'Ingeniero de software enfocado en desarrollo full-stack, sistemas backend y DevOps.',

@@ -9,9 +9,24 @@ const AppContext = createContext(null);
 const ACCENT = '#2D7FF9';
 const GLOW   = 0.5;
 
+// Returns null for a path that matches no screen, so the 404 route can be told
+// apart from home — nav links stay unhighlighted and the head gets noindexed.
+// Lowercased because React Router matches routes case-insensitively: /ABOUT
+// renders the real About screen, so it must not be treated as a 404 here.
 function pathToId(pathname) {
-  const id = pathname.replace(/^\/+|\/+$/g, '');
-  return id && SCREEN_IDS.includes(id) ? id : 'home';
+  const id = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+  if (!id) return 'home';
+  return SCREEN_IDS.includes(id) ? id : null;
+}
+
+// Search engines shouldn't index a not-found route. 'follow' still lets them
+// crawl the links back into the real site.
+function setNoindex(on) {
+  const existing = document.querySelector('meta[name="robots"]');
+  if (!on) { existing?.remove(); return; }
+  const tag = existing || document.head.appendChild(document.createElement('meta'));
+  tag.setAttribute('name', 'robots');
+  tag.setAttribute('content', 'noindex, follow');
 }
 
 export function AppProvider({ children }) {
@@ -42,11 +57,20 @@ export function AppProvider({ children }) {
   }, [location.pathname]);
 
   useEffect(() => {
-    document.title = screen === 'home'
-      ? `${data.identity.name} — ${data.identity.title}`
-      : `${strings.nav[screen]} — ${data.identity.name}`;
+    const notFound = screen === null;
+    setNoindex(notFound);
 
-    const description = strings.pager?.descriptions?.[screen];
+    if (notFound) {
+      document.title = `${strings.notFound.title} — ${data.identity.name}`;
+    } else if (screen === 'home') {
+      document.title = `${data.identity.name} — ${data.identity.title}`;
+    } else {
+      document.title = `${strings.nav[screen]} — ${data.identity.name}`;
+    }
+
+    const description = notFound
+      ? strings.notFound.description
+      : strings.pager?.descriptions?.[screen];
     if (description) {
       document.querySelector('meta[name="description"]')?.setAttribute('content', description);
     }

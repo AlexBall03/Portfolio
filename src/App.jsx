@@ -1,5 +1,5 @@
 import { useMemo, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AppProvider, useApp } from './context/AppContext';
@@ -17,6 +17,7 @@ import GitHub from './components/sections/GitHub';
 import Experience from './components/sections/Experience';
 import Resume from './components/sections/Resume';
 import Contact from './components/sections/Contact';
+import NotFound from './components/sections/NotFound';
 
 function AboutScreen()    { return <><Snapshot /><About /><Stack /></>; }
 function ProjectsScreen() { return <><Projects /><GitHub /></>; }
@@ -60,7 +61,11 @@ function AppInner() {
               </div>
             } />
           ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={
+            <div className="screen">
+              <div className="screen-body"><NotFound /></div>
+            </div>
+          } />
         </Routes>
       </main>
       <Footer screens={SCREENS} />
