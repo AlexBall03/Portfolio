@@ -15,9 +15,16 @@ function TimelineItem({ item, gold }) {
         <div className="card tl-card">
           <div className="role-line">
             <h4>{item.role}</h4>
+            {item.type && <span className="etype">{item.type}</span>}
           </div>
-          <div className="org">{item.org}</div>
-          <p className="blurb">{item.blurb}</p>
+          <div className="org">{item.org}{item.location && <span className="loc"> · {item.location}</span>}</div>
+          {item.blurb && (
+            <div className="blurb">
+              {(Array.isArray(item.blurb) ? item.blurb : [item.blurb]).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
+          )}
           {item.tags && (
             <div className="meta">
               {item.tags.map((t) => <span className="tag" key={t}>{t}</span>)}
@@ -44,7 +51,7 @@ export default function Experience() {
                     role="tab" aria-selected={tab === 'career'}>
               <Icon name="briefcase" /> {T.career}
             </button>
-            <button className={tab === 'education' ? 'on' : ''} onClick={() => setTab('education')}
+            <button className={`gold ${tab === 'education' ? 'on' : ''}`} onClick={() => setTab('education')}
                     role="tab" aria-selected={tab === 'education'}>
               <Icon name="cap" /> {T.education}
             </button>

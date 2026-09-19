@@ -16,10 +16,10 @@ export const DATA_ALL = {
       resume: '/assets/Alexander-Ball-Resume.pdf',
     },
     snapshot: [
-      { icon: 'cap',    value: 50, suffix: '%', label: 'B.S. Degree Progress', note: 'Software Engineering' },
-      { icon: 'code',   value: 1,  suffix: '+', label: 'Years Programming',    note: 'and counting' },
+      { icon: 'cap',    value: 60, suffix: '%', label: 'Degree Progress',      note: 'B.S. → M.S. Software Engineering' },
+      { icon: 'code',   value: 2,  suffix: '+', label: 'Years Programming',    note: 'and counting' },
       { icon: 'cube',   value: 12, suffix: '',  label: 'Projects Built',       note: 'and growing', gold: true }, // TODO confirm count
-      { icon: 'layers', value: 9,  suffix: '',  label: 'Technologies Used',    note: 'core stack' },
+      { icon: 'layers', value: 10, suffix: '',  label: 'Technologies Used',    note: 'core stack' },
     ],
     projects: [],
     archive: [
@@ -29,40 +29,71 @@ export const DATA_ALL = {
     ],
     career: [
       {
-        date: 'March 2026 — Present', role: 'Junior Software Developer', org: 'ENSYTE Energy Software International', current: true,
-        blurb: 'Replace with your current or most recent engineering role — what you build, the stack, and the impact.',
-        tags: ['HTML', 'CSS', 'JavaScript', 'jQuery', 'Angular', 'C#/.NET', 'Oracle/SQL Server'],
+        date: 'March 2026 — Present', role: 'Junior Software Developer', org: 'ENSYTE Energy Software International', type: 'Full-time', location: 'Houston, Texas · Remote', current: true,
+        blurb: [
+          "Contribute to the development and modernization of legacy desktop and web applications into a modern, web-based SaaS platform using C#/.NET, JavaScript (jQuery & React), HTML, CSS (Bootstrap), and SQL across Oracle and Microsoft SQL Server.",
+          "Work across the full stack on new features, bug fixes, reporting, database-backed functionality, and legacy-system migration, with a strong focus on debugging, root-cause analysis, testing, and validation across multiple customer environments.",
+          "Leverage AI-assisted development tools, including Claude Code, to accelerate implementation, investigation, and debugging while reviewing and validating changes through testing, database verification, and code review."
+        ],
+        tags: ['HTML', 'CSS', 'JavaScript', 'jQuery', 'React', 'C#/.NET', 'SQL (Oracle/SQL Server)'],
       },
       {
-        date: '2024 — 2025', role: 'Software Developer (Student)', org: 'Placeholder Org',
-        blurb: 'A previous role, internship, or freelance engagement. Keep it to one scannable line of outcome.',
-        tags: ['JavaScript', 'Bootstrap'],
+        date: 'March 2025 — March 2026', role: 'Test Engineering Technician', org: 'DS Electronics', type: 'Full-time', location: 'Gilbert, Arizona · On-site',
+        blurb: [
+          "Responsibilities include, but are not limited to, PCB testing, assembly, and depaneling as part of the electronics production process.",
+          "All testing, assembly, and inspection is performed in accordance with ISO 9001 quality management standards."
+        ],
+        tags: ['Programming', 'Communication', 'Attention to Detail', 'Problem Solving', 'Troubleshooting', 'Teamwork', 'PCB Testing', 'ISO 9001'],
       },
       {
-        date: '2023 — 2024', role: 'IT / Support Technician', org: 'Placeholder',
-        blurb: 'Earlier experience that built your technical foundation and professionalism.',
-        tags: ['Troubleshooting'],
+        date: 'May 2023 — March 2025', role: 'Fiber Optic Assembler', org: 'Optilab LLC', type: 'Full-time', location: 'Phoenix, Arizona · On-site',
+        blurb: [
+          "Tested fiber optic devices, modules, benchtops, and rackmounts, and performed single-mode, multi-mode, and polarization-maintaining fiber splicing, soldering, and precision assembly and fiber alignment of PD, PR, and BPR devices.",
+          "Assisted engineers with assembly and testing for R&D work, and prepared and packaged finished products for customer orders."
+        ],
+        tags: ['Fiber Optics', 'Splicing (SM/MM/PM)', 'Soldering', 'Optical Alignment', 'Device Testing', 'R&D Support', 'Attention to Detail'],
+      },
+      {
+        date: 'Aug 2022 — May 2023', role: 'Layoff/position eliminated', org: 'Career break', location: 'Gilbert, Arizona',
+        blurb: [
+          "My position was eliminated due to organizational restructuring.",
+        ],
+      },
+      {
+        date: 'March 2022 — Aug 2022', role: 'Manufacturing Shop Assistant', org: 'VirTra', type: 'Full-time', location: 'Chandler, Arizona · On-site',
+        blurb: [
+          "Operated and maintained machine shop equipment, handling daily machine warmup and upkeep, laser cutting and engraving, sand blasting, and deburring of mechanical parts.",
+          "Inspected mechanical parts for quality, picked material for the machine shop and assembly floor, and managed shipping and receiving for the shop."
+        ],
+        tags: ['Machine Operation', 'Laser Cutting & Engraving', 'Sand Blasting', 'Deburring', 'Parts Inspection', 'Shipping & Receiving', 'Attention to Detail'],
+      },
+      {
+        date: 'Aug 2021 — March 2022', role: 'Mechanical Assembly Technician', org: 'VirTra', type: 'Full-time', location: 'Tempe, Arizona · On-site',
+        blurb: [
+          "Assembled and troubleshot mechanical parts as part of the production process, and assisted with inspection to verify parts met specification before final assembly.",
+          "Also performed laser cutting and engraving, and supported material picking and inventory for both the assembly floor and the machine shop."
+        ],
+        tags: ['Mechanical Assembly', 'Troubleshooting', 'Parts Inspection', 'Laser Cutting & Engraving', 'Inventory & Material Picking', 'Teamwork', 'Attention to Detail'],
       },
     ],
     education: [
       {
-        date: '2024 — Present', role: 'B.S. Software Engineering', org: 'Western Governors University', current: true,
-        blurb: 'In progress — ~50% complete. Emphasis in Java.',
-        tags: ['Algorithms', 'Databases', 'Software Engineering', 'Web Development', 'Data Structures', 'Java'],
+        date: 'Feb 2024 — Feb 2028', role: 'B.S. Software Engineering', org: 'Western Governors University', type: 'Accelerated B.S. → M.S.', current: true,
+        blurb: [
+          "As of August 2026, I moved into WGU's Accelerated Software Engineering program, which combines the Bachelor's and Master's degrees into a single track (B.S. → M.S.).",
+          "Undergraduate emphasis in Java, graduate emphasis in DevOps Engineering. Current GPA: 3.0 (WGU)."
+        ],
+        tags: ['Software Engineering', 'Algorithms', 'Data Structures', 'Databases', 'Web Development', 'Java', 'DevOps'],
       },
       {
-        date: '2023', role: 'Associate / Foundations', org: 'Placeholder College',
-        blurb: 'Prior coursework or program that started the journey. Replace with real details.',
-        tags: ['CS Fundamentals'],
-      },
-      {
-        date: 'Ongoing', role: 'Certifications', org: 'Self-directed',
-        blurb: 'List relevant certifications or learning tracks here (e.g. Azure, SQL, .NET).',
-        tags: ['In progress'],
+        date: '2017 — 2021', role: 'High School Diploma', org: 'Homeschool',
+        blurb: [
+          "Completed a homeschool curriculum and graduated with a 4.0 GPA."
+        ],
       },
     ],
     stack: [
-      { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'JavaScript', 'Bootstrap', 'jQuery'] },
+      { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'JavaScript', 'Bootstrap', 'jQuery', 'React'] },
       { cat: 'Backend',  icon: 'server',   skills: ['C#', '.NET'] },
       { cat: 'Data',     icon: 'database', gold: true, skills: ['Microsoft SQL Server', 'Oracle SQL'] },
     ],
@@ -71,23 +102,29 @@ export const DATA_ALL = {
       { t: 'Software Engineer',      gold: false  },
       { t: 'Music Director',         gold: true   },
       { t: 'Public Speaker',         gold: false  },
-      { t: 'Meteorology Enthusiast', gold: true   },
-      { t: 'DevOps Enthusiast',      gold: false  },
+      { t: 'Language Learner',       gold: true  },
+      { t: 'Meteorology Enthusiast', gold: false   },
+      { t: 'DevOps Enthusiast',      gold: true  },
     ],
     about: [
-      "I'm a software developer working primarily with JavaScript, C#/.NET, and SQL. I enjoy full-stack development, and I'm especially interested in backend systems, DevOps, and the infrastructure behind reliable software.",
-      "I'm currently working toward my B.S. in Software Engineering at Western Governors University. Outside of development, I'm also a music director and public speaker, which has given me a lot of hands-on experience with leadership, communication, and working with people.",
+      "I’m a full-stack software engineer working on the migration of a legacy desktop application into a modern, cloud-hosted SaaS platform. I focus on reliable, scalable systems and practical improvements to software people actually use.",
+      "I work with HTML, CSS, JavaScript, C#/.NET, and SQL. I care about clean, maintainable code and understanding a system end to end, from the interface down to the database.",
+      "I’m pursuing a B.S. and M.S. in Software Engineering — the undergraduate degree with a Java emphasis, the graduate degree with a DevOps emphasis.",
+      "Outside of engineering, I serve as Music Director and Audio Engineer at my local church, leading music operations and handling recording and production. It has sharpened my leadership, organization, and ability to work with a team under pressure.",
+      "I’m also learning Spanish and follow meteorology and severe weather closely.",
+      "I enjoy hard problems, learning fast, and shipping work that has real impact."
     ],
     differentiators: [
       { icon: 'music',     t: 'Music Direction',          d: 'Leading musicians has taught me a lot about communication, preparation, and coordinating a team.' },
       { icon: 'mic',       t: 'Public Speaking',          d: 'Regular public speaking has made me comfortable explaining ideas clearly in front of a room.' },
-      { icon: 'languages', t: 'Languages',                d: 'Native English speaker, actively learning Spanish and Portuguese.' },
-      { icon: 'globe',     t: 'International Experience', d: 'Mission work and travel have given me experience communicating and working across different cultures.' },
+      { icon: 'languages', t: 'Languages',                d: 'Native English speaker, actively learning Spanish and will also be pursuing Portuguese, Greek, and an undecided Asian Language.' },
+      { icon: 'globe',     t: 'International Experience', d: 'Mission work and travel have given me experience communicating and working across different cultures throughout the world, including the Americas and Africa.' },
+      { icon: 'cloudSun',  t: 'Meteorology',              d: 'A long-standing interest in weather — tracking storm systems and reading forecast model data keeps me sharp at interpreting messy, real-world data.' },
       { icon: 'cap',       t: 'DevOps & Cloud',           d: 'Currently expanding into CI/CD, Linux, containers, cloud infrastructure, and Kubernetes.' },
     ],
     resumeHighlights: [
-      { t: 'Production Development',         d: 'JavaScript/jQuery, C#/.NET, and relational databases.' },
-      { t: 'Software Engineering at WGU',    d: 'B.S. in Software Engineering with a Java emphasis, currently in progress.' },
+      { t: 'Production Development',         d: 'JavaScript/jQuery, React, C#/.NET, and relational databases.' },
+      { t: 'Software Engineering at WGU',    d: 'Accelerated B.S. and M.S. in Software Engineering, with Java and DevOps emphases — in progress.' },
       { t: 'Leadership & Communication',     d: 'Music direction, public speaking, and team coordination.' },
     ],
   },
@@ -107,10 +144,10 @@ export const DATA_ALL = {
       resume: '/assets/Alexander-Ball-Resume.pdf',
     },
     snapshot: [
-      { icon: 'cap',    value: 50, suffix: '%', label: 'Avance de la Licenciatura', note: 'Ingeniería de Software' },
-      { icon: 'code',   value: 1,  suffix: '+', label: 'Años Programando',          note: 'y contando' },
+      { icon: 'cap',    value: 50, suffix: '%', label: 'Avance del Programa',       note: 'Lic. → Maestría en Ingeniería de Software' },
+      { icon: 'code',   value: 2,  suffix: '+', label: 'Años Programando',          note: 'y contando' },
       { icon: 'cube',   value: 12, suffix: '',  label: 'Proyectos Creados',          note: 'y creciendo', gold: true },
-      { icon: 'layers', value: 9,  suffix: '',  label: 'Tecnologías Utilizadas',     note: 'stack principal' },
+      { icon: 'layers', value: 10, suffix: '',  label: 'Tecnologías Utilizadas',     note: 'stack principal' },
     ],
     projects: [],
     archive: [
@@ -120,65 +157,102 @@ export const DATA_ALL = {
     ],
     career: [
       {
-        date: 'Marzo 2026 — Presente', role: 'Desarrollador de Software Junior', org: 'ENSYTE Energy Software International', current: true,
-        blurb: 'Reemplaza con tu rol de ingeniería actual o más reciente — qué construyes, el stack y el impacto.',
-        tags: ['HTML', 'CSS', 'JavaScript', 'jQuery', 'Angular', 'C#/.NET', 'Oracle/SQL Server'],
+        date: 'Marzo 2026 — Presente', role: 'Desarrollador de Software Junior', org: 'ENSYTE Energy Software International', type: 'Tiempo Completo', location: 'Houston, Texas · Remoto', current: true,
+        blurb: [
+          'Contribuyo al desarrollo y la modernización de aplicaciones heredadas de escritorio y web hacia una plataforma SaaS moderna basada en la web, usando C#/.NET, JavaScript (jQuery y React), HTML, CSS (Bootstrap) y SQL en Oracle y Microsoft SQL Server.',
+          'Trabajo en todo el stack en nuevas funcionalidades, corrección de errores, reportes, funcionalidad respaldada por bases de datos y migración de sistemas heredados, con un fuerte enfoque en la depuración, el análisis de causa raíz, las pruebas y la validación en múltiples entornos de clientes.',
+          'Utilizo herramientas de desarrollo asistido por IA, incluido Claude Code, para acelerar la implementación, la investigación y la depuración, revisando y validando los cambios mediante pruebas, verificación en base de datos y revisión de código.'
+        ],
+        tags: ['HTML', 'CSS', 'JavaScript', 'jQuery', 'React', 'C#/.NET', 'SQL (Oracle/SQL Server)'],
       },
       {
-        date: '2024 — 2025', role: 'Desarrollador de Software (Estudiante)', org: 'Organización de Ejemplo',
-        blurb: 'Un rol anterior, pasantía o proyecto independiente. Manténlo en una línea clara de resultado.',
-        tags: ['JavaScript', 'Bootstrap'],
+        date: 'Marzo 2025 — Marzo 2026', role: 'Técnico de Ingeniería de Pruebas', org: 'DS Electronics', type: 'Tiempo Completo', location: 'Gilbert, Arizona · Presencial',
+        blurb: [
+          'Mis responsabilidades incluyen, entre otras, pruebas, ensamblaje y despaneleado de placas de circuito impreso (PCB) dentro del proceso de producción electrónica.',
+          'Todas las pruebas, el ensamblaje y la inspección se realizan conforme a los estándares de gestión de calidad ISO 9001.'
+        ],
+        tags: ['Programación', 'Comunicación', 'Atención al Detalle', 'Resolución de Problemas', 'Diagnóstico', 'Trabajo en Equipo', 'Pruebas de PCB', 'ISO 9001'],
       },
       {
-        date: '2023 — 2024', role: 'Técnico de TI / Soporte', org: 'Ejemplo',
-        blurb: 'Experiencia previa que formó tu base técnica y profesionalismo.',
-        tags: ['Resolución de problemas'],
+        date: 'Mayo 2023 — Marzo 2025', role: 'Ensamblador de Fibra Óptica', org: 'Optilab LLC', type: 'Tiempo Completo', location: 'Phoenix, Arizona · Presencial',
+        blurb: [
+          'Realicé pruebas de dispositivos, módulos, equipos de banco y montajes en rack de fibra óptica, además de empalmes de fibra monomodo, multimodo y de mantenimiento de polarización, soldadura y el ensamblaje y alineación de precisión de dispositivos PD, PR y BPR.',
+          'Apoyé a los ingenieros en el ensamblaje y las pruebas de proyectos de I+D, y preparé y empaqué productos terminados para pedidos de clientes.'
+        ],
+        tags: ['Fibra Óptica', 'Empalmes (SM/MM/PM)', 'Soldadura', 'Alineación Óptica', 'Pruebas de Dispositivos', 'Apoyo en I+D', 'Atención al Detalle'],
+      },
+      {
+        date: 'Agosto 2022 — Mayo 2023', role: 'Puesto eliminado', org: 'Pausa profesional', location: 'Gilbert, Arizona',
+        blurb: [
+          'Mi puesto fue eliminado debido a una reestructuración organizacional.',
+        ],
+      },
+      {
+        date: 'Marzo 2022 — Agosto 2022', role: 'Asistente de Taller de Manufactura', org: 'VirTra', type: 'Tiempo Completo', location: 'Chandler, Arizona · Presencial',
+        blurb: [
+          'Operé y mantuve equipos del taller de máquinas, encargándome del calentamiento y mantenimiento diario de las máquinas, el corte y grabado láser, el chorro de arena y el desbarbado de piezas mecánicas.',
+          'Inspeccioné piezas mecánicas para control de calidad, preparé material para el taller y la línea de ensamblaje, y gestioné los envíos y recepciones del taller.'
+        ],
+        tags: ['Operación de Máquinas', 'Corte y Grabado Láser', 'Chorro de Arena', 'Desbarbado', 'Inspección de Piezas', 'Envíos y Recepción', 'Atención al Detalle'],
+      },
+      {
+        date: 'Agosto 2021 — Marzo 2022', role: 'Técnico de Ensamblaje Mecánico', org: 'VirTra', type: 'Tiempo Completo', location: 'Tempe, Arizona · Presencial',
+        blurb: [
+          'Ensamblé y diagnostiqué piezas mecánicas dentro del proceso de producción, y apoyé en la inspección para verificar que cumplieran las especificaciones antes del ensamblaje final.',
+          'También realicé corte y grabado láser, y apoyé en la preparación de material y el control de inventario para la línea de ensamblaje y el taller de máquinas.'
+        ],
+        tags: ['Ensamblaje Mecánico', 'Resolución de Problemas', 'Inspección de Piezas', 'Corte y Grabado Láser', 'Inventario y Material', 'Trabajo en Equipo', 'Atención al Detalle'],
       },
     ],
     education: [
       {
-        date: '2024 — Presente', role: 'Licenciatura en Ingeniería de Software', org: 'Western Governors University', current: true,
-        blurb: 'En curso — ~50% completado. Énfasis en Java.',
-        tags: ['Algoritmos', 'Bases de Datos', 'Ingeniería de Software', 'Desarrollo Web', 'Estructuras de Datos', 'Java'],
+        date: 'Feb 2024 — Feb 2028', role: 'Licenciatura en Ingeniería de Software', org: 'Western Governors University', type: 'Acelerado Lic. → Maestría', current: true,
+        blurb: [
+          'Desde agosto de 2026 formo parte del programa acelerado de Ingeniería de Software de WGU, que combina la licenciatura y la maestría en un solo plan de estudios (Lic. → Maestría).',
+          'Énfasis en Java en la licenciatura y en Ingeniería DevOps en la maestría. Promedio actual: 3.0.'
+        ],
+        tags: ['Ingeniería de Software', 'Algoritmos', 'Estructuras de Datos', 'Bases de Datos', 'Desarrollo Web', 'Java', 'DevOps'],
       },
       {
-        date: '2023', role: 'Asociado / Fundamentos', org: 'Colegio de Ejemplo',
-        blurb: 'Curso o programa previo que dio inicio al camino. Reemplaza con detalles reales.',
-        tags: ['Fundamentos de CS'],
-      },
-      {
-        date: 'En curso', role: 'Certificaciones', org: 'Autodirigido',
-        blurb: 'Enumera certificaciones o rutas de aprendizaje relevantes aquí (p. ej. Azure, SQL, .NET).',
-        tags: ['En progreso'],
+        date: '2017 — 2021', role: 'Diploma de Preparatoria', org: 'Educación en Casa',
+        blurb: [
+          'Completé un plan de estudios de educación en casa y me gradué con un promedio de 4.0.'
+        ],
       },
     ],
     stack: [
-      { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'JavaScript', 'Bootstrap', 'jQuery'] },
+      { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'JavaScript', 'Bootstrap', 'jQuery', 'React'] },
       { cat: 'Backend',  icon: 'server',   skills: ['C#', '.NET'] },
       { cat: 'Datos',    icon: 'database', gold: true, skills: ['Microsoft SQL Server', 'Oracle SQL'] },
     ],
     learning: ['Docker', 'CI/CD', 'Azure', 'Linux', 'Kubernetes'],
     roles: [
-      { t: 'Ingeniero de Software',        gold: false },
-      { t: 'Director Musical',             gold: true  },
-      { t: 'Orador Público',               gold: false },
-      { t: 'Entusiasta de la Meteorología', gold: true  },
-      { t: 'Entusiasta de DevOps',         gold: false },
+      { t: 'Ingeniero de Software',         gold: false },
+      { t: 'Director Musical',              gold: true  },
+      { t: 'Orador Público',                gold: false },
+      { t: 'Estudiante de Idiomas',         gold: true  },
+      { t: 'Entusiasta de la Meteorología', gold: false },
+      { t: 'Entusiasta de DevOps',          gold: true  },
     ],
     about: [
-      'Soy desarrollador de software y trabajo principalmente con JavaScript, C#/.NET y SQL. Disfruto el desarrollo full-stack, y me interesan especialmente los sistemas backend, DevOps y la infraestructura detrás del software confiable.',
-      'Actualmente estoy cursando mi licenciatura en Ingeniería de Software en Western Governors University. Fuera del desarrollo, también soy director musical y orador, lo cual me ha dado mucha experiencia práctica en liderazgo, comunicación y trabajo en equipo.',
+      'Soy ingeniero de software full-stack y trabajo en la migración de una aplicación de escritorio heredada hacia una plataforma SaaS moderna alojada en la nube. Me enfoco en sistemas confiables y escalables, y en mejoras prácticas al software que la gente realmente usa.',
+      'Trabajo con HTML, CSS, JavaScript, C#/.NET y SQL. Me importa escribir código limpio y mantenible, y entender el sistema de principio a fin, desde la interfaz hasta la base de datos.',
+      'Estoy cursando una licenciatura y una maestría en Ingeniería de Software: la licenciatura con énfasis en Java y la maestría con énfasis en DevOps.',
+      'Fuera de la ingeniería, soy Director Musical e Ingeniero de Audio en mi iglesia local, donde dirijo las operaciones musicales y me encargo de la grabación y la producción. Eso ha fortalecido mi liderazgo, mi organización y mi capacidad de trabajar en equipo bajo presión.',
+      'También estoy aprendiendo español y sigo de cerca la meteorología y el clima severo.',
+      'Disfruto los problemas difíciles, aprender rápido y entregar trabajo que tenga un impacto real.'
     ],
     differentiators: [
       { icon: 'music',     t: 'Dirección Musical',         d: 'Dirigir músicos me ha enseñado mucho sobre comunicación, preparación y coordinar a un equipo.' },
       { icon: 'mic',       t: 'Oratoria',                  d: 'Hablar en público con frecuencia me ha hecho sentir cómodo explicando ideas con claridad frente a una sala.' },
-      { icon: 'languages', t: 'Idiomas',                   d: 'Hablo inglés como lengua materna y estoy aprendiendo español y portugués.' },
-      { icon: 'globe',     t: 'Experiencia Internacional', d: 'El trabajo misionero y los viajes me han dado experiencia comunicándome y trabajando entre culturas distintas.' },
+      { icon: 'languages', t: 'Idiomas',                   d: 'Hablante nativo de inglés, aprendiendo español activamente, y con planes de estudiar portugués, griego y un idioma asiático por definir.' },
+      { icon: 'globe',     t: 'Experiencia Internacional', d: 'El trabajo misionero y los viajes me han dado experiencia comunicándome y trabajando entre culturas distintas alrededor del mundo, incluyendo América y África.' },
+      { icon: 'cloudSun',  t: 'Meteorología',              d: 'Un interés de siempre por el clima: seguir sistemas de tormentas e interpretar datos de modelos de pronóstico me mantiene ágil al analizar datos reales y desordenados.' },
       { icon: 'cap',       t: 'DevOps y Cloud',            d: 'Actualmente me estoy adentrando en CI/CD, Linux, contenedores, infraestructura cloud y Kubernetes.' },
     ],
     resumeHighlights: [
-      { t: 'Desarrollo en Producción',      d: 'JavaScript/jQuery, C#/.NET y bases de datos relacionales.' },
-      { t: 'Ingeniería de Software en WGU', d: 'Licenciatura en Ingeniería de Software con énfasis en Java, actualmente en curso.' },
+      { t: 'Desarrollo en Producción',      d: 'JavaScript/jQuery, React, C#/.NET y bases de datos relacionales.' },
+      { t: 'Ingeniería de Software en WGU', d: 'Licenciatura y maestría en Ingeniería de Software, con énfasis en Java y DevOps, actualmente en curso.' },
       { t: 'Liderazgo y Comunicación',      d: 'Dirección musical, oratoria y coordinación de equipos.' },
     ],
   },

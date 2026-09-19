@@ -464,6 +464,8 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 }
 .exp-toggle button svg { width: 15px; height: 15px; }
 .exp-toggle button.on { color: var(--white); background: rgba(45,127,249,0.16); box-shadow: 0 0 0 1px rgba(45,127,249,0.25) inset; }
+.exp-toggle button.gold.on { background: rgba(212,175,55,0.16); box-shadow: 0 0 0 1px rgba(212,175,55,0.28) inset; }
+.exp-toggle button.gold.on svg { color: var(--gold-soft); }
 
 .timeline { position: relative; margin-top: 44px; }
 .tl-item { position: relative; display: flex; gap: 22px; padding-bottom: 40px; }
@@ -488,8 +490,12 @@ body.anim-ready .metric .ring.in .ring-fg { stroke-dashoffset: var(--off, 0); }
 .tl-card .role-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .tl-card h4 { font-size: 1.14rem; }
 .tl-card .org { color: var(--accent-300); font-weight: 500; font-size: 0.92rem; }
+.tl-card .org .loc { color: var(--muted); font-weight: 400; }
+.tl-card .etype { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-300); padding: 0.32em 0.7em; border: 1px solid rgba(45,127,249,0.22); background: rgba(45,127,249,0.07); border-radius: 999px; white-space: nowrap; }
+.tl-item.gold .tl-card .etype { color: var(--gold-soft); border-color: rgba(212,175,55,0.24); background: rgba(212,175,55,0.07); }
 .tl-item.gold .tl-card .org { color: var(--gold-soft); }
 .tl-card .blurb { color: var(--muted); font-size: 0.93rem; margin-top: 10px; line-height: 1.55; }
+.tl-card .blurb p + p { margin-top: 12px; }
 .tl-card .meta { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 
 .exp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 60px); }

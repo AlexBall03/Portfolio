@@ -35,6 +35,20 @@ function currentOrg(entries, type) {
   return { '@type': type, name: entry.org };
 }
 
+// The role currently held, described by the title and skill tags the timeline
+// already renders. Dates are left off: schema.org carries them on a Role
+// wrapper rather than on Occupation, and the timeline's date strings are
+// display copy ("March 2026 — Present"), not ISO values.
+function currentOccupation(career) {
+  const entry = career?.find((e) => e.current);
+  if (!entry || isPlaceholder(entry.org)) return undefined;
+  return compact({
+    '@type': 'Occupation',
+    name: entry.role,
+    skills: entry.tags,
+  });
+}
+
 // ---------------------------------------------------------------- entities
 
 export function buildPerson(data) {
@@ -58,6 +72,7 @@ export function buildPerson(data) {
     knowsAbout: data.stack.flatMap((group) => group.skills),
     sameAs: [id.github, id.linkedin].filter(Boolean),
     worksFor: currentOrg(data.career, 'Organization'),
+    hasOccupation: currentOccupation(data.career),
     // Not alumniOf: the site states the degree is still in progress.
     affiliation: currentOrg(data.education, 'EducationalOrganization'),
   });
