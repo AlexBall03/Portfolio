@@ -21,7 +21,34 @@ export const DATA_ALL = {
       { icon: 'cube',   value: 12, suffix: '',  label: 'Projects Built',       note: 'and growing', gold: true }, // TODO confirm count
       { icon: 'layers', value: 10, suffix: '',  label: 'Technologies Used',    note: 'core stack' },
     ],
-    projects: [],
+    projects: [
+      {
+        n: '01',
+        name: 'Weather',
+        tagline: 'NWS-powered weather command center',
+        live: true,
+        desc: 'A responsive weather dashboard built around National Weather Service data, with current observations, active alerts, hourly and seven-day forecasts, and Simple/Advanced modes. The app normalizes multiple NWS sources behind a resilient server-side data layer with caching, geolocation, and Mapbox-powered location search.',
+        stack: ['Next.js', 'TypeScript', 'React', 'NWS API', 'Mapbox', 'Vercel'],
+        links: {
+          demo: 'https://weather.alexball.dev',
+          source: 'https://github.com/AlexBall03/Weather',
+          study: 'https://github.com/AlexBall03/Weather/blob/master/README.md',
+        },
+      },
+      {
+        n: '02',
+        name: 'Portfolio Website',
+        tagline: 'A software engineering portfolio built like a product',
+        live: true,
+        desc: 'A bilingual engineering portfolio built from scratch with React and Vite, featuring routed pages, a command palette, live GitHub activity, persistent theme and language preferences, contact delivery, SEO, structured data, and a companion API portal backed by Vercel serverless functions.',
+        stack: ['React', 'Vite', 'JavaScript', 'React Router', 'Vercel', 'GitHub API'],
+        links: {
+          demo: 'https://alexball.dev',
+          source: 'https://github.com/AlexBall03/Portfolio',
+          study: 'https://github.com/AlexBall03/Portfolio/blob/master/README.md',
+        },
+      },
+    ],
     archive: [
       { n: '04', name: 'Portfolio Engine', desc: 'Static site generator for this very site', tags: ['JS', 'CSS'] },
       { n: '05', name: 'Query Lab',        desc: 'SQL practice + visualization sandbox',     tags: ['Oracle SQL', 'JS'] },
@@ -149,7 +176,34 @@ export const DATA_ALL = {
       { icon: 'cube',   value: 12, suffix: '',  label: 'Proyectos Creados',          note: 'y creciendo', gold: true },
       { icon: 'layers', value: 10, suffix: '',  label: 'Tecnologías Utilizadas',     note: 'stack principal' },
     ],
-    projects: [],
+    projects: [
+      {
+        n: '01',
+        name: 'Weather',
+        tagline: 'Centro meteorológico impulsado por datos del NWS',
+        live: true,
+        desc: 'Un panel meteorológico responsivo construido sobre datos del Servicio Meteorológico Nacional de EE. UU. (NWS), con observaciones actuales, alertas activas, pronósticos por hora y de siete días, y modos Simple/Avanzado. La aplicación normaliza múltiples fuentes del NWS mediante una capa de datos del servidor con caché, geolocalización y búsqueda de ubicaciones con Mapbox.',
+        stack: ['Next.js', 'TypeScript', 'React', 'NWS API', 'Mapbox', 'Vercel'],
+        links: {
+          demo: 'https://weather.alexball.dev',
+          source: 'https://github.com/AlexBall03/Weather',
+          study: 'https://github.com/AlexBall03/Weather/blob/master/README.md',
+        },
+      },
+      {
+        n: '02',
+        name: 'Sitio Web de Portafolio',
+        tagline: 'Un portafolio de ingeniería de software construido como producto',
+        live: true,
+        desc: 'Un portafolio de ingeniería bilingüe construido desde cero con React y Vite, con páginas enrutadas, paleta de comandos, actividad de GitHub en vivo, preferencias persistentes de tema e idioma, formulario de contacto, SEO, datos estructurados y un portal de API respaldado por funciones serverless de Vercel.',
+        stack: ['React', 'Vite', 'JavaScript', 'React Router', 'Vercel', 'GitHub API'],
+        links: {
+          demo: 'https://alexball.dev',
+          source: 'https://github.com/AlexBall03/Portfolio',
+          study: 'https://github.com/AlexBall03/Portfolio/blob/master/README.md',
+        },
+      },
+    ],
     archive: [
       { n: '04', name: 'Portfolio Engine', desc: 'Generador de sitio estático para este mismo sitio',    tags: ['JS', 'CSS'] },
       { n: '05', name: 'Query Lab',        desc: 'Práctica de SQL y sandbox de visualización',           tags: ['Oracle SQL', 'JS'] },
