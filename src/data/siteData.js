@@ -116,7 +116,7 @@ export const DATA_ALL = {
       },
     ],
     stack: [
-      { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'JavaScript', 'Bootstrap', 'jQuery', 'React'] },
+      { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'Bootstrap', 'JavaScript', 'TypeScript', 'React.js', 'Next.js', 'jQuery'] },
       { cat: 'Backend',  icon: 'server',   skills: ['C#', '.NET'] },
       { cat: 'Data',     icon: 'database', gold: true, skills: ['Microsoft SQL Server', 'Oracle SQL'] },
     ],
@@ -131,7 +131,7 @@ export const DATA_ALL = {
     ],
     about: [
       "I’m a full-stack software engineer working on the migration of a legacy desktop application into a modern, cloud-hosted SaaS platform. I focus on reliable, scalable systems and practical improvements to software people actually use.",
-      "I work with HTML, CSS, JavaScript, C#/.NET, and SQL. I care about clean, maintainable code and understanding a system end to end, from the interface down to the database.",
+      "I work with HTML, CSS, JavaScript/TypeScript, React/Next.js, C#/.NET, and SQL. I care about clean, maintainable code and understanding a system end to end, from the interface down to the database.",
       "I’m pursuing a B.S. and M.S. in Software Engineering — the undergraduate degree with a Java emphasis, the graduate degree with a DevOps emphasis.",
       "Outside of engineering, I serve as Music Director and Audio Engineer at my local church, leading music operations and handling recording and production. It has sharpened my leadership, organization, and ability to work with a team under pressure.",
       "I’m also learning Spanish and follow meteorology and severe weather closely.",
@@ -146,7 +146,7 @@ export const DATA_ALL = {
       { icon: 'cap',       t: 'DevOps & Cloud',           d: 'Currently expanding into CI/CD, Linux, containers, cloud infrastructure, and Kubernetes.' },
     ],
     resumeHighlights: [
-      { t: 'Production Development',         d: 'JavaScript/jQuery, React, C#/.NET, and relational databases.' },
+      { t: 'Production Development',         d: 'JavaScript/TypeScript, React/Next.js, jQuery, C#/.NET, and relational databases.' },
       { t: 'Software Engineering at WGU',    d: 'Accelerated B.S. and M.S. in Software Engineering, with Java and DevOps emphases — in progress.' },
       { t: 'Leadership & Communication',     d: 'Music direction, public speaking, and team coordination.' },
     ],

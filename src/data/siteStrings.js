@@ -6,7 +6,7 @@ export const STR = {
     nav: { home: 'Home', about: 'About', projects: 'Projects', experience: 'Experience', resume: 'Resume', contact: 'Contact' },
     hero: {
       focus_label: 'Focus',      focus_val: 'Full-Stack Development',
-      stack_label: 'Core Stack', stack_val: 'JS · C# · SQL',
+      stack_label: 'Core Stack', stack_val: 'TypeScript · Next.js · Java · SQL',
       based_label: 'Based In',
       cta_contact: 'Contact Me', cta_projects: 'View Projects',
       chip1: 'Full-Stack Developer', chip2: 'Building & Learning',
