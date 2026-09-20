@@ -49,11 +49,7 @@ export const DATA_ALL = {
         },
       },
     ],
-    archive: [
-      { n: '04', name: 'Portfolio Engine', desc: 'Static site generator for this very site', tags: ['JS', 'CSS'] },
-      { n: '05', name: 'Query Lab',        desc: 'SQL practice + visualization sandbox',     tags: ['Oracle SQL', 'JS'] },
-      { n: '06', name: 'TaskBoard',        desc: 'Kanban board with drag-and-drop persistence', tags: ['.NET', 'jQuery'] },
-    ],
+    archive: [],
     career: [
       {
         date: 'March 2026 — Present', role: 'Junior Software Developer', org: 'ENSYTE Energy Software International', type: 'Full-time', location: 'Houston, Texas · Remote', current: true,
@@ -204,11 +200,7 @@ export const DATA_ALL = {
         },
       },
     ],
-    archive: [
-      { n: '04', name: 'Portfolio Engine', desc: 'Generador de sitio estático para este mismo sitio',    tags: ['JS', 'CSS'] },
-      { n: '05', name: 'Query Lab',        desc: 'Práctica de SQL y sandbox de visualización',           tags: ['Oracle SQL', 'JS'] },
-      { n: '06', name: 'TaskBoard',        desc: 'Tablero Kanban con persistencia de arrastrar y soltar', tags: ['.NET', 'jQuery'] },
-    ],
+    archive: [],
     career: [
       {
         date: 'Marzo 2026 — Presente', role: 'Desarrollador de Software Junior', org: 'ENSYTE Energy Software International', type: 'Tiempo Completo', location: 'Houston, Texas · Remoto', current: true,
