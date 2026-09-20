@@ -117,7 +117,7 @@ export const DATA_ALL = {
     ],
     stack: [
       { cat: 'Frontend', icon: 'code',     skills: ['HTML', 'CSS', 'Bootstrap', 'JavaScript', 'TypeScript', 'React.js', 'Next.js', 'jQuery'] },
-      { cat: 'Backend',  icon: 'server',   skills: ['C#', '.NET'] },
+      { cat: 'Backend',  icon: 'server',   skills: ['C#', '.NET', 'Java', 'Spring', 'Node.js'] },
       { cat: 'Data',     icon: 'database', gold: true, skills: ['Microsoft SQL Server', 'Oracle SQL'] },
     ],
     learning: ['Docker', 'CI/CD', 'Azure', 'Linux', 'Kubernetes'],
