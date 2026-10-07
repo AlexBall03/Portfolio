@@ -1,59 +1,120 @@
-/* Design tokens (dark default + light theme). Mapped into Tailwind in globals.css. */
+/*
+ * Semantic design tokens. Components never use raw palette values: they use
+ * these roles (through the Tailwind utilities mapped in globals.css), and each
+ * role resolves per theme. Dark is the default; light is set on <html>.
+ */
 @layer base {
-:root {
-  /* ---- Color ---- */
-  --bg:        #0B0F14;
-  --bg-2:      #0E141C;
-  --surface:   rgba(255, 255, 255, 0.022);
-  --glass:     rgba(17, 23, 31, 0.55);
-  --glass-2:   rgba(20, 27, 37, 0.72);
-  --line:      rgba(255, 255, 255, 0.07);
-  --line-soft: rgba(255, 255, 255, 0.045);
-  --hair:      rgba(255, 255, 255, 0.10);
+  :root {
+    color-scheme: dark;
 
-  --blue:      #2D7FF9;
-  --blue-300:  #6BA5FB;
-  --gold:      #D4AF37;
-  --gold-soft: #E6C766;
+    /* ---- Canvas & surfaces ---- */
+    --canvas: oklch(0.158 0.012 252);
+    --canvas-subtle: oklch(0.182 0.014 252);
+    --surface: oklch(0.198 0.014 252);
+    --surface-raised: oklch(0.226 0.016 252);
+    --surface-inset: oklch(0.138 0.011 252);
+    --surface-glass: oklch(0.215 0.016 252 / 0.6);
+    --surface-glass-strong: oklch(0.2 0.016 252 / 0.84);
 
-  --white:     #FFFFFF;
-  --text:      #D1D5DB;
-  --muted:     #94A3B8;
-  --faint:     #5B6676;
+    /* ---- Text ---- */
+    --fg: oklch(0.968 0.004 250);
+    --fg-muted: oklch(0.79 0.014 250);
+    --fg-faint: oklch(0.64 0.018 250);
 
-  /* glow strength — driven by Tweaks (0–1) */
-  --glow: 0.5;
-  --accent: var(--blue);
-  --accent-300: color-mix(in oklab, var(--accent), white 32%);
+    /* ---- Lines ---- */
+    --line: oklch(1 0 0 / 0.08);
+    --line-strong: oklch(1 0 0 / 0.15);
+    --line-glass: oklch(1 0 0 / 0.11);
 
-  --radius:    18px;
-  --radius-sm: 12px;
-  --radius-lg: 26px;
+    /* ---- Brand (blue) & accent (brass) ---- */
+    --brand: oklch(0.55 0.2 259);
+    --brand-hover: oklch(0.5 0.2 259);
+    --brand-soft: oklch(0.6 0.19 259 / 0.15);
+    --brand-fg: oklch(0.77 0.12 256);
+    --on-brand: oklch(0.99 0 0);
+    --accent: oklch(0.77 0.13 86);
+    --accent-soft: oklch(0.77 0.13 86 / 0.13);
+    --accent-fg: oklch(0.83 0.11 88);
 
-  --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px -28px rgba(0,0,0,0.85);
-  --shadow-pop:  0 1px 0 rgba(255,255,255,0.06) inset, 0 40px 90px -30px rgba(0,0,0,0.9);
+    /* ---- Feedback ---- */
+    --success: oklch(0.78 0.15 155);
+    --warning: oklch(0.82 0.14 78);
+    --danger: oklch(0.72 0.16 22);
+    --focus: oklch(0.72 0.15 256);
 
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    /* ---- Glass recipe ---- */
+    --glass-blur: 18px;
+    --glass-blur-strong: 26px;
+    --glass-sat: 150%;
+    --glass-sheen: oklch(1 0 0 / 0.045);
+    --glass-highlight: oklch(1 0 0 / 0.07);
+    --glass-edge: oklch(1 0 0 / 0.2);
+    --glass-bleed: oklch(0.6 0.19 259 / 0.1);
 
-  --maxw: 1180px;
-  --gutter: clamp(20px, 5vw, 56px);
+    /* ---- Elevation ---- */
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35);
+    --shadow-md: 0 12px 32px -16px oklch(0 0 0 / 0.7);
+    --shadow-glass: 0 24px 60px -32px oklch(0 0 0 / 0.85), 0 2px 6px -2px oklch(0 0 0 / 0.3);
+    --shadow-overlay: 0 40px 100px -30px oklch(0 0 0 / 0.9), 0 4px 12px -4px oklch(0 0 0 / 0.4);
+    --shadow-brand: 0 10px 30px -14px oklch(0.6 0.19 259 / 0.75);
 
-}
+    /* ---- Atmosphere ---- */
+    --atmo-grid: oklch(1 0 0 / 0.032);
+    --atmo-glow-brand: oklch(0.6 0.19 259 / 0.3);
+    --atmo-glow-accent: oklch(0.77 0.13 86 / 0.12);
+    --atmo-vignette: oklch(0.12 0.01 252 / 0.6);
+    --atmo-noise: 0.03;
+    --scrim: oklch(0.1 0.01 252 / 0.6);
+  }
 
-[data-theme="light"] {
-  --bg:        #F5F3EE;
-  --bg-2:      #EBE8E0;
-  --surface:   rgba(11, 15, 20, 0.03);
-  --glass:     rgba(255, 255, 255, 0.72);
-  --glass-2:   rgba(255, 255, 255, 0.86);
-  --line:      rgba(11, 15, 20, 0.09);
-  --line-soft: rgba(11, 15, 20, 0.06);
-  --hair:      rgba(11, 15, 20, 0.12);
+  [data-theme='light'] {
+    color-scheme: light;
 
-  --white:     #14181F;
-  --text:      #33363D;
-  --muted:     #63666F;
-  --faint:     #8B8E96;
-}
+    --canvas: oklch(0.967 0.007 85);
+    --canvas-subtle: oklch(0.945 0.009 85);
+    --surface: oklch(0.982 0.005 85);
+    --surface-raised: oklch(0.995 0.003 85);
+    --surface-inset: oklch(0.94 0.009 85);
+    --surface-glass: oklch(0.995 0.004 85 / 0.66);
+    --surface-glass-strong: oklch(0.99 0.004 85 / 0.88);
+
+    --fg: oklch(0.205 0.016 256);
+    --fg-muted: oklch(0.4 0.016 256);
+    --fg-faint: oklch(0.51 0.014 256);
+
+    --line: oklch(0.25 0.02 256 / 0.11);
+    --line-strong: oklch(0.25 0.02 256 / 0.2);
+    --line-glass: oklch(0.25 0.02 256 / 0.1);
+
+    --brand: oklch(0.54 0.2 261);
+    --brand-hover: oklch(0.49 0.2 261);
+    --brand-soft: oklch(0.54 0.2 261 / 0.1);
+    --brand-fg: oklch(0.47 0.18 261);
+    --accent: oklch(0.66 0.12 80);
+    --accent-soft: oklch(0.66 0.12 80 / 0.14);
+    --accent-fg: oklch(0.49 0.09 75);
+
+    --success: oklch(0.5 0.13 155);
+    --warning: oklch(0.56 0.12 70);
+    --danger: oklch(0.53 0.19 25);
+    --focus: oklch(0.54 0.2 261);
+
+    --glass-sheen: oklch(1 0 0 / 0.5);
+    --glass-highlight: oklch(1 0 0 / 0.85);
+    --glass-edge: oklch(1 0 0 / 0.9);
+    --glass-bleed: oklch(0.54 0.2 261 / 0.05);
+
+    --shadow-sm: 0 1px 2px oklch(0.3 0.02 256 / 0.08);
+    --shadow-md: 0 12px 30px -18px oklch(0.3 0.02 256 / 0.25);
+    --shadow-glass: 0 22px 50px -30px oklch(0.3 0.03 256 / 0.28), 0 2px 6px -3px oklch(0.3 0.02 256 / 0.08);
+    --shadow-overlay: 0 40px 90px -30px oklch(0.3 0.03 256 / 0.35), 0 4px 12px -4px oklch(0.3 0.02 256 / 0.1);
+    --shadow-brand: 0 10px 24px -14px oklch(0.54 0.2 261 / 0.6);
+
+    --atmo-grid: oklch(0.25 0.02 256 / 0.05);
+    --atmo-glow-brand: oklch(0.6 0.15 259 / 0.14);
+    --atmo-glow-accent: oklch(0.77 0.12 86 / 0.16);
+    --atmo-vignette: oklch(0.88 0.015 85 / 0.5);
+    --atmo-noise: 0.035;
+    --scrim: oklch(0.25 0.02 256 / 0.32);
+  }
 }

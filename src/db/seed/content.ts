@@ -190,19 +190,21 @@ export const content: z.input<typeof contentSeedSchema> = {
     },
     {
       icon: 'cube',
-      value: 12,
+      source: 'published_projects',
+      value: 0,
       accent: 'gold',
       translations: {
-        en: { label: 'Projects Built', note: 'and growing' },
-        es: { label: 'Proyectos Creados', note: 'y creciendo' },
+        en: { label: 'Published Projects', note: 'in this portfolio' },
+        es: { label: 'Proyectos Publicados', note: 'en este portafolio' },
       },
     },
     {
       icon: 'layers',
-      value: 10,
+      source: 'technologies',
+      value: 0,
       translations: {
-        en: { label: 'Technologies Used', note: 'core stack' },
-        es: { label: 'Tecnologías Utilizadas', note: 'stack principal' },
+        en: { label: 'Core Technologies', note: 'in my current stack' },
+        es: { label: 'Tecnologías Principales', note: 'en mi stack actual' },
       },
     },
   ],

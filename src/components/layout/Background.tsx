@@ -1,12 +1,12 @@
-/** Decorative layered background (grid, glows, vignette, noise). */
+/** Decorative atmosphere (grid, ambient light, vignette, noise). Static and token-driven. */
 export function Background() {
   return (
-    <div id="bg-layer" aria-hidden="true">
-      <div className="bg-grid" />
-      <div className="bg-glow bg-glow-blue" />
-      <div className="bg-glow bg-glow-gold" />
-      <div className="bg-vignette" />
-      <div className="bg-noise" />
+    <div className="atmosphere" aria-hidden="true">
+      <div className="atmosphere-grid" />
+      <div className="atmosphere-glow atmosphere-glow-brand" />
+      <div className="atmosphere-glow atmosphere-glow-accent" />
+      <div className="atmosphere-vignette" />
+      <div className="atmosphere-noise" />
     </div>
   );
 }

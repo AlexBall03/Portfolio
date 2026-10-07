@@ -15,6 +15,20 @@
       "when": 1791393512334,
       "tag": "0001_content_bootstrap",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791399606007,
+      "tag": "0002_snapshot_metric_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791404326347,
+      "tag": "0003_snapshot_metric_derived_content",
+      "breakpoints": true
     }
   ]
 }

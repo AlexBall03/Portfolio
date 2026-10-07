@@ -81,6 +81,7 @@ export async function listSnapshotMetrics(db: Database, locale: Locale): Promise
   });
   return mapTranslated(rows, locale, (row, t) => ({
     icon: row.icon,
+    source: row.source,
     value: row.value,
     suffix: row.suffix,
     accent: row.accent,

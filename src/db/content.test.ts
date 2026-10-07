@@ -8,6 +8,7 @@ import {
   listSnapshotMetrics,
   listSocialLinks,
 } from '@/features/profile/repository';
+import { countStackTechnologies, resolveSnapshotMetrics } from '@/features/profile/metrics';
 import { findProjectBySlug, listPublishedProjects, listPublishedProjectSlugs } from '@/features/projects/repository';
 import { getPageContent, getSectionContent, getSiteSettings } from '@/features/site/repository';
 import { getSkillsOverview } from '@/features/skills/repository';
@@ -59,7 +60,26 @@ describe('content repositories', () => {
     expect((await listProfileRoles(db, 'es'))[0]?.label).toBe('Ingeniero de Software');
     expect(await listHighlights(db, 'en', 'resume')).toHaveLength(3);
     expect(await listHighlights(db, 'en', 'differentiator')).toHaveLength(6);
-    expect((await listSnapshotMetrics(db, 'en')).map((m) => m.value)).toEqual([60, 2, 12, 10]);
+    expect((await listSnapshotMetrics(db, 'en')).map((m) => m.source)).toEqual([
+      'static',
+      'static',
+      'published_projects',
+      'technologies',
+    ]);
+  });
+
+  it('derives snapshot metrics from published content instead of stored numbers', async () => {
+    const [metrics, published, skills] = await Promise.all([
+      listSnapshotMetrics(db, 'en'),
+      listPublishedProjects(db, 'en'),
+      getSkillsOverview(db, 'en'),
+    ]);
+    const resolved = resolveSnapshotMetrics(metrics, {
+      publishedProjects: published.length,
+      technologies: countStackTechnologies(skills),
+    });
+    expect(resolved.map((m) => m.value)).toEqual([60, 2, published.length, 15]);
+    expect(published).toHaveLength(2);
   });
 
   it('returns page and section copy', async () => {

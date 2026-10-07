@@ -1,8 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { BrandMark } from '@/components/layout/BrandMark';
+import { buttonStyles } from '@/components/ui/button-styles';
+import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
 import { LocalTime } from '@/components/ui/LocalTime';
 import { Reveal } from '@/components/ui/Reveal';
+import { Status } from '@/components/ui/Status';
 import { LOCALE_TAGS, type Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/get-dictionary';
 import { localizedPath } from '@/i18n/paths';
@@ -21,113 +25,115 @@ function displayName(fullName: string): [string, string] {
   return [first, rest.join(' ')];
 }
 
+/** Small L-shaped registration marks on the portrait frame. */
+function Corner({ className }: { className: string }) {
+  return <span aria-hidden="true" className={`absolute size-4 ${className}`} />;
+}
+
 export function Hero({ profile, monogram, locale, t }: HeroProps) {
   const [first, rest] = displayName(profile.fullName);
+  const meta = [
+    { label: t.focusLabel, value: profile.hero.focus },
+    { label: t.stackLabel, value: profile.hero.stackLine },
+  ];
 
   return (
-    <section id="home" className="hero band">
-      <div className="wrap">
-        <div className="hero-grid">
-          <div className="hero-left">
-            {profile.openToWork && (
-              <Reveal className="status-badge">
-                <span className="status-dot" />
+    <section id="home" aria-labelledby="home-title" className="relative pt-12 sm:pt-16 lg:pt-24">
+      <Container className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-20">
+        <div className="flex min-w-0 flex-col">
+          {profile.openToWork && (
+            <Reveal>
+              <Status tone="success" wrap>
                 {profile.availabilityText}
-              </Reveal>
-            )}
-
-            <Reveal delay={110}>
-              <h1 className="display" style={{ marginTop: 26 }}>
-                {first}
-                {rest && (
-                  <>
-                    <br />
-                    {rest}
-                  </>
-                )}
-              </h1>
+              </Status>
             </Reveal>
+          )}
 
-            <Reveal delay={170}>
-              <div className="role">
-                <span className="label">{profile.title}</span>
-                <span className="rule" />
-              </div>
-            </Reveal>
+          <Reveal delay={60}>
+            <h1 id="home-title" className="mt-7 text-display-xl">
+              {first}
+              {rest && (
+                <>
+                  <br />
+                  <span className="text-fg/85">{rest}</span>
+                </>
+              )}
+            </h1>
+          </Reveal>
 
-            <Reveal delay={230}>
-              <p className="statement">{profile.statement}</p>
-            </Reveal>
+          <Reveal delay={120}>
+            <p className="mt-5 flex items-center gap-4 font-display text-h2 font-medium text-brand-fg">
+              {profile.title}
+              <span aria-hidden="true" className="h-px max-w-28 flex-1 bg-gradient-to-r from-brand/60 to-transparent" />
+            </p>
+          </Reveal>
 
-            <Reveal delay={300}>
-              <div className="hero-cta">
-                <Link href={localizedPath(locale, '/contact')} className="btn btn-primary">
-                  {t.ctaContact} <Icon name="arrowRight" />
-                </Link>
-                <Link href={localizedPath(locale, '/projects')} className="btn btn-ghost">
-                  {t.ctaProjects}
-                </Link>
-              </div>
-            </Reveal>
+          <Reveal delay={180}>
+            <p className="mt-6 max-w-[40ch] text-body-lg text-fg-muted">{profile.statement}</p>
+          </Reveal>
 
-            <Reveal delay={360}>
-              <dl className="hero-meta">
-                <div className="m">
-                  <dt className="k">{t.focusLabel}</dt>
-                  <dd className="v">{profile.hero.focus}</dd>
+          <Reveal delay={240}>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ size: 'lg' })}>
+                {t.ctaProjects} <Icon name="arrowRight" />
+              </Link>
+              <Link href={localizedPath(locale, '/about')} className={buttonStyles({ variant: 'secondary', size: 'lg' })}>
+                {t.ctaAbout}
+              </Link>
+            </div>
+          </Reveal>
+
+          <Reveal delay={300}>
+            <dl className="mt-12 grid gap-x-8 gap-y-5 border-t border-line pt-6 sm:grid-cols-3">
+              {meta.map((m) => (
+                <div key={m.label} className="flex flex-col gap-1.5">
+                  <dt className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{m.label}</dt>
+                  <dd className="text-body-sm font-medium text-fg">{m.value}</dd>
                 </div>
-                <div className="m">
-                  <dt className="k">{t.stackLabel}</dt>
-                  <dd className="v">{profile.hero.stackLine}</dd>
-                </div>
-                <div className="m">
-                  <dt className="k">{t.basedLabel}</dt>
-                  <dd className="v">
-                    {profile.locationLabel}
-                    <span className="hero-meta-sep" aria-hidden="true">
-                      {' · '}
-                    </span>
+              ))}
+              <div className="flex flex-col gap-1.5">
+                <dt className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{t.basedLabel}</dt>
+                <dd className="text-body-sm font-medium text-fg">
+                  {profile.locationLabel}
+                  <span className="block font-mono text-micro font-normal text-fg-muted tabular-nums">
+                    <span className="sr-only">{t.localTime}: </span>
                     <LocalTime locale={LOCALE_TAGS[locale].intl} timeZone={profile.timeZone} />
-                  </dd>
-                </div>
-              </dl>
-            </Reveal>
-          </div>
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </Reveal>
+        </div>
 
-          <Reveal delay={200} className="headshot-wrap">
-            <div className="headshot-frame">
-              <span className="corner tl" />
-              <span className="corner tr" />
-              <span className="corner bl" />
-              <span className="corner br" />
+        <Reveal delay={150} className="relative isolate order-first mx-auto w-full max-w-[17rem] sm:max-w-[22rem] lg:order-none lg:max-w-[26rem]">
+          <div aria-hidden="true" className="absolute -inset-10 -z-10 rounded-full bg-brand/20 blur-3xl" />
+          <figure className="glass rounded-xl p-2.5">
+            <Corner className="-top-1.5 -left-1.5 border-t-2 border-l-2 border-brand/70" />
+            <Corner className="-right-1.5 -bottom-1.5 border-r-2 border-b-2 border-accent/70" />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-surface-inset">
               {profile.headshot && (
                 <Image
-                  className="headshot-img"
                   src={profile.headshot.src}
                   alt={profile.headshot.alt}
-                  width={profile.headshot.width ?? 1200}
-                  height={profile.headshot.height ?? 1200}
-                  sizes="(max-width: 880px) 90vw, 460px"
+                  fill
+                  sizes="(max-width: 640px) 272px, (max-width: 1024px) 352px, 416px"
+                  className="object-cover object-[50%_18%]"
                   priority
                 />
               )}
-              <div className="headshot-grad" />
-              <div className="headshot-cap">
-                <div>
-                  <div className="nm">{profile.fullName}</div>
-                  <div className="rl">{profile.title}</div>
-                </div>
-                <div className="sig">{monogram}</div>
-              </div>
             </div>
-            {profile.hero.chips.map((chip, i) => (
-              <div key={chip} className={`float-chip ${i % 2 === 0 ? 'tl' : 'br'}`}>
-                <span className="dt" /> {chip}
+            <figcaption className="flex items-end justify-between gap-4 px-2.5 pt-3.5 pb-1.5">
+              <div className="min-w-0">
+                <p className="truncate font-display text-body font-semibold text-fg">{profile.fullName}</p>
+                {profile.hero.chips.length > 0 && (
+                  <p className="font-mono text-micro text-fg-faint">{profile.hero.chips.join(' · ')}</p>
+                )}
               </div>
-            ))}
-          </Reveal>
-        </div>
-      </div>
+              <BrandMark text={monogram} className="shrink-0 text-label" />
+            </figcaption>
+          </figure>
+        </Reveal>
+      </Container>
     </section>
   );
 }

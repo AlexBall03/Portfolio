@@ -21,7 +21,7 @@ interface LocalTimeProps {
  * Live wall-clock time in the owner's time zone. Empty in server HTML (a
  * prerendered time would be stale), then ticks on the minute in the browser.
  */
-export function LocalTime({ locale, timeZone, className = 'hero-localtime' }: LocalTimeProps) {
+export function LocalTime({ locale, timeZone, className }: LocalTimeProps) {
   const [time, setTime] = useState<string | null>(null);
 
   useEffect(() => {

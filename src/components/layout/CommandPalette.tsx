@@ -15,6 +15,7 @@ import { LOCALES } from '@/i18n/config';
 import { useSwitchLocale } from '@/lib/client/locale';
 import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { useTheme } from '@/lib/client/theme';
+import { cn } from '@/lib/cn';
 import { buildCommands, filterCommands, GROUP_ORDER, type Command, type CommandHandlers } from './commands';
 import type { ChromeData } from './types';
 
@@ -185,13 +186,20 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
 
   return (
     <>
-      <div className="cmdp-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="cmdp-panel" role="dialog" aria-modal="true" aria-label={T.title} onKeyDown={onPanelKeyDown}>
-        <div className="cmdp-head">
-          <Icon name="search" className="cmdp-head-ic" />
+      <div className="fixed inset-0 z-[70] animate-fade-in bg-scrim backdrop-blur-[3px]" onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={T.title}
+        onKeyDown={onPanelKeyDown}
+        className="glass-strong fixed inset-x-0 top-2.5 z-[71] mx-auto flex max-h-[calc(100dvh-1.25rem)] w-[min(40rem,calc(100vw-1.25rem))] animate-overlay-in flex-col overflow-hidden rounded-xl sm:top-[clamp(3.5rem,12vh,8rem)] sm:max-h-[min(72dvh,35rem)]"
+      >
+        <div className="flex shrink-0 items-center gap-3 border-b border-line py-3 pr-3 pl-4 transition-colors focus-within:border-brand/50">
+          <Icon name="search" className="size-[18px] shrink-0 text-fg-faint" />
           <input
             ref={inputRef}
-            className="cmdp-input"
+            // 16px keeps iOS from zooming the page in on focus.
+            className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-fg outline-none placeholder:text-fg-faint focus-visible:outline-none"
             type="text"
             value={query}
             onChange={(e) => {
@@ -212,16 +220,22 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
             autoCapitalize="off"
             enterKeyHint="go"
           />
-          <button ref={closeRef} type="button" className="cmdp-close" aria-label={T.close} onClick={onClose}>
+          <button
+            ref={closeRef}
+            type="button"
+            aria-label={T.close}
+            onClick={onClose}
+            className="grid size-8 shrink-0 place-items-center rounded-md border border-line text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-3.5"
+          >
             <Icon name="x" />
           </button>
         </div>
 
-        <div className="cmdp-list" id="cmdp-list" role="listbox" aria-label={T.title} ref={listRef}>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5" id="cmdp-list" role="listbox" aria-label={T.title} ref={listRef}>
           {visible.length === 0 && (
-            <div className="cmdp-empty">
-              <div className="cmdp-empty-t">{T.empty}</div>
-              <div className="cmdp-empty-s">{T.emptyHint}</div>
+            <div className="px-4 py-10 text-center">
+              <div className="font-display text-body font-medium text-fg">{T.empty}</div>
+              <div className="mt-1.5 text-body-sm text-fg-muted">{T.emptyHint}</div>
             </div>
           )}
 
@@ -229,8 +243,8 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
             const items = visible.filter((c) => c.group === group);
             if (!items.length) return null;
             return (
-              <div className="cmdp-group" role="group" aria-label={T.groups[group]} key={group}>
-                <div className="cmdp-group-title mono" aria-hidden="true">
+              <div role="group" aria-label={T.groups[group]} key={group}>
+                <div className="px-3 pt-3 pb-1.5 font-mono text-micro tracking-[0.16em] text-fg-faint uppercase" aria-hidden="true">
                   {T.groups[group]}
                 </div>
                 {items.map((cmd) => {
@@ -243,19 +257,32 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
                       role="option"
                       aria-selected={on}
                       data-active={on ? 'true' : undefined}
-                      className={`cmdp-item ${on ? 'is-active' : ''}`}
+                      className={cn(
+                        'relative flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-3 py-2 transition-colors duration-150',
+                        on
+                          ? 'bg-fg/[0.06] text-fg before:absolute before:top-1/2 before:left-0.5 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand'
+                          : 'text-fg-muted',
+                      )}
                       // Move, not enter: a parked cursor must not steal arrow-key selection.
                       onMouseMove={() => setActive(i)}
                       onClick={() => run(cmd)}
                     >
-                      <span className="cmdp-item-ic">
+                      <span
+                        className={cn(
+                          'grid size-8 shrink-0 place-items-center rounded-md border transition-colors [&_svg]:size-4',
+                          on ? 'border-brand/35 bg-brand-soft text-brand-fg' : 'border-line bg-fg/[0.03] text-fg-muted',
+                        )}
+                      >
                         <Icon name={cmd.icon} />
                       </span>
-                      <span className="cmdp-item-text">
-                        <span className="cmdp-item-label">{cmd.label}</span>
-                        {cmd.hint && <span className="cmdp-item-hint">{cmd.hint}</span>}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className={cn('truncate text-body-sm font-medium', on ? 'text-fg' : 'text-fg-muted')}>{cmd.label}</span>
+                        {cmd.hint && <span className="truncate text-micro text-fg-faint">{cmd.hint}</span>}
                       </span>
-                      <Icon name={cmd.external ? 'arrowUpRight' : 'arrowRight'} className="cmdp-item-go" />
+                      <Icon
+                        name={cmd.external ? 'arrowUpRight' : 'arrowRight'}
+                        className={cn('size-4 shrink-0 text-brand-fg transition-opacity', on ? 'opacity-100' : 'opacity-0')}
+                      />
                     </div>
                   );
                 })}
@@ -264,11 +291,14 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
           })}
         </div>
 
-        <div className="cmdp-foot">
-          <div className="cmdp-status" role="status" aria-live="polite">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-t border-line bg-fg/[0.02] px-4 py-2.5">
+          <div className="min-w-0 text-micro text-fg-faint" role="status" aria-live="polite">
             {status ?? count}
           </div>
-          <div className="cmdp-keys mono" aria-hidden="true">
+          <div
+            className="hidden items-center gap-1.5 font-mono text-micro whitespace-nowrap text-fg-faint sm:flex [&_kbd]:inline-grid [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:place-items-center [&_kbd]:rounded-[5px] [&_kbd]:border [&_kbd]:border-line [&_kbd]:bg-fg/[0.04] [&_kbd]:px-1 [&_kbd]:text-fg-muted [&_span]:mr-2 [&_span:last-child]:mr-0"
+            aria-hidden="true"
+          >
             <kbd>&#8593;</kbd>
             <kbd>&#8595;</kbd>
             <span>{T.hints.navigate}</span>

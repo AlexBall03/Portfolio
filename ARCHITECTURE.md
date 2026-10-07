@@ -8,7 +8,7 @@ A bilingual (English/Spanish) software-engineering portfolio, built as one full-
 |---|---|
 | Language / UI | TypeScript (strict), React 19 |
 | Framework | Next.js 16, App Router, **Cache Components** (`'use cache'`), Partial Prefetching |
-| Styling | Tailwind CSS v4 + the existing "Executive Engineer" design system (CSS layers) |
+| Styling | Tailwind CSS v4 utilities over a semantic OKLCH token design system (see **Design system**) |
 | Database | Neon Postgres via **Drizzle ORM** (`neon-http` driver), migrations by drizzle-kit |
 | Validation | Zod 4 (env, external APIs, content inputs, contact form) |
 | Email | Resend |
@@ -47,10 +47,11 @@ src/
                           queries.ts (cached reads) · components/ (feature UI)
       projects  skills  experience  profile  site  github  contact
   integrations/           github/ (typed API client + Zod response schemas), resend/
-  components/layout/      site chrome: SiteChrome (nav + drawer + palette), Footer, Pager, PageShell
-  components/ui/          Icon, Reveal, SectionHead, CountUp, RelativeTime, LocalTime, JsonLd
+  components/layout/      site chrome: SiteChrome (command bar + drawer + palette), Preferences, Footer, Pager, PageShell, Screen
+  components/ui/          design-system primitives (Container, Section, SectionHeader, Eyebrow, Prose, Stat, Status,
+                          Tag, Surface, SystemState, buttonStyles) + Icon, Reveal, CountUp, RelativeTime, LocalTime, JsonLd
   lib/                    logger, errors, media resolution, cache tags/lifetimes, seo/, validation, client/
-  styles/                 globals.css (Tailwind + tokens), base.css, components/*.css
+  styles/                 tokens.css (semantic roles per theme), globals.css (Tailwind theme), base.css, system.css
   test/                   PGlite test DB helper, server-only stub
 ```
 
@@ -70,7 +71,7 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 | Projects | `projects` (slug, `status` draft/published/archived, featured, sort, live, links, published/archived timestamps) · `project_translations` · `project_slug_history` (retired slugs → 308) · `project_repositories` (0..n, provider + owner/name) · `project_technologies` · `project_media` |
 | Skills | `technologies` (shared vocabulary) · `skill_categories` (`kind` stack/learning, icon, accent, status) · `skill_category_translations` · `skill_category_technologies` |
 | Experience | `experiences` (career/education, real dates + precision, current) · `experience_translations` (role, type, location, summary[], tags[]) |
-| Profile | `profile` (single row) · `profile_translations` (title, statement, about[], hero copy) · `social_links` · `profile_roles` · `profile_highlights` (differentiator/resume) · `snapshot_metrics` |
+| Profile | `profile` (single row) · `profile_translations` (title, statement, about[], hero copy) · `social_links` · `profile_roles` · `profile_highlights` (differentiator/resume) · `snapshot_metrics` (`source` static/published_projects/technologies: derived values are counted from published content at read time) |
 | Site | `site_settings` (single row: brand, GitHub username, feature switch, default theme) · `page_content` (per-page SEO copy) · `section_content` (section headings) |
 | Media | `media_assets` (`storage` static/blob/external, src, dimensions) · `media_asset_translations` (alt text) |
 | System | `content_bootstrap` (single row: this database has received its initial content) |
@@ -195,6 +196,30 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
   - Sync goes through the domain mutations, never straight to tables or UI.
   - Store external links and synced fields in a dedicated table (e.g. `project_sources`: project id, source, external id, synced-at).
   - Portfolio-owned fields (status, featured, order, media, translations) stay authoritative and are never overwritten by sync.
+
+## Design system
+
+"Systems Editorial + premium glass": typography and whitespace carry hierarchy; glass is reserved for the surfaces that matter.
+
+- **Tokens** (`styles/tokens.css`). Semantic roles only, in OKLCH, redefined per theme on `<html data-theme>`:
+  - canvas / surface (`surface`, `-raised`, `-inset`, `-glass`, `-glass-strong`)
+  - `fg` / `fg-muted` / `fg-faint`, and `line` / `line-strong` / `line-glass`
+  - `brand` (blue: actions) with `brand-fg` (text-safe on either theme); `accent` (brass: indices and small emphasis, never a CTA)
+  - `success` / `warning` / `danger` / `focus`
+  - Every text role clears WCAG AA on canvas and on glass in both themes.
+- **Theme** (`styles/globals.css`). Tokens map to Tailwind utilities (`bg-canvas`, `text-fg-muted`, `border-line`, `text-brand-fg`, …). The theme also defines:
+  - a fluid type scale: `text-display-xl` … `text-h3`, `text-body-lg`, `text-body`, `text-body-sm`, `text-label`, `text-micro`
+  - section rhythm (`pt-section`), gutter (`px-gutter`), and container (`max-w-site`)
+  - radius tiers (`rounded-sm` 8 → `rounded-xl` 26), four shadows, and motion easings
+- **Where CSS is allowed** (`styles/system.css`). Only what CSS expresses best:
+  - `.glass` / `.glass-strong`, the single glass implementation
+  - the reveal states, the background atmosphere, the project identity art, and the heatmap levels
+
+  Everything else is utilities in components. Inline `style` is only for runtime custom properties (`--d`, `--weeks`, `--lang`, `--hue`) and `global-error.tsx`.
+- **Glass budget.** Command bar, drawer, palette, hero portrait, featured project cards, data panels (snapshot, contributions), project metadata, resume header, contact form, current role. Lists, timelines, and stacks use hairlines and type instead of boxes.
+- **Primitives** (`components/ui`). One `Surface` (variants plain / raised / inset / glass / glass-strong) instead of card variants, and `buttonStyles()` shared by `<button>`, `<a>`, and `<Link>`. `Status`, `Tag`/`TagList`, `Stat` (+ `statDividers`), `Eyebrow`, `SectionHeader`, `Section`/`Container`, `Prose`, and `SystemState` complete the set.
+- **Class composition.** `cn()` joins classes but does not merge conflicts. Don't pass a utility that fights a component's own (e.g. `hidden` against an `inline-flex`). Wrap the element or add a prop instead.
+- **Motion.** Interactions take 160–220ms; entrances take 520ms with opacity and a 12px rise. Nothing loops. `prefers-reduced-motion` disables transitions and animations globally.
 
 ## Conventions
 

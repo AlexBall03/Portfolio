@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 /** Stroke icon set (24×24 paths). Content may reference these by name, e.g. a skill category's icon. */
 const ICONS = {
   arrowRight:  'M5 12h14M13 6l6 6-6 6',
@@ -41,6 +39,8 @@ const ICONS = {
   sun:         'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1',
   moon:        'M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z',
   search:      'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20.5 20.5 16 16',
+  alert:       'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7.5v5.5M12 16.5h.01',
+  file:        'M14 3H6v18h12V7zM14 3v4h4M9 13h6M9 17h6',
 } as const satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICONS;
@@ -55,16 +55,14 @@ interface IconProps {
   /** Accepts any string so database-provided names render safely (unknown → nothing). */
   name: IconName | (string & {});
   className?: string;
-  style?: CSSProperties;
 }
 
-export function Icon({ name, className, style }: IconProps) {
+export function Icon({ name, className }: IconProps) {
   if (!isIconName(name)) return null;
   const filled = FILLED.has(name);
   return (
     <svg
       className={className}
-      style={style}
       viewBox="0 0 24 24"
       fill={filled ? 'currentColor' : 'none'}
       stroke={filled ? 'none' : 'currentColor'}

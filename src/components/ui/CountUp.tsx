@@ -8,6 +8,7 @@ interface CountUpProps {
   durationMs?: number;
   className?: string;
   suffix?: string;
+  suffixClassName?: string;
 }
 
 const reducedMotion = () =>
@@ -17,7 +18,7 @@ const reducedMotion = () =>
  * Counts from 0 to `value` when scrolled into view. Server-rendered with the
  * final value, so it is correct without JavaScript and under reduced motion.
  */
-export function CountUp({ value, durationMs = 1400, className, suffix }: CountUpProps) {
+export function CountUp({ value, durationMs = 1400, className, suffix, suffixClassName }: CountUpProps) {
   const [ref, inView] = useInView<HTMLSpanElement>();
   const [progress, setProgress] = useState<number | null>(null);
   const decimals = Number.isInteger(value) ? 0 : 1;
@@ -39,7 +40,7 @@ export function CountUp({ value, durationMs = 1400, className, suffix }: CountUp
   return (
     <span ref={ref} className={className}>
       {shown.toFixed(decimals)}
-      {suffix && <span className="suf">{suffix}</span>}
+      {suffix && <span className={suffixClassName}>{suffix}</span>}
     </span>
   );
 }

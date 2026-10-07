@@ -1,0 +1,158 @@
+/*
+ * The few design-system pieces that read better as CSS than as utilities.
+ * Everything here consumes tokens; nothing here is page-specific.
+ */
+@layer components {
+  /* ------------------------------------------------------------------
+     Glass surfaces — the single glass implementation in the codebase.
+     Translucent fill + backdrop blur, a top sheen, an inner highlight,
+     an illuminated gradient edge (::before), and a soft deep shadow.
+     `.glass-strong` is for overlays and chrome that sit over content.
+     Utilities win over these (components layer), so `fixed`, radius,
+     padding etc. are applied with Tailwind as usual.
+     ------------------------------------------------------------------ */
+  .glass,
+  .glass-strong {
+    position: relative;
+    border: 1px solid var(--line-glass);
+    background:
+      linear-gradient(180deg, var(--glass-sheen), transparent 42%),
+      radial-gradient(120% 80% at 0% 0%, var(--glass-bleed), transparent 60%),
+      var(--surface-glass);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-glass);
+  }
+  .glass-strong {
+    background:
+      linear-gradient(180deg, var(--glass-sheen), transparent 42%),
+      var(--surface-glass-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-overlay);
+  }
+  .glass::before,
+  .glass-strong::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(150deg, var(--glass-edge), transparent 34%, transparent 70%, color-mix(in oklab, var(--glass-edge) 40%, transparent));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background: var(--surface-raised); }
+    .glass-strong { background: var(--surface-raised); }
+  }
+
+  /* ------------------------------------------------------------------
+     Scroll reveal. Server HTML is the visible end state; the hidden
+     start state only applies once the shared observer has set
+     [data-anim-ready] on <html> (src/lib/client/in-view.ts).
+     ------------------------------------------------------------------ */
+  [data-anim-ready] .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 520ms var(--ease-out) var(--d, 0ms),
+      transform 520ms var(--ease-out) var(--d, 0ms);
+  }
+  [data-anim-ready] .reveal[data-revealed] {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-anim-ready] .reveal { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* ------------------------------------------------------------------
+     Background atmosphere: grid, two ambient glows, vignette, noise.
+     Static (no parallax, no perpetual motion) and confined to the top.
+     ------------------------------------------------------------------ */
+  .atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .atmosphere-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--atmo-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--atmo-grid) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: center top;
+    -webkit-mask-image: radial-gradient(90% 60% at 50% 0%, #000 0%, transparent 75%);
+    mask-image: radial-gradient(90% 60% at 50% 0%, #000 0%, transparent 75%);
+  }
+  .atmosphere-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+  }
+  .atmosphere-glow-brand {
+    top: -22vw;
+    left: 50%;
+    width: 60vw;
+    height: 38vw;
+    transform: translateX(-60%);
+    background: radial-gradient(closest-side, var(--atmo-glow-brand), transparent);
+  }
+  .atmosphere-glow-accent {
+    right: -12vw;
+    bottom: -18vw;
+    width: 44vw;
+    height: 40vw;
+    background: radial-gradient(closest-side, var(--atmo-glow-accent), transparent);
+  }
+  .atmosphere-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(130% 90% at 50% 20%, transparent 45%, var(--atmo-vignette) 100%);
+  }
+  .atmosphere-noise {
+    position: absolute;
+    inset: 0;
+    opacity: var(--atmo-noise);
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ------------------------------------------------------------------
+     Project identity art — the designed media state for projects
+     without screenshots. --hue is derived from the slug at render time.
+     ------------------------------------------------------------------ */
+  .project-identity {
+    background:
+      radial-gradient(110% 90% at 0% 0%, oklch(0.6 0.16 var(--hue, 259) / 0.34), transparent 62%),
+      radial-gradient(80% 70% at 100% 100%, var(--accent-soft), transparent 70%),
+      var(--surface-inset);
+  }
+  .project-identity::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--atmo-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--atmo-grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    -webkit-mask-image: linear-gradient(135deg, #000 10%, transparent 85%);
+    mask-image: linear-gradient(135deg, #000 10%, transparent 85%);
+    pointer-events: none;
+  }
+
+  /* ------------------------------------------------------------------
+     Contribution heatmap intensity levels (0–4).
+     ------------------------------------------------------------------ */
+  .heat-cell { background: color-mix(in oklab, var(--fg) 7%, transparent); }
+  .heat-cell[data-level='1'] { background: color-mix(in oklab, var(--brand) 30%, transparent); }
+  .heat-cell[data-level='2'] { background: color-mix(in oklab, var(--brand) 52%, transparent); }
+  .heat-cell[data-level='3'] { background: color-mix(in oklab, var(--brand) 76%, transparent); }
+  .heat-cell[data-level='4'] { background: var(--brand); }
+}

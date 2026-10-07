@@ -2,6 +2,9 @@
 
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { Screen } from '@/components/layout/Screen';
+import { buttonStyles } from '@/components/ui/button-styles';
+import { SystemState } from '@/components/ui/SystemState';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { splitLocale } from '@/i18n/paths';
 
@@ -14,16 +17,17 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
   }, [error]);
 
   return (
-    <section className="band nf">
-      <div className="wrap nf-inner">
-        <h1 className="h-section">{t.title}</h1>
-        <p className="lead nf-lead">{t.lead}</p>
-        <div className="nf-cta">
-          <button type="button" className="btn btn-primary" onClick={reset}>
+    <Screen>
+      <SystemState
+        code="500"
+        title={t.title}
+        lead={t.lead}
+        actions={
+          <button type="button" className={buttonStyles()} onClick={reset}>
             {t.retry}
           </button>
-        </div>
-      </div>
-    </section>
+        }
+      />
+    </Screen>
   );
 }

@@ -1,6 +1,9 @@
 import { PLATFORM_ICONS } from '@/components/layout/types';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Reveal } from '@/components/ui/Reveal';
+import { Section } from '@/components/ui/Section';
+import { Surface } from '@/components/ui/Surface';
 import type { SocialLink } from '@/features/profile/types';
 import type { SectionContent } from '@/features/site/types';
 import type { Dictionary } from '@/i18n/get-dictionary';
@@ -26,52 +29,49 @@ export function ContactSection({ section, email, socials, t }: ContactSectionPro
   ];
 
   return (
-    <section id="contact" className="band" aria-labelledby="contact-title">
-      <div className="wrap">
-        <Reveal className="card contact-card">
-          <div className="contact-grid">
-            <div className="contact-left">
-              <div className="eyebrow">
-                <span className="idx">08</span>
-                <span className="bar" />
-                <span>{section.eyebrow}</span>
-              </div>
-              <h1 id="contact-title" className="contact-title" style={{ marginTop: 18 }}>
-                {section.title}
-              </h1>
-              {section.body && <p className="lead">{section.body}</p>}
-              <div className="contact-channels">
-                {channels.map((c) => {
-                  const external = c.href.startsWith('http');
-                  return (
-                    <a
-                      className="channel"
-                      key={c.key}
-                      href={c.href}
-                      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                    >
-                      <span className="ch-ic">
-                        <Icon name={c.icon} />
-                      </span>
-                      <div>
-                        <div className="ch-k">{c.label}</div>
-                        <div className="ch-v">{c.value}</div>
-                      </div>
-                      <span className="ch-go">
-                        <Icon name="arrowUpRight" style={{ width: 17, height: 17 }} />
-                      </span>
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
+    <Section id="contact" labelledBy="contact-title">
+      <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-20">
+        <Reveal className="flex flex-col gap-5">
+          <Eyebrow index="08">{section.eyebrow}</Eyebrow>
+          <h1 id="contact-title" className="text-h1">
+            {section.title}
+          </h1>
+          {section.body && <p className="max-w-[42ch] text-body-lg text-fg-muted">{section.body}</p>}
 
-            <div>
-              <ContactForm email={email} t={t} />
-            </div>
-          </div>
+          <ul className="mt-6 divide-y divide-line border-y border-line">
+            {channels.map((c) => {
+              const external = c.href.startsWith('http');
+              return (
+                <li key={c.key}>
+                  <a
+                    href={c.href}
+                    {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    className="group flex items-center gap-4 py-4"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-md border border-line bg-surface-raised/60 text-brand-fg transition-colors group-hover:border-brand/40 [&_svg]:size-[18px]">
+                      <Icon name={c.icon} />
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{c.label}</span>
+                      <span className="truncate font-medium text-fg transition-colors group-hover:text-brand-fg">{c.value}</span>
+                    </span>
+                    <Icon
+                      name="arrowUpRight"
+                      className="ml-auto size-4 shrink-0 text-fg-faint transition-[transform,color] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
+                    />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </Reveal>
+
+        <Reveal delay={100}>
+          <Surface variant="glass" radius="xl" className="p-6 sm:p-9">
+            <ContactForm email={email} t={t} />
+          </Surface>
         </Reveal>
       </div>
-    </section>
+    </Section>
   );
 }

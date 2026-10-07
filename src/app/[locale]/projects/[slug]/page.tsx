@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
-import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { Icon } from '@/components/ui/Icon';
+import { Screen } from '@/components/layout/Screen';
+import { PagerLink, PagerNav } from '@/components/layout/Pager';
 import { JsonLd } from '@/components/ui/JsonLd';
-import { Reveal } from '@/components/ui/Reveal';
-import { getProjectBySlug, getProjectSlugs } from '@/features/projects/queries';
+import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
+import { getProjectBySlug, getProjects, getProjectSlugs } from '@/features/projects/queries';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { localizedPath } from '@/i18n/paths';
@@ -50,82 +49,36 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { locale, project: p } = await resolve(params);
-  const t = getDictionary(locale).projects;
-  const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
+  const dict = getDictionary(locale);
+  const t = dict.projects;
+  const all = await getProjects(locale);
+  const index = Math.max(0, all.findIndex((x) => x.id === p.id));
+  const prev = all[index - 1];
+  const next = all[index + 1];
+  const pad = (n: number) => String(n + 1).padStart(2, '0');
+  const href = (slug: string) => localizedPath(locale, `/projects/${slug}`);
 
   return (
-    <article className="band">
-      <div className="wrap">
-        <Reveal className="section-head">
-          <Link href={localizedPath(locale, '/projects')} className="link-arrow" style={{ marginBottom: 18 }}>
-            <Icon name="arrowLeft" /> {t.backToProjects}
-          </Link>
-          <div className="eyebrow">
-            <span className="bar" />
-            <span>{p.tagline}</span>
-          </div>
-          <h1 className="h-section">{p.name}</h1>
-        </Reveal>
-
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Reveal className="card flex flex-col gap-6 p-6 sm:p-8">
-            {p.cover && (
-              <div className="relative aspect-video overflow-hidden rounded-card-sm">
-                <Image src={p.cover.src} alt={p.cover.alt} fill sizes="(max-width: 1024px) 100vw, 760px" className="object-cover" />
-              </div>
-            )}
-            <p className="text-body">{p.summary}</p>
-            {p.gallery.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {p.gallery.map((m) => (
-                  <div key={m.src} className="relative aspect-video overflow-hidden rounded-card-sm">
-                    <Image src={m.src} alt={m.alt} fill sizes="(max-width: 640px) 100vw, 380px" className="object-cover" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </Reveal>
-
-          <Reveal delay={100} className="flex flex-col gap-6">
-            <div className="card p-6">
-              <h2 className="mono mb-3 text-xs tracking-widest text-muted uppercase">{t.builtWith}</h2>
-              <ul className="tag-row">
-                {p.technologies.map((tech) => (
-                  <li className="tag" key={tech.slug}>
-                    {tech.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="card p-6">
-              <h2 className="mono mb-3 text-xs tracking-widest text-muted uppercase">{t.links}</h2>
-              <div className="flex flex-col gap-3">
-                {p.links.demo && (
-                  <a className="link-arrow" href={p.links.demo} {...external}>
-                    <Icon name="external" /> {t.liveDemo}
-                  </a>
-                )}
-                {p.repositories.map((r) => (
-                  <a key={r.url} className="link-arrow" href={r.url} {...external}>
-                    <Icon name="github" /> {r.owner}/{r.name}
-                  </a>
-                ))}
-                {p.links.details && (
-                  <a className="link-arrow" href={p.links.details} {...external}>
-                    <Icon name="arrowUpRight" /> {t.details}
-                  </a>
-                )}
-              </div>
-            </div>
-          </Reveal>
-        </div>
+    <Screen>
+      <div className="flex-1">
+        <ProjectDetail project={p} index={index} locale={locale} t={t} />
       </div>
+      {(prev || next) && (
+        <PagerNav label={`${t.previousProject} / ${t.nextProject}`}>
+          {prev && (
+            <PagerLink dir="prev" href={href(prev.slug)} kicker={`${t.previousProject} · ${pad(index - 1)}`} title={prev.name} description={prev.tagline} />
+          )}
+          {next && (
+            <PagerLink dir="next" href={href(next.slug)} kicker={`${t.nextProject} · ${pad(index + 1)}`} title={next.name} description={next.tagline} />
+          )}
+        </PagerNav>
+      )}
       <JsonLd
         data={{
           ...buildPageNode({ type: 'WebPage', locale, path: `/projects/${p.slug}`, name: p.name, description: p.tagline }),
           mainEntity: buildProject(p, locale),
         }}
       />
-    </article>
+    </Screen>
   );
 }

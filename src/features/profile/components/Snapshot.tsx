@@ -1,31 +1,34 @@
-import { CountUp } from '@/components/ui/CountUp';
 import { Icon } from '@/components/ui/Icon';
 import { Reveal } from '@/components/ui/Reveal';
-import { SectionHead } from '@/components/ui/SectionHead';
+import { Section } from '@/components/ui/Section';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Stat, statDividers } from '@/components/ui/Stat';
 import type { SectionContent } from '@/features/site/types';
+import { cn } from '@/lib/cn';
 import type { SnapshotMetric } from '../types';
 
+/** Current metrics in one glass data panel, divided by hairlines rather than boxed one by one. */
 export function Snapshot({ section, metrics }: { section: SectionContent; metrics: SnapshotMetric[] }) {
   if (!metrics.length) return null;
   return (
-    <section id="snapshot" className="band" aria-labelledby="snapshot-title">
-      <div className="wrap">
-        <SectionHead index="01" content={section} as="h1" id="snapshot-title" />
-        <div className="snap-grid">
+    <Section id="snapshot" labelledBy="snapshot-title">
+      <SectionHeader index="01" content={section} as="h1" id="snapshot-title" />
+      <Reveal>
+        <dl className="glass grid grid-cols-2 rounded-xl lg:grid-cols-4">
           {metrics.map((m, i) => (
-            <Reveal key={m.label} className="metric card card-hover" delay={i * 80}>
-              <div className={`ic ${m.accent === 'gold' ? 'gold' : ''}`}>
-                <Icon name={m.icon} />
-              </div>
-              <div className="val">
-                <CountUp value={m.value} suffix={m.suffix} />
-              </div>
-              <div className="k">{m.label}</div>
-              <div className="note">{m.note}</div>
-            </Reveal>
+            <Stat
+              key={m.label}
+              value={m.value}
+              suffix={m.suffix}
+              label={m.label}
+              note={m.note}
+              tone={m.accent === 'gold' ? 'accent' : 'brand'}
+              icon={<Icon name={m.icon} />}
+              className={cn('p-5 sm:p-8', statDividers(i))}
+            />
           ))}
-        </div>
-      </div>
-    </section>
+        </dl>
+      </Reveal>
+    </Section>
   );
 }

@@ -1,6 +1,8 @@
 import { Icon } from '@/components/ui/Icon';
 import { Reveal } from '@/components/ui/Reveal';
-import { SectionHead } from '@/components/ui/SectionHead';
+import { Section } from '@/components/ui/Section';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { TagList } from '@/components/ui/Tag';
 import type { SectionContent } from '@/features/site/types';
 import type { Dictionary } from '@/i18n/get-dictionary';
 import type { SkillsOverview } from '../types';
@@ -11,52 +13,42 @@ interface StackProps {
   t: Dictionary['stack'];
 }
 
+/** Skills as a scannable definition list: category on the left, technologies on the right. */
 export function Stack({ section, skills, t }: StackProps) {
   return (
-    <section id="stack" className="band" aria-labelledby="stack-title">
-      <div className="wrap">
-        <SectionHead index="03" content={section} id="stack-title" />
-        <div className="stack-grid">
-          {skills.stack.map((cat, i) => (
-            <Reveal className={`card stack-cat ${cat.accent === 'gold' ? 'gold' : ''}`} key={cat.slug} delay={i * 80}>
-              <div className="cat-h">
-                <span className="ci">
-                  <Icon name={cat.icon} />
-                </span>
-                <h3 className="tt">{cat.name}</h3>
-              </div>
-              <ul className="stack-skills">
-                {cat.technologies.map((s) => (
-                  <li className="skill-pill" key={s.slug}>
-                    {s.name}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          ))}
-        </div>
+    <Section id="stack" labelledBy="stack-title">
+      <SectionHeader index="03" content={section} id="stack-title" />
 
-        {skills.learning.map((cat) => (
-          <Reveal className="card learning-banner" key={cat.slug}>
-            <div className="lb-l">
-              <span className="lb-ic">
-                <Icon name={cat.icon} />
-              </span>
-              <div>
-                <div className="lb-k">{t.lookingAhead}</div>
-                <h3 className="lb-v">{cat.name}</h3>
+      <Reveal>
+        <dl className="border-b border-line">
+          {skills.stack.map((cat) => (
+            <div key={cat.slug} className="grid gap-4 border-t border-line py-7 md:grid-cols-[15rem_minmax(0,1fr)] md:gap-10">
+              <dt className="flex items-center gap-3 font-mono text-label tracking-[0.14em] text-fg uppercase">
+                <Icon name={cat.icon} className="size-4 shrink-0 text-brand-fg" />
+                {cat.name}
+              </dt>
+              <dd>
+                <TagList items={cat.technologies.map((s) => s.name)} className="[&>li]:px-2.5 [&>li]:py-1.5 [&>li]:text-label" />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Reveal>
+
+      {skills.learning.map((cat) => (
+        <Reveal key={cat.slug} className="mt-8">
+          <div className="grid items-center gap-5 rounded-lg border border-accent/30 bg-accent-soft px-6 py-6 md:grid-cols-[15rem_minmax(0,1fr)] md:gap-10">
+            <div className="flex items-center gap-3">
+              <Icon name={cat.icon} className="size-5 shrink-0 text-accent-fg" />
+              <div className="flex flex-col">
+                <span className="font-mono text-micro tracking-[0.14em] text-accent-fg uppercase">{t.lookingAhead}</span>
+                <h3 className="text-h3">{cat.name}</h3>
               </div>
             </div>
-            <ul className="lb-tags">
-              {cat.technologies.map((s) => (
-                <li className="tag" key={s.slug}>
-                  {s.name}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        ))}
-      </div>
-    </section>
+            <TagList items={cat.technologies.map((s) => s.name)} className="[&>li]:border-accent/25" />
+          </div>
+        </Reveal>
+      ))}
+    </Section>
   );
 }

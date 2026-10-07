@@ -128,10 +128,23 @@ export const profileHighlightTranslations = pgTable(
   (t) => [primaryKey({ columns: [t.highlightId, t.locale] })],
 );
 
+/**
+ * Where a snapshot metric's number comes from. `static` uses the stored value;
+ * the others are counted from published content at read time, so a visible
+ * metric can never contradict the portfolio it sits beside.
+ */
+export const snapshotMetricSourceEnum = pgEnum('snapshot_metric_source', [
+  'static',
+  'published_projects',
+  'technologies',
+]);
+
 /** The animated stat tiles in the About page snapshot. */
 export const snapshotMetrics = pgTable('snapshot_metrics', {
   id: uuid().primaryKey().defaultRandom(),
   icon: text().notNull(),
+  source: snapshotMetricSourceEnum().notNull().default('static'),
+  /** Used when `source` is `static`; ignored for derived metrics. */
   value: doublePrecision().notNull(),
   suffix: text().notNull().default(''),
   accent: accentEnum().notNull().default('blue'),

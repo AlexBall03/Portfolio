@@ -39,8 +39,12 @@ export interface Highlight {
   body: string;
 }
 
+export type SnapshotMetricSource = 'static' | 'published_projects' | 'technologies';
+
 export interface SnapshotMetric {
   icon: string;
+  /** `static` metrics show `value`; derived ones are counted from published content. */
+  source: SnapshotMetricSource;
   value: number;
   suffix: string;
   accent: Accent;

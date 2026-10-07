@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Screen } from '@/components/layout/Screen';
+import { buttonStyles } from '@/components/ui/button-styles';
 import { Icon } from '@/components/ui/Icon';
+import { SystemState } from '@/components/ui/SystemState';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { localizedPath, splitLocale } from '@/i18n/paths';
 
@@ -15,21 +18,24 @@ export default function NotFound() {
   const t = getDictionary(locale).notFound;
 
   return (
-    <div className="screen">
+    <Screen>
       <title>{t.title}</title>
       <meta name="robots" content="noindex, follow" />
-      <section className="band nf">
-        <div className="wrap nf-inner">
-          <div className="nf-code mono">{t.code}</div>
-          <h1 className="h-section">{t.heading}</h1>
-          <p className="lead nf-lead">{t.lead}</p>
-          <div className="nf-cta">
-            <Link href={localizedPath(locale, '/')} className="btn btn-primary">
+      <SystemState
+        code={t.code}
+        title={t.heading}
+        lead={t.lead}
+        actions={
+          <>
+            <Link href={localizedPath(locale, '/')} className={buttonStyles()}>
               {t.home} <Icon name="arrowRight" />
             </Link>
-          </div>
-        </div>
-      </section>
-    </div>
+            <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ variant: 'secondary' })}>
+              {t.projects}
+            </Link>
+          </>
+        }
+      />
+    </Screen>
   );
 }

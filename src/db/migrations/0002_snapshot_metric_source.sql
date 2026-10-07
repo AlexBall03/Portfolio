@@ -1,0 +1,2 @@
+CREATE TYPE "public"."snapshot_metric_source" AS ENUM('static', 'published_projects', 'technologies');--> statement-breakpoint
+ALTER TABLE "snapshot_metrics" ADD COLUMN "source" "snapshot_metric_source" DEFAULT 'static' NOT NULL;

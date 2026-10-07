@@ -1,7 +1,10 @@
 import { Icon } from '@/components/ui/Icon';
+import { Prose } from '@/components/ui/Prose';
 import { Reveal } from '@/components/ui/Reveal';
-import { SectionHead } from '@/components/ui/SectionHead';
+import { Section } from '@/components/ui/Section';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import type { SectionContent } from '@/features/site/types';
+import type { Dictionary } from '@/i18n/get-dictionary';
 import type { Highlight, Profile, ProfileRole } from '../types';
 import { RoleCycler } from './RoleCycler';
 
@@ -10,36 +13,50 @@ interface AboutProps {
   profile: Profile;
   roles: ProfileRole[];
   differentiators: Highlight[];
+  t: Dictionary['about'];
 }
 
-export function About({ section, profile, roles, differentiators }: AboutProps) {
+export function About({ section, profile, roles, differentiators, t }: AboutProps) {
   return (
-    <section id="about" className="band" aria-labelledby="about-title">
-      <div className="wrap">
-        <SectionHead index="02" content={section} id="about-title" />
-        <div className="about-grid">
-          <Reveal className="about-left">
-            {roles.length > 0 && <RoleCycler roles={roles} />}
-            <div className="about-body">
-              {profile.about.map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+    <Section id="about" labelledBy="about-title">
+      <SectionHeader index="02" content={section} id="about-title" />
+
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+        {roles.length > 0 && (
+          <Reveal>
+            <div className="lg:sticky lg:top-28">
+              <RoleCycler roles={roles} />
             </div>
           </Reveal>
-
-          <Reveal delay={120} className="diff-list">
-            {differentiators.map((d) => (
-              <div className="card diff" key={d.title}>
-                <span className="di">{d.icon && <Icon name={d.icon} />}</span>
-                <div>
-                  <h3 className="dt">{d.title}</h3>
-                  <p className="dd">{d.body}</p>
-                </div>
-              </div>
-            ))}
-          </Reveal>
-        </div>
+        )}
+        <Reveal delay={80}>
+          <Prose paragraphs={profile.about} lead />
+        </Reveal>
       </div>
-    </section>
+
+      {differentiators.length > 0 && (
+        <div className="mt-20 lg:mt-28">
+          <Reveal>
+            <h3 className="font-mono text-label tracking-[0.16em] text-fg-faint uppercase">{t.beyondCode}</h3>
+          </Reveal>
+          <ol className="mt-6 grid gap-x-14 md:grid-cols-2">
+            {differentiators.map((d, i) => (
+              <li key={d.title}>
+                <Reveal delay={(i % 2) * 60} className="flex h-full gap-5 border-t border-line py-7">
+                  <span className="pt-1 font-mono text-label text-accent-fg">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <h4 className="flex items-center gap-2.5 text-h3">
+                      {d.icon && <Icon name={d.icon} className="size-[18px] shrink-0 text-brand-fg" />}
+                      {d.title}
+                    </h4>
+                    <p className="text-body-sm text-fg-muted">{d.body}</p>
+                  </div>
+                </Reveal>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </Section>
   );
 }

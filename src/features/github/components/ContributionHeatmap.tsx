@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { LOCALE_TAGS, type Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/get-dictionary';
 import { fill } from '@/i18n/paths';
@@ -11,9 +12,31 @@ function cellLabel(day: ContributionDay, dateFmt: Intl.DateTimeFormat, t: Dictio
 }
 
 /**
- * 26 week columns × 7 weekday rows. The grid flows by column, so cells are
+ * One entry per week column: a month name over the first week that contains
+ * that month's 1st–7th, otherwise null. Labels closer than 3 weeks are dropped.
+ */
+function monthLabels(calendar: ContributionCalendar, monthFmt: Intl.DateTimeFormat): (string | null)[] {
+  const labels: (string | null)[] = [];
+  let lastLabelled = -3;
+  calendar.weeks.forEach((week, w) => {
+    const first = week.find((d): d is ContributionDay => d !== null);
+    if (!first || Number(first.date.slice(8, 10)) > 7 || w - lastLabelled < 3) {
+      labels.push(null);
+      return;
+    }
+    lastLabelled = w;
+    labels.push(monthFmt.format(new Date(`${first.date}T00:00:00Z`)));
+  });
+  return labels;
+}
+
+const COLUMNS = 'grid gap-[3px] [grid-template-columns:repeat(var(--weeks),minmax(0,1fr))]';
+
+/**
+ * Week columns × 7 weekday rows. The grid flows by column, so cells are
  * emitted week by week; future days are invisible placeholders that keep
- * every row aligned to its weekday.
+ * every row aligned to its weekday. One summarized image for assistive tech;
+ * per-day detail is in hover titles, not tab stops.
  */
 export function ContributionHeatmap({
   calendar,
@@ -24,40 +47,50 @@ export function ContributionHeatmap({
   locale: Locale;
   t: Dictionary['github'];
 }) {
-  const dateFmt = new Intl.DateTimeFormat(LOCALE_TAGS[locale].intl, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  const intl = LOCALE_TAGS[locale].intl;
+  const dateFmt = new Intl.DateTimeFormat(intl, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const monthFmt = new Intl.DateTimeFormat(intl, { month: 'short', timeZone: 'UTC' });
+  const weeks = { '--weeks': calendar.weeks.length } as CSSProperties;
+
+  const months = monthLabels(calendar, monthFmt);
 
   return (
-    <>
+    <div className="min-w-0">
+      <div aria-hidden="true" className={`${COLUMNS} mb-2 h-4`} style={weeks}>
+        {months.map((m, w) => (
+          <span key={w} className="font-mono text-micro whitespace-nowrap text-fg-faint">
+            {m}
+          </span>
+        ))}
+      </div>
       <div
-        className="gh-contrib"
         role="img"
         aria-label={fill(t.calendarLabel, { count: calendar.total })}
-        style={{ gridTemplateColumns: `repeat(${calendar.weeks.length}, 1fr)` }}
+        className={`${COLUMNS} grid-flow-col grid-rows-7`}
+        style={weeks}
       >
         {calendar.weeks.flatMap((week, w) =>
           week.map((day, d) =>
             day ? (
-              <span key={day.date} className={`gh-cell ${day.level ? `l${day.level}` : ''}`} title={cellLabel(day, dateFmt, t)} />
+              <span key={day.date} className="heat-cell aspect-square rounded-[3px]" data-level={day.level} title={cellLabel(day, dateFmt, t)} />
             ) : (
-              <span key={`pad-${w}-${d}`} className="gh-cell" style={{ visibility: 'hidden' }} />
+              <span key={`pad-${w}-${d}`} className="invisible aspect-square" />
             ),
           ),
         )}
       </div>
-      <div className="gh-legend" aria-hidden="true">
-        <span>{t.less}</span>
-        <span className="lg gh-cell" />
-        <span className="lg gh-cell l1" />
-        <span className="lg gh-cell l2" />
-        <span className="lg gh-cell l3" />
-        <span className="lg gh-cell l4" />
-        <span>{t.more}</span>
-      </div>
-    </>
+    </div>
+  );
+}
+
+export function HeatmapLegend({ t }: { t: Dictionary['github'] }) {
+  return (
+    <div aria-hidden="true" className="flex items-center gap-1.5 font-mono text-micro text-fg-faint">
+      <span className="mr-1">{t.less}</span>
+      {[0, 1, 2, 3, 4].map((level) => (
+        <span key={level} className="heat-cell size-2.5 rounded-[2px]" data-level={level} />
+      ))}
+      <span className="ml-1">{t.more}</span>
+    </div>
   );
 }

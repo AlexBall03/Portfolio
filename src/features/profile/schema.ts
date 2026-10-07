@@ -59,6 +59,8 @@ export type HighlightInput = z.infer<typeof highlightInput>;
 
 export const snapshotMetricInput = z.object({
   icon,
+  source: z.enum(['static', 'published_projects', 'technologies']).default('static'),
+  /** Ignored when `source` is derived; stored so switching back to static has a value. */
   value: z.number().finite().nonnegative(),
   suffix: z.string().max(4).default(''),
   accent: accent.default('blue'),
