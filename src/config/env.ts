@@ -34,6 +34,15 @@ function read<T extends z.ZodType>(schema: T, concern: string): z.infer<T> {
   return parsed.data;
 }
 
-export const databaseEnv = () => read(databaseSchema, 'database');
+export const databaseEnv = () => {
+  try {
+    return read(databaseSchema, 'database');
+  } catch (err) {
+    throw new ConfigError(
+      `${(err as Error).message}. Add your Neon connection string to .env.local, ` +
+        'or use DATABASE_URL=pglite:.pglite for a local database with no setup.',
+    );
+  }
+};
 export const githubEnv = () => read(githubSchema, 'GitHub');
 export const contactEnv = () => read(contactSchema, 'contact');
