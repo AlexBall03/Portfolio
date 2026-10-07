@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
         ],
       },
+      // The private admin is never indexed (robots.txt also disallows it).
+      ...['/admin/:path*', '/api/admin/:path*'].map((source) => ({
+        source,
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      })),
     ];
   },
 };

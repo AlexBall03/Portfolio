@@ -131,6 +131,7 @@ export const es: Dictionary = {
     resume: 'Currículum',
     lastUpdated: 'Última actualización',
     preferences: 'Preferencias',
+    admin: 'Admin',
   },
   toggles: {
     theme: 'Tema',

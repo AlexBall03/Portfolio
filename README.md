@@ -20,6 +20,7 @@ See **[ARCHITECTURE.md](ARCHITECTURE.md)** for how it's built and where things g
 - **Contact form:** validated in the browser and again on the server, works without JavaScript, has a honeypot, and delivers through Resend.
 - **Command palette:** `⌘K` / `Ctrl K` to jump to pages, download the resume, copy the email address, or switch theme and language.
 - **Dark and light themes** with no flash on load; respects reduced-motion settings.
+- **Private admin:** `/admin`, a Clerk-authenticated console for the single site owner (no public sign-up).
 - **SEO:** per-page metadata, canonical URLs, Open Graph, a generated sitemap and robots.txt, and server-rendered Schema.org JSON-LD.
 
 ## Getting started
@@ -33,6 +34,17 @@ npm run dev
 You don't need a Neon account for local work. Set `DATABASE_URL=pglite:.pglite` in `.env.local` to use an in-process Postgres that is migrated and seeded automatically.
 
 With Neon, put the **`dev` branch's** two connection strings in `.env.local` (never Production's). There is no migrate or seed step: `npm run dev` first applies any pending migrations to that database and loads the initial content if it is new, and every deployment does the same for its own database.
+
+## Admin & authentication
+
+`/admin` is the site's private control room, linked discreetly as **Admin** in the footer. Phase 4 adds content management there; today it has the authenticated console and a status dashboard.
+
+- **Clerk** handles sign-in (email + password, GitHub, Google). **The site** decides who is admin: exactly one Clerk user, identified by `ADMIN_CLERK_USER_ID`. Authentication alone grants nothing.
+- **There is no sign-up.** The single admin account is created by hand in Clerk, and the Clerk instance is set to *Invite-only*, so nobody can register.
+- Authorization is enforced on the server at every layer: the proxy, the console layout, and each admin page, Server Action, and Route Handler (`requireAdmin()` / `adminRoute()` in `src/server/auth`). Anyone who isn't the admin gets a 404.
+- Without the three Clerk variables the admin is simply switched off; the rest of the site is unaffected.
+
+Setup for local, Preview, and Production (Clerk Development vs Production instances, different user IDs): **[docs/admin-setup.md](docs/admin-setup.md)**. Architecture: [ARCHITECTURE.md](ARCHITECTURE.md#authentication--admin).
 
 ## Scripts
 
@@ -50,7 +62,7 @@ With Neon, put the **`dev` branch's** two connection strings in `.env.local` (ne
 
 ## Environment variables
 
-All variables are server-only and validated in `src/config/env.ts`.
+All variables are validated in `src/config/env.ts` and are server-only, except Clerk's publishable key, which is public by design.
 
 | Variable | Required | Purpose |
 |---|---|---|
@@ -60,10 +72,13 @@ All variables are server-only and validated in `src/config/env.ts`.
 | `RESEND_API_KEY` | for contact form | Resend API key |
 | `CONTACT_TO_EMAIL` | no | Recipient (default `contact@alexball.dev`) |
 | `CONTACT_FROM_EMAIL` | no | Sender on a Resend-verified domain (default `contact@alexball.dev`) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | for `/admin` | Clerk publishable key (`pk_test_…` locally/Preview, `pk_live_…` Production) |
+| `CLERK_SECRET_KEY` | for `/admin` | Clerk secret key from the same instance |
+| `ADMIN_CLERK_USER_ID` | for `/admin` | The admin's Clerk user ID (`user_…`) in that instance |
 
-If `GITHUB_TOKEN` or `RESEND_API_KEY` is missing, only that feature degrades; the rest of the site still works.
+If `GITHUB_TOKEN` or `RESEND_API_KEY` is missing, only that feature degrades. Without the Clerk variables, `/admin` is switched off. The rest of the site works either way.
 
-Who sets what: the Neon integration provides both database variables in Vercel Production and Preview. `GITHUB_TOKEN`, `RESEND_API_KEY`, and the optional contact addresses are added by hand in Vercel for both environments. Locally, everything comes from `.env.local`.
+Who sets what: the Neon integration provides both database variables in Vercel Production and Preview. `GITHUB_TOKEN`, `RESEND_API_KEY`, and the optional contact addresses are added by hand in Vercel for both environments. The Clerk variables are added by hand per environment: Development-instance values for Preview, Production-instance values for Production. Locally, everything comes from `.env.local`.
 
 ## Deployment
 

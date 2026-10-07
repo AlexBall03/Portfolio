@@ -1,6 +1,6 @@
 # Architecture — alexball.dev
 
-A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 1 (Architecture & Foundation)**.
+A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 3 (Authentication & Admin Foundation)**: Phase 1 laid the architecture, Phase 2 the design system, and Phase 3 the private `/admin`.
 
 ## Stack
 
@@ -14,7 +14,7 @@ A bilingual (English/Spanish) software-engineering portfolio, built as one full-
 | Email | Resend |
 | Hosting | Vercel (Fluid Compute, Node runtime) |
 | Tests | Vitest + PGlite (real Postgres, in-process) |
-| Future auth | Clerk (Phase 3) — not installed yet |
+| Auth | Clerk (`@clerk/nextjs`) for identity on `/admin` only; authorization is the app's own (single admin, see **Authentication & admin**) |
 
 ## Request flow
 
@@ -28,6 +28,8 @@ request ─► src/proxy.ts ─► app/[locale]/… (Server Components)
                               src/db (Drizzle) ─► Neon
 ```
 
+Admin requests (`/admin`, `/api/admin`) take a separate branch in `proxy.ts`: no locale handling, and Clerk resolves the session before the first authorization check (see **Authentication & admin**).
+
 Pages are thin compositions: resolve the locale, call cached query functions, render feature components. Nearly every route is **fully prerendered** and revalidated by time or by tag. The Projects page refreshes every 15 minutes because it includes live GitHub data.
 
 ## Directory layout
@@ -36,18 +38,25 @@ Pages are thin compositions: resolve the locale, call cached query functions, re
 src/
   app/[locale]/           routes: home, about, projects, projects/[slug], experience, resume, contact,
                           not-found, error, [...rest] (404 catch-all); layout = root layout (html/body)
+  app/admin/              the private admin (English-only, its own root layout): sign-in/[[...sign-in]],
+                          (console)/ (guarded layout, dashboard, [...rest] 404), not-found, error
+  app/api/admin/          admin Route Handlers (session: the reference handler)
   app/                    sitemap.ts, robots.ts, manifest.ts, global-error.tsx
-  proxy.ts                locale routing; future Clerk middleware goes here
-  config/                 env.ts (Zod, server-only), site.ts (URLs, ids), navigation.ts (route structure)
+  proxy.ts                locale routing (public) + Clerk and the admin gate (admin, Server Actions)
+  server/auth/            admin authorization: policy (the rule), gate (proxy decision), admin (requireAdmin…), route (adminRoute)
+  config/                 env.ts (Zod, server-only), site.ts (URLs, ids), navigation.ts (route structure),
+                          admin.ts (admin paths + console navigation)
   i18n/                   locales, typed UI dictionaries (en/es), path helpers, translation fallback
   db/                     client.ts (app, HTTP), schema/*, migrations/ (committed SQL), seed/ (initial content),
                           prepare.ts (migrate + bootstrap), admin/ (tooling target + direct connection),
                           cli/ (db:* scripts and their .env.local loader; never imported by the app), local.ts
   features/<domain>/      types.ts (domain types) · schema.ts (Zod inputs) · repository.ts (DB) ·
                           queries.ts (cached reads) · components/ (feature UI)
-      projects  skills  experience  profile  site  github  contact
+      projects  skills  experience  profile  site  github  contact  admin (dashboard facts)
   integrations/           github/ (typed API client + Zod response schemas), resend/
   components/layout/      site chrome: SiteChrome (command bar + drawer + palette), Preferences, Footer, Pager, PageShell, Screen
+  components/admin/       console UI: AdminShell, AdminNav, AdminTopBar (bar + drawer), AccountActions, AdminPageHeader, AdminLoading,
+                          AdminUnavailable, clerk-appearance (Clerk themed with the tokens)
   components/ui/          design-system primitives (Container, Section, SectionHeader, Eyebrow, Prose, Stat, Status,
                           Tag, Surface, SystemState, buttonStyles) + Icon, Reveal, CountUp, RelativeTime, LocalTime, JsonLd
   lib/                    logger, errors, media resolution, cache tags/lifetimes, seo/, validation, client/
@@ -60,7 +69,8 @@ src/
 - Repositories return **domain types** (`features/*/types.ts`), never Drizzle rows.
 - `integrations/*` know nothing about UI or the domain model; they validate and normalize upstream data.
 - Every server-only module imports `server-only`.
-- Client Components are limited to interactive islands: nav/drawer/palette, theme and locale toggles, the contact form, the experience tabs, the role cycler, and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. Server children pass through client wrappers unchanged.
+- Client Components are limited to interactive islands: nav/drawer/palette, theme and locale toggles, the contact form, the experience tabs, the role cycler, and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. In the admin: the nav (active state), the mobile drawer, the account actions, and Clerk's own sign-in. Server children pass through client wrappers unchanged.
+- Nothing public imports Clerk or `server/auth`; the public site has no auth-aware components (enforced by `server/auth/boundaries.test.ts`).
 
 ## Domain model (Neon)
 
@@ -156,6 +166,52 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
 
 **Never** run `drizzle-kit push`, `db:seed -- --force`, or hand-written `DROP`/`TRUNCATE` against Production, and never edit a migration that has already been applied anywhere.
 
+## Authentication & admin
+
+**Responsibilities.** Clerk owns identity: accounts, credentials, OAuth (GitHub, Google), sessions, MFA, and account management. The application owns authorization: a Clerk identity administers alexball.dev only if its stable user ID equals `ADMIN_CLERK_USER_ID`. Never by name or email.
+
+**One administrator.** There are no roles, permissions, organizations, invitations, or user tables. The admin account is created by hand in Clerk, whose instance is set to *Invite-only* access mode. The site has no sign-up route, and Clerk's sign-up prompt is hidden (both checked in `boundaries.test.ts`). Clerk's Development and Production instances have different users, so each environment configures its own ID. Setup: [docs/admin-setup.md](docs/admin-setup.md).
+
+**Single source of truth: `src/server/auth/`.**
+
+| Module | What it is |
+|---|---|
+| `policy.ts` | `isAdminUserId(userId, adminUserId)`: the rule. Pure; missing values fail closed |
+| `admin.ts` (server-only) | `getAuthorization()` → `unconfigured` / `signed-out` / `forbidden` / `admin`, resolved once per request at request time (`connection()`). `requireAdmin()` returns `{ userId }` or ends the request as a 404. Also `isAdmin()` and `getAdminProfile()` (display only) |
+| `route.ts` (server-only) | `adminRoute(handler)` for `app/api/admin/*`: a 404 JSON for anyone else, `no-store` responses |
+| `gate.ts` | `adminGate()`: the proxy's decision, pure and unit-tested |
+
+**Defense in depth.** Each layer re-checks on its own; none trusts an earlier one.
+
+1. **Proxy** (`proxy.ts`). For `/admin*` and `/api/admin*`, `clerkMiddleware` resolves the session, then `adminGate` decides:
+   - signed out (including an invalid or expired session) → page: 307 to `/admin/sign-in?redirect_url=…`; API: 404
+   - signed in as anyone else → rewritten to the public 404 (real 404 status), indistinguishable from a URL that doesn't exist
+   - the admin → through
+   - `/admin/sign-in` → always through
+2. **Console layout** (`app/admin/(console)/layout.tsx`). `requireAdmin()` runs inside `<Suspense>` (Cache Components); the shell and page render only after it succeeds, so nothing protected can flash first.
+3. **Every resource.** Each console page, Server Action, and Route Handler calls `requireAdmin()` / `adminRoute()` itself. `boundaries.test.ts` fails if a console page, an admin Route Handler, or a `'use server'` module in `app/admin` or a `mutations.ts` file doesn't.
+
+**Why layer 3 is not optional.** Server Action IDs are global: an action defined for `/admin` can be POSTed to *any* path, including public pages the admin layout never sees. So the proxy also runs Clerk for every Server Action request (`next-action` header). That lets an action's own `requireAdmin()` resolve the session and reject cleanly. Route Handlers can be called directly over HTTP by anyone.
+
+**Not configured.** Without all three variables (`config/env.ts → authEnv()`, which also rejects mismatched test/live keys), Clerk is never initialized, so its keyless mode never runs. Every admin page shows "Admin unavailable", with the missing variable names shown outside production only, and admin APIs return 404. There is no bypass in any environment.
+
+**Admin UI.** The admin is English-only: one user, so translated chrome would be duplication with no reader. The *content* it will manage stays bilingual, through the translation tables. It has its own root layout (`app/admin/layout.tsx`): shared fonts (`styles/fonts.ts`), theme script, tokens, and atmosphere, with `ClerkProvider` inside `<body>` and Clerk themed through token variables in a `clerk` CSS layer below the utilities. The shell is a floating glass sidebar on `lg+` and a top bar with the site's drawer below that. Its navigation lists only working destinations (`config/admin.ts`). Account management opens Clerk's own profile modal. Sign-out ends the session, then `location.replace('/admin/sign-in')`, so no admin UI survives in the router cache or history. Admin responses carry `X-Robots-Tag: noindex` and `robots.txt` disallows `/admin`.
+
+**Writing a Phase 4 admin operation:**
+
+```ts
+// features/projects/mutations.ts
+'use server';
+export async function updateProject(input: unknown) {
+  const admin = await requireAdmin();        // 1. authorize (always first)
+  const data = projectInputSchema.parse(input); // 2. validate
+  await repo.updateProject(db, data, { updatedBy: admin.userId }); // 3. write
+  updateTag(CACHE_TAGS.projects);            // 4. refresh public reads
+}
+```
+
+Never call `getAuthorization()` inside a `'use cache'` scope; `connection()` makes that an error by design.
+
 ## Localization
 
 - URLs: English is unprefixed (`/about`), Spanish is prefixed (`/es/about`). `proxy.ts` rewrites unprefixed requests to `/en/...` internally, sends `/en/...` to the canonical URL with a 308, and redirects unprefixed URLs to `/es` when the `locale` cookie says so (set by the language toggle).
@@ -184,13 +240,12 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
 
 ## Future insertion points
 
-- **Clerk + `/admin` (Phase 3):**
-  - Add `clerkMiddleware` in `proxy.ts`, scoped to `/admin`; `robots.ts` already disallows `/admin`.
-  - Create `app/admin/` outside `[locale]`, plus `src/server/auth/` with an `authorize(user, permission)` check.
-  - Add an `app_users` table keyed by the Clerk user ID for roles and preferences. Clerk owns identity and sessions; no credentials are stored in Postgres.
 - **CMS (Phase 4):**
-  - Add `features/*/mutations.ts` next to each `repository.ts`. Validate input with the existing `features/*/schema.ts` Zod schemas (the seed already uses them), then call `updateTag`.
+  - Add `features/*/mutations.ts` next to each `repository.ts`. Each one starts with `requireAdmin()`, validates input with the existing `features/*/schema.ts` Zod schemas (the seed already uses them), writes, then calls `updateTag`. See **Authentication & admin**.
+  - Console pages go under `app/admin/(console)/…`. Each calls `requireAdmin()` and adds its entry to `ADMIN_NAV` in `config/admin.ts` (Content: Projects, Skills, Experience, Resume · Site: Profile, Social links, Contact, Page content, Configuration). `AdminPageHeader` and `Surface` are the building blocks.
+  - Authorship: `requireAdmin()` returns the Clerk `userId` for `created_by` / `updated_by` columns. No user table is needed for one admin.
   - The Configuration page edits `profile`, `social_links`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `page_content`, `section_content`, and `site_settings`.
+  - Resume management: PDF bytes in Vercel Blob (private, served through an admin Route Handler for old versions), metadata in a `resume_versions` table with an explicit `is_current` / published pointer rather than "latest upload". `/resume` reads only the current version.
 - **Public API:** `app/api/v1/*` route handlers calling the same `queries.ts` and mapping domain types to versioned DTOs. Nothing in the domain layer depends on HTTP.
 - **SDLC Manager (Phase 6):**
   - Sync goes through the domain mutations, never straight to tables or UI.

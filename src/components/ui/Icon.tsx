@@ -41,6 +41,8 @@ const ICONS = {
   search:      'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20.5 20.5 16 16',
   alert:       'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7.5v5.5M12 16.5h.01',
   file:        'M14 3H6v18h12V7zM14 3v4h4M9 13h6M9 17h6',
+  layout:      'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',
+  logOut:      'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
 } as const satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICONS;

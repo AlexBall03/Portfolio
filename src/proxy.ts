@@ -1,26 +1,83 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
+import { ADMIN_SIGN_IN_PATH, isAdminApiPath, isAdminPath } from '@/config/admin';
+import { authStatus } from '@/config/env';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/i18n/config';
 import { localizedPath, splitLocale } from '@/i18n/paths';
+import { adminGate, type GateDecision } from '@/server/auth/gate';
 
 /**
  * Request routing that runs before rendering.
  *
- * Locale URL policy:
+ * Locale URL policy (public site):
  *   /about        → rendered as /en/about (rewrite; English stays unprefixed)
  *   /en/about     → 308 to /about (one canonical URL per page)
  *   /es/about     → rendered as-is
  *   /about + cookie locale=es → 307 to /es/about (remembers an explicit choice)
  *
- * This is also where Clerk's middleware will slot in for /admin (Phase 3).
+ * Admin (/admin, /api/admin): no locale handling; Clerk resolves the session
+ * and `adminGate` makes the first authorization decision. Clerk runs only
+ * there and on Server Action requests, so public pages never touch it.
  */
-export function proxy(request: NextRequest) {
-  const { nextUrl } = request;
-
+export function proxy(request: NextRequest, event: NextFetchEvent) {
   // The retired api.alexball.dev subdomain: send any traffic to the main site.
   if (request.headers.get('host')?.startsWith('api.')) {
     return NextResponse.redirect('https://alexball.dev/', 308);
   }
 
+  const admin = isAdminPath(request.nextUrl.pathname);
+  // Server Action IDs are global: an admin action can be POSTed to any path.
+  // Resolving the session for every action lets the action's own
+  // `requireAdmin()` reject it cleanly instead of erroring.
+  const action = request.method === 'POST' && request.headers.has('next-action');
+
+  if (authStatus().configured) {
+    if (admin || action) return withClerk(request, event);
+  } else if (admin) {
+    return applyGate(request, adminGate({ pathname: request.nextUrl.pathname, userId: null, adminUserId: null }));
+  }
+  return localeRouting(request);
+}
+
+const withClerk = clerkMiddleware(
+  async (auth, request) => {
+    if (!isAdminPath(request.nextUrl.pathname)) return localeRouting(request);
+    const config = authStatus();
+    const { userId } = await auth();
+    return applyGate(
+      request,
+      adminGate({
+        pathname: request.nextUrl.pathname,
+        search: request.nextUrl.search,
+        userId,
+        adminUserId: config.configured ? config.env.adminUserId : null,
+      }),
+    );
+  },
+  { signInUrl: ADMIN_SIGN_IN_PATH },
+);
+
+function applyGate(request: NextRequest, decision: GateDecision) {
+  switch (decision.action) {
+    case 'next':
+      return NextResponse.next();
+    case 'redirect':
+      return NextResponse.redirect(new URL(decision.location, request.url), 307);
+    case 'not-found': {
+      if (isAdminApiPath(request.nextUrl.pathname)) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
+      }
+      // Render the public site's 404 (real 404 status), exactly what any unknown URL gets.
+      const url = request.nextUrl.clone();
+      url.pathname = `/${DEFAULT_LOCALE}${request.nextUrl.pathname}`;
+      url.search = '';
+      return NextResponse.rewrite(url);
+    }
+  }
+}
+
+function localeRouting(request: NextRequest) {
+  const { nextUrl } = request;
   const { locale, path, prefixed } = splitLocale(nextUrl.pathname);
 
   if (prefixed) {
@@ -45,7 +102,11 @@ function redirect(request: NextRequest, pathname: string, status: 307 | 308) {
 }
 
 export const config = {
-  // Everything except Next internals, API routes, and files with an extension
-  // (static assets, robots.txt, sitemap.xml, the manifest, icons).
-  matcher: ['/((?!_next/|api/|.*\\..*).*)'],
+  matcher: [
+    // Everything except Next internals, API routes, and files with an extension
+    // (static assets, robots.txt, sitemap.xml, the manifest, icons).
+    '/((?!_next/|api/|.*\\..*).*)',
+    // Admin API routes.
+    '/api/admin/:path*',
+  ],
 };

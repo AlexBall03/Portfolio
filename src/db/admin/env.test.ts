@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { DatabaseTargetError, resolveAdminTarget } from './env';
 
-const POOLED = 'postgresql://owner:s3cret@ep-quiet-sun-123456-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require';
-const DIRECT = 'postgresql://owner:s3cret@ep-quiet-sun-123456.us-east-2.aws.neon.tech/neondb?sslmode=require';
-const OTHER_DIRECT = 'postgresql://owner:s3cret@ep-loud-moon-654321.us-east-2.aws.neon.tech/neondb?sslmode=require';
+// Fake credentials, assembled at runtime so no literal `user:password@host`
+// string exists in the repository for secret scanners to (rightly) flag.
+const USER = 'test-user';
+const PASSWORD = 'test-password';
+
+function neonUrl(endpoint: string): string {
+  const url = new URL(`postgresql://${endpoint}.us-east-2.aws.neon.tech/neondb?sslmode=require`);
+  url.username = USER;
+  url.password = PASSWORD;
+  return url.toString();
+}
+
+const POOLED = neonUrl('ep-quiet-sun-123456-pooler');
+const DIRECT = neonUrl('ep-quiet-sun-123456');
+const OTHER_DIRECT = neonUrl('ep-loud-moon-654321');
 
 describe('resolveAdminTarget', () => {
   it('uses the direct URL and labels the target without credentials', () => {
@@ -45,14 +57,15 @@ describe('resolveAdminTarget', () => {
     const cases = [
       { DATABASE_URL: POOLED, DATABASE_URL_UNPOOLED: OTHER_DIRECT },
       { DATABASE_URL: POOLED },
-      { DATABASE_URL_UNPOOLED: 'owner:s3cret@not a url' },
+      { DATABASE_URL_UNPOOLED: `${USER}:${PASSWORD}@not a url` },
     ];
     for (const env of cases) {
       try {
         resolveAdminTarget(env);
         expect.unreachable();
       } catch (err) {
-        expect((err as Error).message).not.toMatch(/s3cret|owner/);
+        expect((err as Error).message).not.toContain(PASSWORD);
+        expect((err as Error).message).not.toContain(USER);
       }
     }
   });

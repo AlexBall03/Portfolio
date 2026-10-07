@@ -1,5 +1,6 @@
 import { Container } from '@/components/ui/Container';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { ADMIN_PATH } from '@/config/admin';
 import { LOCALE_TAGS } from '@/i18n/config';
 import { BrandMark } from './BrandMark';
 import { FooterNav } from './FooterNav';
@@ -80,7 +81,14 @@ export function Footer({ data, ownerName, statement }: FooterProps) {
               {T.lastUpdated}: <time dateTime={BUILD_TIME} className="text-fg-muted">{updated}</time>
             </span>
           )}
-          <span>Next.js · Neon · Vercel</span>
+          <span className="flex items-center gap-3">
+            <span>Next.js · Neon · Vercel</span>
+            <span aria-hidden="true" className="h-3 w-px bg-line-strong" />
+            {/* Plain anchor: no prefetching an authenticated route from public pages (and it crosses root layouts anyway). */}
+            <a href={ADMIN_PATH} rel="nofollow" className="rounded-sm transition-colors hover:text-fg">
+              {T.admin}
+            </a>
+          </span>
         </div>
       </Container>
     </footer>

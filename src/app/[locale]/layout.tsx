@@ -1,7 +1,6 @@
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
@@ -22,16 +21,8 @@ import { getDictionary } from '@/i18n/get-dictionary';
 import { buildSiteGraph } from '@/lib/seo/structured-data';
 import { splashInitScript } from '@/lib/splash-script';
 import { themeInitScript } from '@/lib/theme-script';
+import { fontVariables } from '@/styles/fonts';
 import '@/styles/globals.css';
-
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk', display: 'swap' });
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
-});
 
 interface LayoutProps {
   children: ReactNode;
@@ -90,7 +81,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
     <html
       lang={locale}
       data-theme={settings.defaultTheme}
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={fontVariables}
       // The inline script below may change data-theme before hydration.
       suppressHydrationWarning
     >

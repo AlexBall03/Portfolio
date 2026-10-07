@@ -136,6 +136,7 @@ export const en = {
     resume: 'Resume',
     lastUpdated: 'Last updated',
     preferences: 'Preferences',
+    admin: 'Admin',
   },
   toggles: {
     theme: 'Theme',

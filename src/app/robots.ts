@@ -3,7 +3,7 @@ import { absoluteUrl } from '@/config/site';
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    // /admin is reserved for the future authenticated Admin (Phase 3).
+    // The private admin (also sent with X-Robots-Tag: noindex).
     rules: { userAgent: '*', allow: '/', disallow: ['/admin'] },
     sitemap: absoluteUrl('/sitemap.xml'),
   };

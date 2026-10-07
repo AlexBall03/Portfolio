@@ -1,3 +1,5 @@
+/* Clerk's styles (admin only) slot below components and utilities, so utility classes restyle them. */
+@layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
 
 /*

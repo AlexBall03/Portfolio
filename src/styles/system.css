@@ -65,6 +65,19 @@
     backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
     box-shadow: 0 8px 24px -16px oklch(0 0 0 / 0.35);
   }
+  /* The footer's brand line (Footer.tsx), mirrored onto the bar's lower edge once scrolled. */
+  .chrome-bar::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, color-mix(in oklab, var(--brand) 50%, transparent), transparent);
+    opacity: 0;
+    transition: opacity 300ms var(--ease-standard);
+    pointer-events: none;
+  }
+  .chrome-bar[data-scrolled]::after { opacity: 1; }
 
   /* ------------------------------------------------------------------
      Mobile drawer — an edge-anchored sheet in the command bar's material
@@ -113,6 +126,31 @@
     translate: 0;
     transition: opacity 320ms var(--ease-standard), translate 420ms var(--ease-out);
     transition-delay: calc(120ms + var(--i, 0) * 60ms);
+  }
+
+  /* ------------------------------------------------------------------
+     Admin rail — the admin's sidebar in the command bar's material,
+     turned vertical: an edge-anchored blurred strip with a hairline
+     and the drawer's brand glow on the seam.
+     ------------------------------------------------------------------ */
+  .admin-rail {
+    position: relative;
+    background-color: var(--surface-glass-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    box-shadow: 24px 0 48px -32px oklch(0 0 0 / 0.4);
+  }
+  .admin-rail::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--line), color-mix(in oklab, var(--brand) 55%, transparent) 50%, var(--line));
+    pointer-events: none;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .admin-rail { background-color: var(--surface-raised); }
   }
 
   /* ------------------------------------------------------------------
