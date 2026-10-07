@@ -14,3 +14,6 @@ Thumbs.db
 
 # scratch dir for scripts/generate-icons.ps1 -> scripts/make-ico.mjs
 public/.ico-tmp/
+
+# Local development database (DATABASE_URL=pglite:.pglite)
+.pglite/

@@ -30,7 +30,10 @@ export const content: z.input<typeof contentSeedSchema> = {
     headshot: {
       storage: 'static',
       src: '/assets/headshot.png',
-      mimeType: 'image/png',
+      // The file is a JPEG despite its extension; next/image serves it correctly.
+      mimeType: 'image/jpeg',
+      width: 1254,
+      height: 1254,
       alt: { en: 'Alexander D. Ball', es: 'Alexander D. Ball' },
     },
     resume: {

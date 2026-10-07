@@ -1,0 +1,121 @@
+/* Element defaults and typography. */
+@layer base {
+body, .card, .btn, .nav { transition: background-color .35s var(--ease), border-color .35s var(--ease), color .35s var(--ease); }
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 110px;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+::selection { background: rgba(45, 127, 249, 0.32); color: #fff; }
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  border: 3px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+
+/* ============================================================
+   Typography
+   ============================================================ */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--white);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.display {
+  font-size: clamp(2.7rem, 6.4vw, 5.1rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.h-section {
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  letter-spacing: -0.03em;
+}
+
+p { margin: 0; }
+.lead {
+  font-size: clamp(1.05rem, 1.5vw, 1.28rem);
+  color: var(--text);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+}
+.eyebrow .idx { color: var(--gold); }
+.eyebrow .bar {
+  width: 26px; height: 1px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+
+.mono { font-family: var(--font-mono); }
+.text-grad-gold {
+  background: linear-gradient(120deg, var(--gold-soft), var(--gold));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.accent-text { color: var(--accent-300); }
+
+
+/* ============================================================
+   App shell + background
+   ============================================================ */
+#bg-layer {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  overflow: hidden;
+}
+body { min-height: 100svh; display: flex; flex-direction: column; }
+main { position: relative; z-index: 1; flex: 1 0 auto; display: flex; flex-direction: column; }
+
+/* utility */
+.stack { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; }
+.grid { display: grid; }
+.dim { color: var(--muted); }
+.faint { color: var(--faint); }
+}

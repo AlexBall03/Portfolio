@@ -8,14 +8,14 @@ interface RangeLabels {
 
 /**
  * Formats an experience's date range for display, e.g. "Mar 2026 — Present",
- * "2017 — 2021", or "Feb 2024 — Feb 2028 (Expected)". Dates are calendar dates,
- * so they are formatted in UTC to avoid shifting across time zones.
+ * "2017 — 2021", or "Feb 2024 — Feb 2028 (Expected)" for a current entry with a
+ * planned end. Deterministic (no clock reads), so it is safe in cached pages.
+ * Dates are calendar dates, formatted in UTC so they never shift a day.
  */
 export function formatExperienceRange(
-  item: Pick<Experience, 'startDate' | 'endDate' | 'datePrecision'>,
+  item: Pick<Experience, 'startDate' | 'endDate' | 'datePrecision' | 'isCurrent'>,
   locale: Locale,
   labels: RangeLabels,
-  today: Date = new Date(),
 ): string {
   const fmt = new Intl.DateTimeFormat(LOCALE_TAGS[locale].intl, {
     timeZone: 'UTC',
@@ -25,7 +25,6 @@ export function formatExperienceRange(
   const start = fmt.format(new Date(`${item.startDate}T00:00:00Z`));
   if (!item.endDate) return `${start} — ${labels.present}`;
 
-  const end = new Date(`${item.endDate}T00:00:00Z`);
-  const suffix = end.getTime() > today.getTime() ? ` (${labels.expected})` : '';
-  return `${start} — ${fmt.format(end)}${suffix}`;
+  const end = fmt.format(new Date(`${item.endDate}T00:00:00Z`));
+  return item.isCurrent ? `${start} — ${end} (${labels.expected})` : `${start} — ${end}`;
 }

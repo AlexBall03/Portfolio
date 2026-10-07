@@ -117,6 +117,7 @@ export const es: Dictionary = {
   footer: {
     site: 'Sitio',
     connect: 'Conecta',
+    email: 'Correo',
     resume: 'Currículum',
     lastUpdated: 'Última actualización',
   },

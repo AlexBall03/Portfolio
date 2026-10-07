@@ -1,0 +1,59 @@
+/* Design tokens (dark default + light theme). Mapped into Tailwind in globals.css. */
+@layer base {
+:root {
+  /* ---- Color ---- */
+  --bg:        #0B0F14;
+  --bg-2:      #0E141C;
+  --surface:   rgba(255, 255, 255, 0.022);
+  --glass:     rgba(17, 23, 31, 0.55);
+  --glass-2:   rgba(20, 27, 37, 0.72);
+  --line:      rgba(255, 255, 255, 0.07);
+  --line-soft: rgba(255, 255, 255, 0.045);
+  --hair:      rgba(255, 255, 255, 0.10);
+
+  --blue:      #2D7FF9;
+  --blue-300:  #6BA5FB;
+  --gold:      #D4AF37;
+  --gold-soft: #E6C766;
+
+  --white:     #FFFFFF;
+  --text:      #D1D5DB;
+  --muted:     #94A3B8;
+  --faint:     #5B6676;
+
+  /* glow strength — driven by Tweaks (0–1) */
+  --glow: 0.5;
+  --accent: var(--blue);
+  --accent-300: color-mix(in oklab, var(--accent), white 32%);
+
+  --radius:    18px;
+  --radius-sm: 12px;
+  --radius-lg: 26px;
+
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px -28px rgba(0,0,0,0.85);
+  --shadow-pop:  0 1px 0 rgba(255,255,255,0.06) inset, 0 40px 90px -30px rgba(0,0,0,0.9);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --maxw: 1180px;
+  --gutter: clamp(20px, 5vw, 56px);
+
+}
+
+[data-theme="light"] {
+  --bg:        #F5F3EE;
+  --bg-2:      #EBE8E0;
+  --surface:   rgba(11, 15, 20, 0.03);
+  --glass:     rgba(255, 255, 255, 0.72);
+  --glass-2:   rgba(255, 255, 255, 0.86);
+  --line:      rgba(11, 15, 20, 0.09);
+  --line-soft: rgba(11, 15, 20, 0.06);
+  --hair:      rgba(11, 15, 20, 0.12);
+
+  --white:     #14181F;
+  --text:      #33363D;
+  --muted:     #63666F;
+  --faint:     #8B8E96;
+}
+}

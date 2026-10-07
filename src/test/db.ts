@@ -10,7 +10,7 @@ import type { Database } from '@/db/types';
  */
 export async function createTestDb(): Promise<{ db: Database; close: () => Promise<void> }> {
   const client = new PGlite();
-  const db: Database = drizzle({ client, schema, casing: 'snake_case' });
-  await migrate(db as Parameters<typeof migrate>[0], { migrationsFolder: 'src/db/migrations' });
+  const db = drizzle({ client, schema, casing: 'snake_case' });
+  await migrate(db, { migrationsFolder: 'src/db/migrations' });
   return { db, close: () => client.close() };
 }

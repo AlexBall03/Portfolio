@@ -1,0 +1,264 @@
+/* Shared primitives: layout wrapper, section heads, buttons, cards, tags, reveal, preference toggles. */
+@layer components {
+/* ============================================================
+   Layout
+   ============================================================ */
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+section.band {
+  position: relative;
+  padding-block: clamp(80px, 11vw, 150px);
+}
+.screen section.band:not(:first-of-type) { padding-top: clamp(50px, 7vw, 90px); }
+.screen section.band:not(:last-of-type) { padding-bottom: clamp(50px, 7vw, 90px); }
+.band > .wrap { position: relative; z-index: 2; }
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 720px;
+  margin-bottom: clamp(40px, 5vw, 64px);
+}
+.section-head.center { margin-inline: auto; align-items: center; text-align: center; }
+.section-head .sub { color: var(--muted); font-size: 1.05rem; }
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  --bg-btn: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--font-body);
+  font-weight: 540;
+  font-size: 0.97rem;
+  letter-spacing: -0.01em;
+  padding: 0.92em 1.5em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--bg-btn);
+  color: var(--white);
+  cursor: pointer;
+  position: relative;
+  transition: transform .35s var(--ease), box-shadow .45s var(--ease),
+              background .3s var(--ease), border-color .3s var(--ease);
+  white-space: nowrap;
+}
+.btn svg { width: 17px; height: 17px; transition: transform .35s var(--ease); }
+.btn:active { transform: translateY(0) scale(0.985); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn:disabled:hover { transform: none; }
+.btn:disabled:active { transform: none; }
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent), #0a3a8c 32%));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent), white 18%) inset,
+              0 calc(18px * var(--glow)) calc(46px * var(--glow)) -16px color-mix(in oklab, var(--accent), transparent 30%),
+              0 10px 24px -14px rgba(0,0,0,0.8);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent), white 30%) inset,
+              0 calc(30px * var(--glow)) calc(70px * var(--glow)) -14px color-mix(in oklab, var(--accent), transparent 18%),
+              0 16px 30px -14px rgba(0,0,0,0.85);
+}
+.btn-primary:hover svg { transform: translateX(3px); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.018);
+  border-color: var(--hair);
+  color: var(--white);
+  backdrop-filter: blur(8px);
+}
+.btn-ghost:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212,175,55,0.4);
+  background: rgba(255,255,255,0.045);
+}
+
+/* secondary CTA — outline at rest, fills on hover.
+   One tier below .btn-primary: same fill, none of the glow. */
+.btn-outline {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--accent), transparent 55%);
+  color: var(--accent-300);
+  /* isolate so ::before's negative z-index can't slip behind .nav-inner's panel */
+  isolation: isolate;
+  /* Restates .btn's list (a shorthand here would otherwise drop it): `background`
+     goes, since ::before owns the fill now, and `color` joins — .btn omits it, so
+     the label was snapping to white in one frame. */
+  transition: transform .35s var(--ease), box-shadow .45s var(--ease),
+              border-color .3s var(--ease), color .45s var(--ease);
+}
+/* The fill is a gradient, i.e. a background-image, and background-image has no
+   interpolation from `none` — transitioning `background` leaves it snapping in
+   one frame. Carrying it on a pseudo-element lets opacity do the animating. */
+.btn-outline::before {
+  content: "";
+  position: absolute;
+  inset: -1px;                 /* border box, so `border-radius: inherit` lines up */
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent), #0a3a8c 32%));
+  opacity: 0;
+  z-index: -1;                 /* over the button's own border, under the label */
+  transition: opacity .45s var(--ease);
+  pointer-events: none;
+}
+.btn-outline:hover::before,
+.btn-outline.is-active::before { opacity: 1; }
+.btn-outline:hover,
+.btn-outline.is-active {
+  border-color: transparent;
+  color: var(--white);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent), white 18%) inset,
+              0 10px 24px -14px rgba(0,0,0,0.8);
+}
+.btn-outline:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent), transparent 40%);
+  outline-offset: 2px;
+}
+
+.btn-sm { padding: 0.62em 1.05em; font-size: 0.85rem; }
+
+/* link with arrow */
+.link-arrow {
+  display: inline-flex; align-items: center; gap: 0.45em;
+  font-size: 0.9rem; font-weight: 500; color: var(--accent-300);
+  transition: gap .3s var(--ease), color .3s var(--ease);
+}
+.link-arrow svg { width: 15px; height: 15px; }
+.link-arrow:hover { gap: 0.75em; color: #fff; }
+
+/* ============================================================
+   Glass surfaces / cards
+   ============================================================ */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--shadow-card);
+}
+
+.card {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0)) ,
+    var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--shadow-card);
+  transition: transform .5s var(--ease-out), border-color .4s var(--ease),
+              box-shadow .5s var(--ease-out), background .4s var(--ease);
+  overflow: hidden;
+}
+.card::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(255,255,255,0.16), transparent 38%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.card-hover:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow: var(--shadow-pop),
+              0 calc(34px * var(--glow)) calc(80px * var(--glow)) -40px color-mix(in oklab, var(--accent), transparent 55%);
+}
+
+/* corner accent used on premium frames */
+.corner {
+  position: absolute; width: 20px; height: 20px; z-index: 3;
+  border: 1.5px solid var(--accent);
+  opacity: 0.55; pointer-events: none;
+}
+.corner.tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
+.corner.tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; border-color: var(--gold); }
+.corner.bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; border-color: var(--gold); }
+.corner.br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; }
+
+/* image placeholder (striped) */
+.ph {
+  position: relative;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 11px),
+    linear-gradient(180deg, rgba(45,127,249,0.06), rgba(11,15,20,0.2));
+  display: grid; place-items: center;
+  color: var(--faint);
+}
+.ph .ph-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 0.4em 0.8em; border: 1px solid var(--line);
+  border-radius: 999px; background: rgba(11,15,20,0.5);
+  color: var(--muted);
+}
+
+/* chips / tags */
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0.34em 0.7em;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.018);
+  white-space: nowrap;
+}
+.tag-row { display: flex; flex-wrap: wrap; gap: 7px; }
+
+/* divider hairline */
+.hr { height: 1px; background: var(--line-soft); border: 0; margin: 0; }
+
+/* ============================================================
+   Reveal-on-scroll
+   Base state is the VISIBLE end-state so it renders correctly even
+   where time-based animation can't run. Entrance animation is gated
+   behind [data-anim-ready] on <html>, set by the shared in-view observer (src/lib/client/in-view.ts).
+   ============================================================ */
+.reveal { opacity: 1; transform: none; }
+[data-anim-ready] .reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity .8s var(--ease-out), transform .8s var(--ease-out),
+              border-color .4s var(--ease), box-shadow .5s var(--ease-out), background .4s var(--ease);
+  transition-delay: var(--d, 0ms), var(--d, 0ms), 0s, 0s, 0s;
+  will-change: opacity, transform;
+}
+[data-anim-ready] .reveal[data-revealed] { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-anim-ready] .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+
+/* ---- theme + language controls (footer) ---- */
+.f-prefs { display: flex; align-items: center; gap: 10px; }
+.pref-toggle {
+  display: inline-flex; align-items: center; gap: 0.5em;
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--muted); background: rgba(255,255,255,0.02); border: 1px solid var(--line);
+  border-radius: 999px; padding: 0.42em 0.85em; cursor: pointer;
+}
+.pref-toggle:hover { color: var(--white); border-color: var(--hair); }
+.pref-toggle svg { width: 14px; height: 14px; }
+.lang-toggle { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang-toggle button {
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.04em;
+  color: var(--muted); background: transparent; border: 0; padding: 0.5em 0.7em; cursor: pointer;
+}
+.lang-toggle button.on { color: var(--white); background: rgba(45,127,249,0.16); }
+}

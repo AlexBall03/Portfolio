@@ -1,0 +1,37 @@
+/* Light-theme component overrides (loaded last so they win within the layer). */
+@layer components {
+[data-theme="light"] body { background: var(--bg); }
+[data-theme="light"] ::selection { background: rgba(45, 127, 249, 0.22); color: #14181F; }
+[data-theme="light"] .corner { opacity: 0.7; }
+[data-theme="light"] .ph { background:
+    radial-gradient(circle at 30% 20%, rgba(212,175,55,0.06), transparent 45%),
+    linear-gradient(180deg, rgba(45,127,249,0.05), rgba(245,243,238,0.2));
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(11,15,20,0.14); }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(11,15,20,0.24); }
+[data-theme="light"] .nav-inner { background: rgba(255,255,255,0.6); box-shadow: 0 1px 0 rgba(0,0,0,0.04) inset, 0 16px 40px -22px rgba(0,0,0,0.16); }
+[data-theme="light"] .nav.scrolled .nav-inner { background: rgba(255,255,255,0.85); box-shadow: 0 1px 0 rgba(0,0,0,0.05) inset, 0 22px 50px -22px rgba(0,0,0,0.14); }
+[data-theme="light"] .mobile-drawer { box-shadow: -18px 0 60px -20px rgba(0,0,0,0.22); }
+[data-theme="light"] .headshot-grad { background: linear-gradient(180deg, transparent 52%, rgba(20,24,31,0.8)); }
+[data-theme="light"] .bg-vignette { background: radial-gradient(120% 80% at 50% 30%, transparent 40%, rgba(220,217,208,0.5) 100%); }
+[data-theme="light"] .bg-grid {
+  background-image: linear-gradient(rgba(11,15,20,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(11,15,20,0.05) 1px, transparent 1px);
+}
+[data-theme="light"] .status-badge, [data-theme="light"] .exp-toggle, [data-theme="light"] .skill-pill,
+[data-theme="light"] .gh-stat, [data-theme="light"] .gh-repo, [data-theme="light"] .channel,
+[data-theme="light"] .form-field input, [data-theme="light"] .form-field textarea, [data-theme="light"] .resume-bar,
+[data-theme="light"] .gh-cell, [data-theme="light"] .archive-row:hover, [data-theme="light"] .nav-links a:hover,
+[data-theme="light"] .learning-banner .lb-ic, [data-theme="light"] .diff .di {
+  background: rgba(11,15,20,0.045);
+}
+[data-theme="light"] .channel:hover, [data-theme="light"] .gh-repo:hover { background: rgba(11,15,20,0.07); border-color: rgba(11,15,20,0.14); }
+[data-theme="light"] .resume-bar .dots i { background: rgba(11,15,20,0.16); }
+[data-theme="light"] .badge-live, [data-theme="light"] .proj-media .num { background: rgba(20,24,31,0.6); }
+/* --accent-300 is the accent lightened 32% — fine on the dark ground, too pale
+   on the light one. Darken the blue instead so resting label text stays legible. */
+[data-theme="light"] .btn-outline {
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  color: color-mix(in oklab, var(--accent), black 18%);
+}
+
+}

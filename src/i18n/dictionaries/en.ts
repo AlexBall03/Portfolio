@@ -122,6 +122,7 @@ export const en = {
   footer: {
     site: 'Site',
     connect: 'Connect',
+    email: 'Email',
     resume: 'Resume',
     lastUpdated: 'Last updated',
   },

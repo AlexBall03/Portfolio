@@ -3,17 +3,11 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  typedRoutes: false,
-  cacheLife: {
-    // Portfolio content changes only when it is edited (Phase 4 admin saves
-    // will call updateTag), so a long lifetime is safe.
-    content: { stale: 300, revalidate: 60 * 60 * 24, expire: 60 * 60 * 24 * 30 },
-    // Live GitHub data: refresh every 15 minutes, matching the old API's s-maxage.
-    github: { stale: 300, revalidate: 900, expire: 60 * 60 * 24 },
-  },
-  images: {
-    remotePatterns: [{ protocol: 'https', hostname: 'avatars.githubusercontent.com' }],
-  },
+  // Deploy timestamp shown in the footer ("Last updated").
+  env: { BUILD_TIME: new Date().toISOString() },
+  // PGlite powers the optional local dev database only; keep it out of deployments.
+  serverExternalPackages: ['@electric-sql/pglite'],
+  outputFileTracingExcludes: { '*': ['node_modules/@electric-sql/**'] },
   async headers() {
     return [
       {

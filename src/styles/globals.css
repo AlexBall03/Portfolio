@@ -1,0 +1,56 @@
+@import 'tailwindcss';
+
+/*
+ * Design system "Executive Engineer".
+ *
+ * Runtime tokens (which flip between dark and light) live in tokens.css. They
+ * are exposed to Tailwind below, so utilities like `bg-surface text-muted
+ * border-line` follow the active theme. The bespoke component styles are in
+ * @layer components, so Tailwind utilities always win over them — Phase 2 can
+ * restyle incrementally with utilities.
+ */
+@import './tokens.css';
+@import './base.css';
+@import './components/primitives.css';
+@import './components/chrome.css';
+@import './components/sections.css';
+@import './components/responsive.css';
+@import './components/theme-light.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+@custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
+
+@theme {
+  /* next/font variables are set on <html> in the root layout. */
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, 'SF Mono', monospace;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-glass: var(--glass);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-hair: var(--hair);
+  --color-accent: var(--accent);
+  --color-accent-300: var(--accent-300);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-strong: var(--white);
+  --color-body: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --radius-card: var(--radius);
+  --radius-card-sm: var(--radius-sm);
+  --radius-card-lg: var(--radius-lg);
+
+
+  --ease-brand: var(--ease);
+  --ease-brand-out: var(--ease-out);
+
+  --container-site: var(--maxw);
+}
