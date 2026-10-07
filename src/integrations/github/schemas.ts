@@ -27,6 +27,7 @@ export const githubRepoSchema = z.object({
   forks_count: z.number().int(),
   fork: z.boolean(),
   archived: z.boolean(),
+  default_branch: z.string(),
   pushed_at: z.string().nullable(),
 });
 export type GithubRepo = z.infer<typeof githubRepoSchema>;
@@ -50,6 +51,17 @@ export const githubEventSchema = z.object({
     .loose(),
 });
 export type GithubEvent = z.infer<typeof githubEventSchema>;
+
+export const githubCommitSchema = z.object({
+  sha: z.string(),
+  html_url: z.url(),
+  commit: z.object({
+    message: z.string(),
+    author: z.object({ date: z.string() }).nullable(),
+    committer: z.object({ date: z.string() }).nullable(),
+  }),
+});
+export type GithubCommit = z.infer<typeof githubCommitSchema>;
 
 export const contributionLevelSchema = z.enum([
   'NONE',

@@ -39,7 +39,6 @@ export function ProjectCard({ project: p, index, locale, t, layout = 'feature', 
       >
         <ProjectMedia
           project={p}
-          index={number}
           sizes={feature ? '(max-width: 1024px) 100vw, 600px' : '(max-width: 768px) 100vw, 560px'}
           className={cn(
             'aspect-[16/10] border-b border-line',

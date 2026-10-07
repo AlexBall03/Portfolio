@@ -23,7 +23,6 @@ export function Projects({ section, projects, githubUrl, locale, t }: ProjectsPr
   return (
     <Section id="projects" labelledBy="projects-title">
       <SectionHeader
-        index="04"
         content={section}
         as="h1"
         id="projects-title"

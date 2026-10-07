@@ -19,7 +19,7 @@ interface AboutProps {
 export function About({ section, profile, roles, differentiators, t }: AboutProps) {
   return (
     <Section id="about" labelledBy="about-title">
-      <SectionHeader index="02" content={section} id="about-title" />
+      <SectionHeader content={section} id="about-title" />
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
         {roles.length > 0 && (

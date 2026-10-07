@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Deploy timestamp shown in the footer ("Last updated").
   env: { BUILD_TIME: new Date().toISOString() },
+  // GitHub avatars in the GitHub section.
+  images: { remotePatterns: [{ protocol: 'https', hostname: 'avatars.githubusercontent.com' }] },
   // PGlite powers the optional local dev database only; keep it out of deployments.
   serverExternalPackages: ['@electric-sql/pglite'],
   outputFileTracingExcludes: { '*': ['node_modules/@electric-sql/**'] },

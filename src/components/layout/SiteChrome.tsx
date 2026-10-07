@@ -2,16 +2,15 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { buttonStyles } from '@/components/ui/button-styles';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
-import { NAV_CTA, pageForPath } from '@/config/navigation';
+import { pageForPath } from '@/config/navigation';
 import { cn } from '@/lib/cn';
 import { useLocalelessPath } from '@/lib/client/locale';
 import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { BrandMark } from './BrandMark';
 import { CommandPalette } from './CommandPalette';
-import { LocaleSwitch, ThemeToggle } from './Preferences';
+import { controlStyles, LocaleSwitch, ThemeToggle } from './Preferences';
 import type { ChromeData } from './types';
 
 const noop = () => () => {};
@@ -93,8 +92,6 @@ export function SiteChrome({ data }: { data: ChromeData }) {
   }, [menuOpen]);
 
   const home = data.pages.find((p) => p.key === 'home');
-  const cta = data.pages.find((p) => p.key === NAV_CTA);
-  const links = data.pages.filter((p) => p.key !== NAV_CTA);
 
   return (
     <>
@@ -103,21 +100,21 @@ export function SiteChrome({ data }: { data: ChromeData }) {
           <nav
             aria-label={T.nav.primary}
             className={cn(
-              'pointer-events-auto flex h-14 items-center gap-1 rounded-lg pr-2 pl-1.5 transition-[background-color,box-shadow] duration-300',
+              'pointer-events-auto flex h-14 items-center gap-1 rounded-lg px-2 transition-[background-color,box-shadow] duration-300',
               scrolled ? 'glass-strong' : 'glass',
             )}
           >
             <Link
               href={home?.href ?? '/'}
               onClick={closeMenu}
-              className="flex h-10 shrink-0 items-center rounded-md px-3 text-[0.95rem]"
+              className="flex h-10 shrink-0 items-center rounded-md px-2.5 text-body"
             >
               <BrandMark text={data.brandMark} />
             </Link>
             <span aria-hidden="true" className="mx-1.5 hidden h-6 w-px bg-line-strong lg:block" />
 
             <ul className="hidden items-center gap-0.5 lg:flex">
-              {links.map((p) => {
+              {data.pages.map((p) => {
                 const active = current === p.key;
                 return (
                   <li key={p.key}>
@@ -137,41 +134,34 @@ export function SiteChrome({ data }: { data: ChromeData }) {
               })}
             </ul>
 
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex items-center gap-2">
               <button
                 type="button"
                 onClick={openPalette}
                 aria-label={T.palette.open}
                 aria-keyshortcuts="Meta+K Control+K"
-                className={cn(
-                  iconButton,
-                  'lg:h-9 lg:w-auto lg:gap-2 lg:border lg:border-line lg:px-2.5 lg:text-fg-faint lg:[&_svg]:size-4',
-                )}
+                className={cn(iconButton, 'lg:hidden')}
               >
                 <Icon name="search" />
-                <kbd aria-hidden="true" className="hidden font-mono text-micro xl:inline">
+              </button>
+              <button
+                type="button"
+                onClick={openPalette}
+                aria-label={T.palette.open}
+                aria-keyshortcuts="Meta+K Control+K"
+                className={cn(controlStyles, 'hidden min-w-9 justify-center gap-2 px-2.5 hover:bg-fg/[0.06] lg:inline-flex [&_svg]:size-4')}
+              >
+                <Icon name="search" />
+                <kbd aria-hidden="true" className="hidden font-mono text-micro uppercase xl:inline">
                   {shortcut}
                 </kbd>
               </button>
               {/* Wrapped, so `hidden` never competes with the controls' own display classes. */}
-              <div className="hidden items-center gap-1.5 lg:flex">
+              <div className="hidden items-center gap-2 lg:flex">
                 <ThemeToggle t={T.toggles} />
                 <div className="hidden xl:block">
                   <LocaleSwitch locale={data.locale} t={T.toggles} />
                 </div>
-                {cta && (
-                  <Link
-                    href={cta.href}
-                    aria-current={current === cta.key ? 'page' : undefined}
-                    className={buttonStyles({
-                      variant: current === cta.key ? 'primary' : 'secondary',
-                      size: 'sm',
-                      className: 'ml-1 shadow-none',
-                    })}
-                  >
-                    {cta.label}
-                  </Link>
-                )}
               </div>
               <div className="lg:hidden">
                 <button
@@ -212,7 +202,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
         )}
       >
         <div className="flex items-center justify-between border-b border-line pb-3 pl-2">
-          <BrandMark text={data.brandMark} className="text-[0.95rem]" />
+          <BrandMark text={data.brandMark} className="text-body" />
           <button ref={drawerCloseRef} type="button" aria-label={T.nav.closeMenu} onClick={closeMenu} className={iconButton}>
             <Icon name="x" />
           </button>

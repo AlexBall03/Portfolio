@@ -3,10 +3,12 @@ import { z } from 'zod';
 import { githubEnv } from '@/config/env';
 import {
   contributionCalendarResponseSchema,
+  githubCommitSchema,
   githubEventSchema,
   githubRepoSchema,
   githubUserSchema,
   type ContributionCalendarResponse,
+  type GithubCommit,
   type GithubEvent,
   type GithubRepo,
   type GithubUser,
@@ -85,13 +87,26 @@ export async function fetchRepos(username: string): Promise<GithubRepo[]> {
   return all;
 }
 
-/** Recent public events. Unrecognized event shapes are dropped, not fatal. */
+/**
+ * Recent public events. Unrecognized event shapes are dropped, not fatal.
+ * The Events API lags by hours and isn't chronological, so take a full page.
+ */
 export async function fetchPublicEvents(username: string): Promise<GithubEvent[]> {
-  const raw = await request(`${API}/users/${user(username)}/events/public?per_page=50`, z.array(z.unknown()));
+  const raw = await request(`${API}/users/${user(username)}/events/public?per_page=100`, z.array(z.unknown()));
   return raw.flatMap((e) => {
     const parsed = githubEventSchema.safeParse(e);
     return parsed.success ? [parsed.data] : [];
   });
+}
+
+/** The author's latest commits on a repository's default branch, newest first. */
+export function fetchRecentCommits(fullName: string, author: string, since: Date): Promise<GithubCommit[]> {
+  const [owner = '', repo = ''] = fullName.split('/');
+  const params = new URLSearchParams({ author, since: since.toISOString(), per_page: '5' });
+  return request(
+    `${API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?${params}`,
+    z.array(githubCommitSchema),
+  );
 }
 
 const CONTRIBUTIONS_QUERY = /* GraphQL */ `

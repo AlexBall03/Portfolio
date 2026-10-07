@@ -32,7 +32,7 @@ export function ContactSection({ section, email, socials, t }: ContactSectionPro
     <Section id="contact" labelledBy="contact-title">
       <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-20">
         <Reveal className="flex flex-col gap-5">
-          <Eyebrow index="08">{section.eyebrow}</Eyebrow>
+          <Eyebrow>{section.eyebrow}</Eyebrow>
           <h1 id="contact-title" className="text-h1">
             {section.title}
           </h1>

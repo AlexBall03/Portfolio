@@ -61,7 +61,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   return (
     <Screen>
       <div className="flex-1">
-        <ProjectDetail project={p} index={index} locale={locale} t={t} />
+        <ProjectDetail project={p} locale={locale} t={t} />
       </div>
       {(prev || next) && (
         <PagerNav label={`${t.previousProject} / ${t.nextProject}`}>

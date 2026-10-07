@@ -4,6 +4,7 @@ import { ConfigError, githubEnv } from '@/config/env';
 import {
   fetchContributionCalendar,
   fetchPublicEvents,
+  fetchRecentCommits,
   fetchRepos,
   fetchUser,
 } from '@/integrations/github/client';
@@ -11,19 +12,32 @@ import type { GithubRepo } from '@/integrations/github/schemas';
 import { CACHE_LIFE, CACHE_TAGS } from '@/lib/cache-tags';
 import { createLogger } from '@/lib/logger';
 import { buildCalendar, calendarStart, toLevel } from './calendar';
-import { normalizeEvent } from './events';
+import { mergeActivity, normalizeCommit, normalizeEvent } from './events';
 import type { Activity, ContributionCalendar, GithubOverview, GithubRepository } from './types';
 
 const log = createLogger('github');
 
 const MAX_REPOSITORIES = 4;
 const MAX_ACTIVITY = 5;
+/** Repositories whose commits are read directly, to cover Events API lag. */
+const COMMIT_REPOS = 3;
+const COMMIT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
-/** Stats and the repo list come from the same set: public, non-fork repositories. */
-export function summarizeRepos(repos: readonly GithubRepo[]) {
-  const own = repos.filter((r) => !r.fork);
-  const repositories: GithubRepository[] = [...own]
-    .sort((a, b) => Date.parse(b.pushed_at ?? '0') - Date.parse(a.pushed_at ?? '0'))
+const byPushedDesc = (a: GithubRepo, b: GithubRepo) => Date.parse(b.pushed_at ?? '0') - Date.parse(a.pushed_at ?? '0');
+
+/**
+ * The user's own work: public repositories that aren't forks, archived, or
+ * the profile README repository (named after the user).
+ */
+export function ownRepos(repos: readonly GithubRepo[], username: string): GithubRepo[] {
+  const profileRepo = username.toLowerCase();
+  return repos.filter((r) => !r.fork && !r.archived && r.name.toLowerCase() !== profileRepo).sort(byPushedDesc);
+}
+
+/** Stats and the repo list come from the same set (see `ownRepos`). */
+export function summarizeRepos(repos: readonly GithubRepo[], username: string) {
+  const own = ownRepos(repos, username);
+  const repositories: GithubRepository[] = own
     .slice(0, MAX_REPOSITORIES)
     .map((r) => ({
       name: r.name,
@@ -83,6 +97,7 @@ export async function getGithubOverview(username: string): Promise<GithubOvervie
     return {
       username,
       profileUrl: `https://github.com/${username}`,
+      avatarUrl: null,
       stats: null,
       repositories: null,
       activity: null,
@@ -103,14 +118,39 @@ export async function getGithubOverview(username: string): Promise<GithubOvervie
   const eventList = settled(events, 'events');
   const contributionCalendar = settled(calendar, 'contribution calendar');
 
-  const summary = repoList ? summarizeRepos(repoList) : null;
-  const activity: Activity[] | null = eventList
-    ? eventList
-        .flatMap((e) => normalizeEvent(e) ?? [])
-        // The Events API no longer guarantees chronological order.
-        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-        .slice(0, MAX_ACTIVITY)
-    : null;
+  const summary = repoList ? summarizeRepos(repoList, username) : null;
+
+  // The Events API can lag by hours, so read the latest commits of recently
+  // pushed repositories directly. Best effort: events alone still render.
+  const since = new Date(Date.now() - COMMIT_WINDOW_MS);
+  const recentRepos = repoList
+    ? ownRepos(repoList, username)
+        .filter((r) => r.pushed_at && Date.parse(r.pushed_at) >= since.getTime())
+        .slice(0, COMMIT_REPOS)
+    : [];
+  const commitResults = await Promise.allSettled(
+    recentRepos.map((r) => fetchRecentCommits(r.full_name, username, since)),
+  );
+  const covered = new Map<string, string>();
+  const commits: Activity[] = [];
+  commitResults.forEach((result, i) => {
+    const repo = recentRepos[i]!;
+    const list = settled(result, `commits for ${repo.full_name}`);
+    if (!list) return;
+    covered.set(repo.full_name, repo.default_branch);
+    commits.push(...list.map((c) => normalizeCommit(c, repo.full_name)));
+  });
+
+  const activity: Activity[] | null =
+    eventList || commits.length > 0
+      ? mergeActivity((eventList ?? []).flatMap((e) => normalizeEvent(e) ?? []), commits, covered).slice(0, MAX_ACTIVITY)
+      : null;
+
+  // Newest of everything seen: activity can trail a repository's push time.
+  const lastActivityAt =
+    [activity?.[0]?.createdAt, summary?.repositories[0]?.pushedAt]
+      .filter((d): d is string => !!d)
+      .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
 
   const degraded = !profile || !repoList || !eventList || !contributionCalendar;
   cacheLife(degraded ? CACHE_LIFE.githubDegraded : CACHE_LIFE.github);
@@ -118,6 +158,7 @@ export async function getGithubOverview(username: string): Promise<GithubOvervie
   return {
     username,
     profileUrl: profile?.html_url ?? `https://github.com/${username}`,
+    avatarUrl: profile?.avatar_url ?? null,
     stats:
       summary && profile
         ? { repositories: summary.count, stars: summary.stars, forks: summary.forks, followers: profile.followers }
@@ -125,6 +166,6 @@ export async function getGithubOverview(username: string): Promise<GithubOvervie
     repositories: summary?.repositories ?? null,
     activity,
     calendar: contributionCalendar,
-    lastActivityAt: activity?.[0]?.createdAt ?? summary?.repositories[0]?.pushedAt ?? null,
+    lastActivityAt,
   };
 }

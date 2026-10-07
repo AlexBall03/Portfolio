@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Suspense, type CSSProperties } from 'react';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { CountUp } from '@/components/ui/CountUp';
@@ -52,7 +53,7 @@ interface GitHubSectionProps {
 export function GitHubSection(props: GitHubSectionProps) {
   return (
     <Section id="github" labelledBy="github-title">
-      <SectionHeader index="05" content={props.section} id="github-title" />
+      <SectionHeader content={props.section} id="github-title" />
       <Suspense fallback={<GitHubFallback {...props} loading />}>
         <GitHubPanel {...props} />
       </Suspense>
@@ -73,13 +74,13 @@ async function GitHubPanel(props: GitHubSectionProps) {
   return <GitHubContent {...props} overview={overview} />;
 }
 
-function Identity({ username, displayName, t }: GitHubSectionProps) {
+function Identity({ username, displayName, t, avatarUrl }: GitHubSectionProps & { avatarUrl?: string | null }) {
   const url = `https://github.com/${username}`;
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-4">
-        <span className="grid size-11 place-items-center rounded-full border border-line bg-surface-raised text-fg [&_svg]:size-5">
-          <Icon name="github" />
+        <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-surface-raised text-fg [&_svg]:size-5">
+          {avatarUrl ? <Image src={avatarUrl} alt="" width={44} height={44} className="size-full object-cover" /> : <Icon name="github" />}
         </span>
         <div className="flex flex-col">
           <span className="font-display font-semibold text-fg">{displayName}</span>
@@ -134,7 +135,7 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
   return (
     <div className="flex flex-col gap-14">
       <Reveal className="flex flex-col gap-8">
-        <Identity {...props} />
+        <Identity {...props} avatarUrl={overview.avatarUrl} />
         {tiles.length > 0 && (
           <dl className="grid grid-cols-2 border-y border-line lg:grid-cols-4">
             {tiles.map((s, i) => (
@@ -155,7 +156,7 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
                   <p className="font-display text-h1 font-semibold text-fg tabular-nums">
                     <CountUp value={overview.calendar.total} />
                   </p>
-                  <p className="text-body-sm text-fg-muted">{fill(t.contributionsCaption, { count: overview.calendar.total })}</p>
+                  <p className="text-body-sm text-fg-muted">{overview.calendar.total === 1 ? t.contributionsCaptionOne : fill(t.contributionsCaption, { count: overview.calendar.total })}</p>
                 </div>
                 <div className="flex flex-col gap-3">
                   <HeatmapLegend t={t} />
@@ -216,10 +217,16 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
               <h3 className={SUBHEAD}>{t.recentActivity}</h3>
               <ol className="mt-4 ml-1 border-l border-line">
                 {activity.map((a, i) => (
-                  <li key={`${a.createdAt}-${i}`} className="relative flex flex-col gap-1 py-3 pl-6">
+                  <li key={`${a.repository}-${a.type}-${a.createdAt}-${i}`} className="relative flex flex-col gap-1 py-3 pl-6">
                     <span aria-hidden="true" className="absolute top-[1.15rem] -left-[4.5px] size-2 rounded-full border border-brand-fg bg-canvas" />
-                    <span className="text-body-sm text-fg-muted">
-                      {describeActivity(a, t.events)}{' '}
+                    <span className="line-clamp-2 text-body-sm text-fg-muted">
+                      {a.type === 'commit' ? (
+                        <a className="transition-colors hover:text-fg" href={a.url} target="_blank" rel="noopener noreferrer">
+                          {describeActivity(a, t.events)}
+                        </a>
+                      ) : (
+                        describeActivity(a, t.events)
+                      )}{' '}
                       <a className="font-mono text-brand-fg hover:text-fg" href={a.repositoryUrl} target="_blank" rel="noopener noreferrer">
                         {a.repository}
                       </a>

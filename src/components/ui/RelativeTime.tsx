@@ -15,7 +15,8 @@ export function formatRelative(iso: string, locale: string, now = Date.now()): s
   const diff = (now - Date.parse(iso)) / 1000;
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   for (const [unit, secs] of UNITS) {
-    if (diff >= secs) return rtf.format(-Math.round(diff / secs), unit);
+    // Floor, not round: 23.5h is "23 hours ago", never "24 hours ago" ahead of "yesterday".
+    if (diff >= secs) return rtf.format(-Math.floor(diff / secs), unit);
   }
   return rtf.format(0, 'minute');
 }

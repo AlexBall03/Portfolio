@@ -100,14 +100,11 @@ function ProjectMeta({ project: p, t }: { project: Project; t: Dictionary['proje
 
 interface ProjectDetailProps {
   project: Project;
-  /** Position in the published list, for the display index. */
-  index: number;
   locale: Locale;
   t: Dictionary['projects'];
 }
 
-export function ProjectDetail({ project: p, index, locale, t }: ProjectDetailProps) {
-  const number = String(index + 1).padStart(2, '0');
+export function ProjectDetail({ project: p, locale, t }: ProjectDetailProps) {
   return (
     <article aria-labelledby="project-title" className="pt-12 sm:pt-16">
       <Container>
@@ -115,7 +112,7 @@ export function ProjectDetail({ project: p, index, locale, t }: ProjectDetailPro
           <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ variant: 'quiet', className: 'self-start' })}>
             <Icon name="arrowLeft" /> {t.backToProjects}
           </Link>
-          <Eyebrow index={number}>{t.project}</Eyebrow>
+          <Eyebrow>{t.project}</Eyebrow>
           <h1 id="project-title" className="text-display-lg">
             {p.name}
           </h1>
@@ -141,7 +138,6 @@ export function ProjectDetail({ project: p, index, locale, t }: ProjectDetailPro
             <Reveal>
               <ProjectMedia
                 project={p}
-                index={number}
                 size="detail"
                 sizes="(max-width: 1024px) 100vw, 780px"
                 priority

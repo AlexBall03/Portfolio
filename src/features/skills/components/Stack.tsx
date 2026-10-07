@@ -17,7 +17,7 @@ interface StackProps {
 export function Stack({ section, skills, t }: StackProps) {
   return (
     <Section id="stack" labelledBy="stack-title">
-      <SectionHeader index="03" content={section} id="stack-title" />
+      <SectionHeader content={section} id="stack-title" />
 
       <Reveal>
         <dl className="border-b border-line">

@@ -1,6 +1,6 @@
 import { fill } from '@/i18n/paths';
 import type { Dictionary } from '@/i18n/get-dictionary';
-import type { GithubEvent } from '@/integrations/github/schemas';
+import type { GithubCommit, GithubEvent } from '@/integrations/github/schemas';
 import type { Activity, ActivityEvent } from './types';
 
 /** "refs/heads/main" → "main". */
@@ -62,6 +62,33 @@ export function normalizeEvent(event: GithubEvent): Activity | null {
   };
 }
 
+/** A default-branch commit as an activity record, timed by when it was committed. */
+export function normalizeCommit(commit: GithubCommit, repository: string): Activity {
+  return {
+    type: 'commit',
+    message: commit.commit.message.split('\n', 1)[0]!.trim(),
+    url: commit.html_url,
+    repository,
+    repositoryUrl: `https://github.com/${repository}`,
+    createdAt: commit.commit.committer?.date ?? commit.commit.author?.date ?? new Date(0).toISOString(),
+  };
+}
+
+/**
+ * Merges events with commits fetched directly from the repositories, which
+ * are fresh while the Events API can lag by hours. Pushes to a default
+ * branch whose commits were fetched are dropped, since the commits describe
+ * the same work in more detail. Newest first.
+ */
+export function mergeActivity(
+  events: readonly Activity[],
+  commits: readonly Activity[],
+  covered: ReadonlyMap<string, string>,
+): Activity[] {
+  const kept = events.filter((e) => !(e.type === 'push' && e.ref !== null && covered.get(e.repository) === e.ref));
+  return [...kept, ...commits].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
 type EventStrings = Dictionary['github']['events'];
 
 const PULL_REQUEST_KEYS = {
@@ -82,6 +109,8 @@ export function describeActivity(a: ActivityEvent, t: EventStrings): string {
   switch (a.type) {
     case 'push':
       return a.ref ? fill(t.push, { ref: a.ref }) : t.pushNoRef;
+    case 'commit':
+      return fill(t.commit, { message: a.message });
     case 'create':
       if (a.refType === 'repository') return t.createRepository;
       return fill(a.refType === 'branch' ? t.createBranch : t.createTag, { ref: a.ref ?? '' });

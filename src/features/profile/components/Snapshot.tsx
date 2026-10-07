@@ -12,7 +12,7 @@ export function Snapshot({ section, metrics }: { section: SectionContent; metric
   if (!metrics.length) return null;
   return (
     <Section id="snapshot" labelledBy="snapshot-title">
-      <SectionHeader index="01" content={section} as="h1" id="snapshot-title" />
+      <SectionHeader content={section} as="h1" id="snapshot-title" />
       <Reveal>
         <dl className="glass grid grid-cols-2 rounded-xl lg:grid-cols-4">
           {metrics.map((m, i) => (

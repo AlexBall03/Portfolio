@@ -54,6 +54,7 @@ export const es: Dictionary = {
     statForks: 'Forks Totales',
     statFollowers: 'Seguidores',
     contributionsCaption: '{count} contribuciones en los últimos 6 meses',
+    contributionsCaptionOne: '1 contribución en los últimos 6 meses',
     calendarLabel: 'Calendario de contribuciones de GitHub: {count} contribuciones en las últimas 26 semanas',
     recentActivity: 'Actividad Reciente',
     lastActivity: 'Última actividad pública',
@@ -67,6 +68,7 @@ export const es: Dictionary = {
     events: {
       push: 'Hizo push a {ref}',
       pushNoRef: 'Hizo push de commits',
+      commit: 'Hizo commit «{message}» en',
       createBranch: 'Creó la rama {ref}',
       createTag: 'Creó la etiqueta {ref}',
       createRepository: 'Creó el repositorio',

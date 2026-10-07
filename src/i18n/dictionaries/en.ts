@@ -59,6 +59,7 @@ export const en = {
     statForks: 'Total Forks',
     statFollowers: 'Followers',
     contributionsCaption: '{count} contributions in the last 6 months',
+    contributionsCaptionOne: '1 contribution in the last 6 months',
     calendarLabel: 'GitHub contribution calendar: {count} contributions in the last 26 weeks',
     recentActivity: 'Recent Activity',
     lastActivity: 'Last public activity',
@@ -72,6 +73,7 @@ export const en = {
     events: {
       push: 'Pushed to {ref}',
       pushNoRef: 'Pushed commits',
+      commit: 'Committed “{message}” to',
       createBranch: 'Created branch {ref}',
       createTag: 'Created tag {ref}',
       createRepository: 'Created repository',

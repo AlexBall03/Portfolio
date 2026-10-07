@@ -35,7 +35,6 @@ export function ExperienceTabs({ section, t, panels }: ExperienceTabsProps) {
   return (
     <>
       <SectionHeader
-        index="06"
         content={section}
         as="h1"
         id="experience-title"

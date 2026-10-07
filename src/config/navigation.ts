@@ -14,9 +14,6 @@ export const PAGES: readonly { key: PageKey; path: string; icon: IconName }[] = 
   { key: 'contact', path: '/contact', icon: 'mail' },
 ];
 
-/** Rendered as the nav's call-to-action button instead of a plain link. */
-export const NAV_CTA: PageKey = 'contact';
-
 /** The page a (locale-less) path belongs to, for active-link highlighting. */
 export function pageForPath(path: string): PageKey | null {
   if (path === '/') return 'home';

@@ -22,7 +22,7 @@ export function Resume({ section, profile, highlights, t }: ResumeProps) {
 
   return (
     <Section id="resume" labelledBy="resume-title">
-      <SectionHeader index="07" content={section} as="h1" id="resume-title" />
+      <SectionHeader content={section} as="h1" id="resume-title" />
 
       <Reveal>
         <Surface variant="glass" radius="xl" className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12">

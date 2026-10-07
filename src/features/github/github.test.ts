@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { en } from '@/i18n/dictionaries/en';
 import { es } from '@/i18n/dictionaries/es';
-import type { GithubEvent, GithubRepo } from '@/integrations/github/schemas';
+import { formatRelative } from '@/components/ui/RelativeTime';
+import type { GithubCommit, GithubEvent, GithubRepo } from '@/integrations/github/schemas';
 import { buildCalendar, calendarStart } from './calendar';
-import { describeActivity, normalizeEvent } from './events';
+import { describeActivity, mergeActivity, normalizeCommit, normalizeEvent } from './events';
 import { getGithubOverview, summarizeRepos } from './overview';
 
 vi.mock('next/cache', () => ({ cacheLife: () => {}, cacheTag: () => {} }));
@@ -103,18 +104,82 @@ describe('repository summary', () => {
     forks_count: 1,
     fork: false,
     archived: false,
+    default_branch: 'master',
     pushed_at: '2026-10-01T00:00:00Z',
     ...overrides,
   });
 
   it('derives every stat from the same non-fork set', () => {
-    const s = summarizeRepos([
-      repo('a'),
-      repo('b', { pushed_at: '2026-10-05T00:00:00Z', stargazers_count: 4 }),
-      repo('forked', { fork: true, stargazers_count: 100 }),
-    ]);
+    const s = summarizeRepos(
+      [
+        repo('a'),
+        repo('b', { pushed_at: '2026-10-05T00:00:00Z', stargazers_count: 4 }),
+        repo('forked', { fork: true, stargazers_count: 100 }),
+      ],
+      'AlexBall03',
+    );
     expect(s.count).toBe(2);
     expect(s.stars).toBe(5);
     expect(s.repositories.map((r) => r.name)).toEqual(['b', 'a']);
+  });
+
+  it('leaves out archived repositories and the profile README repository', () => {
+    const s = summarizeRepos(
+      [repo('a'), repo('old', { archived: true }), repo('alexball03', { pushed_at: '2026-10-07T00:00:00Z' })],
+      'AlexBall03',
+    );
+    expect(s.repositories.map((r) => r.name)).toEqual(['a']);
+    expect(s.count).toBe(1);
+  });
+});
+
+describe('activity merge', () => {
+  const commit = (message: string, date: string): GithubCommit => ({
+    sha: date,
+    html_url: `https://github.com/AlexBall03/Portfolio/commit/${date}`,
+    commit: { message, author: { date }, committer: { date } },
+  });
+  const at = (type: string, payload: GithubEvent['payload'], created_at: string, repo = 'AlexBall03/Portfolio') =>
+    normalizeEvent({ type, payload, created_at, repo: { name: repo } })!;
+
+  it('surfaces fresh commits the lagging Events API has not caught up with, newest first', () => {
+    const events = [
+      at('PushEvent', { ref: 'refs/heads/master' }, '2026-10-06T20:00:00Z', 'Org/website'),
+      at('PushEvent', { ref: 'refs/heads/master' }, '2026-10-06T22:00:00Z', 'Org/website'),
+    ];
+    const commits = [commit('Fixes\n\nbody', '2026-10-07T18:14:03Z'), commit('More fixes', '2026-10-07T18:41:11Z')].map(
+      (c) => normalizeCommit(c, 'AlexBall03/Portfolio'),
+    );
+    const merged = mergeActivity(events, commits, new Map([['AlexBall03/Portfolio', 'master']]));
+    expect(merged.map((a) => a.createdAt)).toEqual([
+      '2026-10-07T18:41:11Z',
+      '2026-10-07T18:14:03Z',
+      '2026-10-06T22:00:00Z',
+      '2026-10-06T20:00:00Z',
+    ]);
+    expect(describeActivity(merged[1]!, en.github.events)).toBe('Committed “Fixes” to');
+  });
+
+  it('drops default-branch pushes the commits already describe, but keeps other branches', () => {
+    const events = [
+      at('PushEvent', { ref: 'refs/heads/master' }, '2026-10-07T18:42:00Z'),
+      at('PushEvent', { ref: 'refs/heads/dev' }, '2026-10-07T18:41:30Z'),
+    ];
+    const commits = [normalizeCommit(commit('More fixes', '2026-10-07T18:41:11Z'), 'AlexBall03/Portfolio')];
+    const merged = mergeActivity(events, commits, new Map([['AlexBall03/Portfolio', 'master']]));
+    expect(merged.map((a) => a.type)).toEqual(['push', 'commit']);
+    expect(merged[0]).toMatchObject({ ref: 'dev' });
+  });
+});
+
+describe('relative time', () => {
+  const now = Date.parse('2026-10-07T20:00:00Z');
+  const ago = (hours: number) => new Date(now - hours * 3_600_000).toISOString();
+
+  it('never reads "24 hours ago" before switching to "yesterday"', () => {
+    expect(formatRelative(ago(23.6), 'en-US', now)).toBe('23 hours ago');
+    expect(formatRelative(ago(24.2), 'en-US', now)).toBe('yesterday');
+    expect(formatRelative(ago(47), 'en-US', now)).toBe('yesterday');
+    expect(formatRelative(ago(49), 'en-US', now)).toBe('2 days ago');
   });
 });

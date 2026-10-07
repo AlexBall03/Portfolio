@@ -19,6 +19,7 @@ export interface ContributionCalendar {
 
 export type ActivityEvent =
   | { type: 'push'; ref: string | null }
+  | { type: 'commit'; message: string; url: string }
   | { type: 'create'; refType: 'branch' | 'tag' | 'repository'; ref: string | null }
   | { type: 'release'; tag: string | null }
   | { type: 'pull_request'; action: 'opened' | 'closed' | 'merged' | 'reopened'; title: string }
@@ -54,6 +55,7 @@ export interface GithubStats {
 export interface GithubOverview {
   username: string;
   profileUrl: string;
+  avatarUrl: string | null;
   stats: GithubStats | null;
   repositories: GithubRepository[] | null;
   activity: Activity[] | null;
