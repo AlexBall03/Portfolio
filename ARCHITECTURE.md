@@ -41,7 +41,8 @@ src/
   config/                 env.ts (Zod, server-only), site.ts (URLs, ids), navigation.ts (route structure)
   i18n/                   locales, typed UI dictionaries (en/es), path helpers, translation fallback
   db/                     client.ts (app, HTTP), schema/*, migrations/ (committed SQL), seed/ (initial content),
-                          prepare.ts (migrate + bootstrap), admin/ (tooling env + direct connection), cli/, local.ts
+                          prepare.ts (migrate + bootstrap), admin/ (tooling target + direct connection),
+                          cli/ (db:* scripts and their .env.local loader; never imported by the app), local.ts
   features/<domain>/      types.ts (domain types) · schema.ts (Zod inputs) · repository.ts (DB) ·
                           queries.ts (cached reads) · components/ (feature UI)
       projects  skills  experience  profile  site  github  contact
@@ -101,7 +102,15 @@ Vercel env (Preview or Production) ─► db:prepare ─► next build
                                         4. bootstrap initial content if the database has never had any
 ```
 
-**Which database.** Nothing in the code names a Neon branch. The Neon integration sets `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) per Vercel environment: Production points at Neon `main`, Preview at the preview branch. `db:prepare` prints `target <host>/<database>` (no credentials) at the top of the build log.
+**Which database.** Nothing in the code names a Neon branch; the environment variables alone select it.
+
+| Where | Database | Who sets the variables |
+|---|---|---|
+| Vercel Production | Neon `main` (persistent) | Neon integration |
+| Vercel Preview | a Neon branch created from `main` for that deployment | Neon integration ("Create database branch for deployment", Preview only) |
+| Local | Neon `dev` (persistent, branched from `main`) | you, in `.env.local` |
+
+The integration sets `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct). `db:prepare` prints `target <host>/<database>` (no credentials) at the top of the build log; Vercel may redact the host there because the integration also stores it as a sensitive variable.
 
 **Pooled vs direct.**
 
@@ -119,11 +128,13 @@ Vercel env (Preview or Production) ─► db:prepare ─► next build
 
 So a deployment can only reach the database Vercel selected for it. `.env.local` is also gitignored and never part of a deployment. Locally, `npm run dev` prepares the database `.env.local` points at; `npm run build` is plain `next build` and only reads it.
 
+The scripts load `.env.local` through `db/cli/local-env.ts`. That file is script-only (an ESLint rule keeps `db/cli` out of `src/` imports): the app gets `.env.local` from Next.js, and filesystem access in app-reachable code makes Turbopack trace the whole project.
+
 **Migrations.** Only committed SQL in `db/migrations` is applied, through Drizzle's migrator and its ledger (`drizzle.__drizzle_migrations`). Nothing is generated or pushed at deploy time. With nothing pending the step is a no-op. The advisory lock serializes concurrent deployments against the same database.
 
 - Migrations run *before* the new build goes live, while the previous deployment is still serving. Keep them backward compatible: add first, remove in a later release.
 - Drizzle applies only migrations newer than the last one recorded. If a merge leaves a migration with an older timestamp, `db:prepare` fails and says so; regenerate that migration.
-- All Preview deployments share one Preview database. Two feature branches with conflicting migrations will collide there.
+- Each Preview deployment migrates its own branch, so feature branches cannot collide. A Preview branch is a copy of `main`, so it already holds content and the bootstrap marker; only pending migrations are applied.
 
 **Bootstrap.** `seedContent` loads `db/seed/content.ts` exactly once per database. The decision is recorded in the single-row `content_bootstrap` table rather than inferred from content:
 
@@ -138,7 +149,7 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
 - The seed is for new databases only. Rows an *existing* database needs after a schema change belong in a migration (`drizzle-kit generate --custom`).
 - `npm run db:seed -- --force` truncates every content table and reloads the seed. It is refused when `VERCEL` or `CI` is set. Use it only on a database you are willing to lose; never on Production.
 
-**Local development.** `.env.local` holds the preview branch's two URLs, so local work and Preview deployments share one database and nothing done locally reaches the live site. `npm run dev` runs `db:prepare` first (`predev`), so a new migration is applied the next time the dev server starts. Production's URLs do not belong in `.env.local`: `main` is reached only by Production deployments.
+**Local development.** `.env.local` holds the two URLs of the Neon `dev` branch, so nothing done locally reaches Production or a Preview. `npm run dev` runs `db:prepare` first (`predev`), so a new migration is applied the next time the dev server starts. Production's URLs do not belong in `.env.local`: `main` is reached only by Production deployments. Without a `DATABASE_URL` the app refuses to start; there is no fallback database.
 
 **New environment.** Point the Vercel environment (or `.env.local`) at the empty database and deploy (or start the dev server). No manual migrate or seed step.
 
@@ -161,7 +172,7 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
   - `events.ts` normalizes events into language-neutral records that the UI localizes.
   - `summarizeRepos` derives every stat from the same non-fork set.
 - GitHub *enriches* the portfolio but never defines a project. Projects link to repositories through `project_repositories`.
-- The username is a site setting (`site_settings.github_username`); only the token is an env var.
+- The username is a site setting (`site_settings.github_username`); only the token is an env var. `GITHUB_TOKEN` is optional: without it the section renders its fallback and the build logs one `GitHub integration not configured` warning.
 
 **Resend / contact** (`features/contact` → `integrations/resend`)
 - One Zod schema (`contact/schema.ts`) validates in the browser for instant feedback and again in the Server Action, which is the trust boundary. Error messages are dictionary keys, so both sides render in the visitor's language.
@@ -193,6 +204,7 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
 - Never render `Date.now()` or `new Date()` into cached server output. Use the client time components (`RelativeTime`, `LocalTime`).
 - Scroll reveals render state through React (`useInView`). Never mutate React-owned DOM from outside React.
 - Commands: `npm run check` (typecheck + lint + tests) before committing. `npm run build` needs a `DATABASE_URL`; `pglite:memory://` works locally.
+- Tooling: Node is pinned to `24.x` (`engines`), which Vercel follows. `allowScripts` in `package.json` approves install scripts per reviewed version (`esbuild`, `unrs-resolver`); after a dependency update, review new ones with `npm approve-scripts`. ESLint is on 10.x; three plugins bundled in `eslint-config-next` (`import`, `jsx-a11y`, `react`) still declare a peer range ending at 9, so `npm install` prints peer-override warnings until they catch up.
 
 ## Replaced in Phase 1
 

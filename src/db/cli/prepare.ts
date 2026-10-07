@@ -7,9 +7,10 @@
  * environment selects. See "Database lifecycle" in ARCHITECTURE.md.
  */
 import { withAdminDatabase } from '../admin/connect';
-import { isDeployment, loadLocalEnv, resolveAdminTarget } from '../admin/env';
+import { isDeployment, resolveAdminTarget } from '../admin/env';
 import { prepareDatabase } from '../prepare';
 import type { SeedResult } from '../seed/seed';
+import { loadLocalEnv } from './local-env';
 
 const BOOTSTRAP: Record<SeedResult['status'], string> = {
   seeded: 'new database, initial content loaded',

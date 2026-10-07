@@ -7,9 +7,10 @@
  * intend to throw away, never Production.
  */
 import { withAdminDatabase } from '../admin/connect';
-import { isDeployment, loadLocalEnv, resolveAdminTarget } from '../admin/env';
+import { isDeployment, resolveAdminTarget } from '../admin/env';
 import { content } from '../seed/content';
 import { seedContent, type SeedResult } from '../seed/seed';
+import { loadLocalEnv } from './local-env';
 
 const MESSAGES: Record<SeedResult['status'], string> = {
   seeded: 'Content seeded.',

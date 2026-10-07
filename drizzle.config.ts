@@ -1,5 +1,6 @@
 import { defineConfig } from 'drizzle-kit';
-import { loadLocalEnv, resolveAdminTarget } from './src/db/admin/env';
+import { resolveAdminTarget } from './src/db/admin/env';
+import { loadLocalEnv } from './src/db/cli/local-env';
 
 // drizzle-kit is used for `db:generate` (offline) and `db:studio`. Migrations
 // are applied by `db:prepare` / `db:migrate`, which share this env resolution:

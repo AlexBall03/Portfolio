@@ -1,5 +1,6 @@
 import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
+import { ConfigError, githubEnv } from '@/config/env';
 import {
   fetchContributionCalendar,
   fetchPublicEvents,
@@ -71,6 +72,24 @@ function settled<T>(result: PromiseSettledResult<T>, part: string): T | null {
 export async function getGithubOverview(username: string): Promise<GithubOverview> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
+
+  // Without a token every part would fail the same way: report it once.
+  try {
+    githubEnv();
+  } catch (err) {
+    if (!(err instanceof ConfigError)) throw err;
+    log.warn('GitHub integration not configured', { reason: err.message });
+    cacheLife(CACHE_LIFE.githubDegraded);
+    return {
+      username,
+      profileUrl: `https://github.com/${username}`,
+      stats: null,
+      repositories: null,
+      activity: null,
+      calendar: null,
+      lastActivityAt: null,
+    };
+  }
 
   const [user, repos, events, calendar] = await Promise.allSettled([
     fetchUser(username),

@@ -1,13 +1,14 @@
-import { existsSync } from 'node:fs';
-
 /**
  * Environment resolution for database tooling (`db:*` scripts, drizzle-kit).
  * The app itself reads `DATABASE_URL` through `config/env.ts`.
  *
  * Precedence, highest first:
  *   1. Variables already in the process environment (Vercel, CI, your shell).
- *   2. `.env.local`, and only outside Vercel/CI.
+ *   2. `.env.local`, and only outside Vercel/CI (`cli/local-env.ts`).
  * A deployment therefore only ever sees the database Vercel selected for it.
+ *
+ * This module is reachable from the app (through `seed/seed.ts`), so it must
+ * stay free of filesystem access.
  */
 
 type Env = Record<string, string | undefined>;
@@ -19,12 +20,6 @@ export class DatabaseTargetError extends Error {
 /** True on Vercel builds/functions and in CI, where only the provided environment counts. */
 export function isDeployment(env: Env = process.env): boolean {
   return Boolean(env.VERCEL || env.CI);
-}
-
-/** Loads `.env.local` for local tooling. Never overrides variables that are already set. */
-export function loadLocalEnv(file = '.env.local'): void {
-  if (isDeployment()) return;
-  if (existsSync(file)) process.loadEnvFile(file);
 }
 
 export type AdminTarget =

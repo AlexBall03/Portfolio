@@ -4,9 +4,28 @@ import { es } from '@/i18n/dictionaries/es';
 import type { GithubEvent, GithubRepo } from '@/integrations/github/schemas';
 import { buildCalendar, calendarStart } from './calendar';
 import { describeActivity, normalizeEvent } from './events';
-import { summarizeRepos } from './overview';
+import { getGithubOverview, summarizeRepos } from './overview';
 
 vi.mock('next/cache', () => ({ cacheLife: () => {}, cacheTag: () => {} }));
+
+describe('unconfigured integration', () => {
+  it('reports a missing token once and returns an empty overview without calling GitHub', async () => {
+    vi.stubEnv('GITHUB_TOKEN', '');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const overview = await getGithubOverview('AlexBall03');
+      expect(overview).toMatchObject({ stats: null, repositories: null, activity: null, calendar: null });
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]?.[0]).toContain('GITHUB_TOKEN');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      warn.mockRestore();
+      fetchSpy.mockRestore();
+    }
+  });
+});
 
 describe('contribution calendar', () => {
   // 2026-10-07 is a Wednesday.

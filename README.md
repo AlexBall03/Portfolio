@@ -32,7 +32,7 @@ npm run dev
 
 You don't need a Neon account for local work. Set `DATABASE_URL=pglite:.pglite` in `.env.local` to use an in-process Postgres that is migrated and seeded automatically.
 
-With Neon, put the **preview branch's** two connection strings in `.env.local` (never Production's). There is no migrate or seed step: `npm run dev` first applies any pending migrations to that database and loads the initial content if it is new, and every deployment does the same for its own database.
+With Neon, put the **`dev` branch's** two connection strings in `.env.local` (never Production's). There is no migrate or seed step: `npm run dev` first applies any pending migrations to that database and loads the initial content if it is new, and every deployment does the same for its own database.
 
 ## Scripts
 
@@ -56,18 +56,20 @@ All variables are server-only and validated in `src/config/env.ts`.
 |---|---|---|
 | `DATABASE_URL` | yes | Neon pooled connection string (or `pglite:…` locally) |
 | `DATABASE_URL_UNPOOLED` | for `db:*` and deployments | Neon direct connection string to the same database |
-| `GITHUB_TOKEN` | for GitHub section | Read-only token for the GitHub REST/GraphQL APIs |
+| `GITHUB_TOKEN` | for GitHub section | Fine-grained personal access token, public read-only, for the GitHub REST/GraphQL APIs |
 | `RESEND_API_KEY` | for contact form | Resend API key |
 | `CONTACT_TO_EMAIL` | no | Recipient (default `contact@alexball.dev`) |
 | `CONTACT_FROM_EMAIL` | no | Sender on a Resend-verified domain (default `contact@alexball.dev`) |
 
 If `GITHUB_TOKEN` or `RESEND_API_KEY` is missing, only that feature degrades; the rest of the site still works.
 
+Who sets what: the Neon integration provides both database variables in Vercel Production and Preview. `GITHUB_TOKEN`, `RESEND_API_KEY`, and the optional contact addresses are added by hand in Vercel for both environments. Locally, everything comes from `.env.local`.
+
 ## Deployment
 
 Vercel deploys `master` to production. `dev` is the working branch.
 
-Each deployment prepares its own database before building: Production uses Neon `main`, Preview uses the Neon preview branch, selected only by the environment variables Vercel provides. Pending migrations are applied and a brand-new database receives its initial content; existing content is never modified. Details are in [ARCHITECTURE.md](ARCHITECTURE.md#database-lifecycle).
+Each deployment prepares its own database before building: Production uses Neon `main`, each Preview deployment gets its own Neon branch copied from `main`, and local development uses Neon `dev`. The database is selected only by environment variables. Pending migrations are applied and a brand-new database receives its initial content; existing content is never modified. Details are in [ARCHITECTURE.md](ARCHITECTURE.md#database-lifecycle).
 
 ## Assets
 
