@@ -1,11 +1,16 @@
 import { sql } from 'drizzle-orm';
+import { isDeployment } from '../admin/env';
+import { queryRows } from '../raw';
 import * as s from '../schema';
 import type { Database } from '../types';
 import type { Locale } from '../../i18n/config';
 import type { MediaInput } from '../../lib/validation';
 import { contentSeedSchema, type ContentSeed } from './schema';
 
-/** Tables owned by the content seed, in an order safe to TRUNCATE ... CASCADE. */
+/**
+ * Tables owned by the content seed, in an order safe to TRUNCATE ... CASCADE.
+ * A database counts as new only while all of them are empty.
+ */
 const CONTENT_TABLES = [
   s.projectMedia,
   s.projectRepositories,
@@ -45,29 +50,60 @@ function rows<T extends object, Extra extends object>(
     .map(([locale, t]) => ({ ...t, ...extra, locale }));
 }
 
-export type SeedResult = { status: 'seeded' } | { status: 'skipped'; reason: string };
+export type SeedResult =
+  /** The database was new: the content document was loaded. */
+  | { status: 'seeded' }
+  /** The database already held content but no marker: the marker was recorded, nothing else written. */
+  | { status: 'adopted' }
+  /** The database was bootstrapped before: nothing written. */
+  | { status: 'skipped' };
 
 /**
- * Loads a content document into an empty database inside one transaction.
- * Refuses to touch a database that already has content unless `force` is set,
- * in which case all content tables are cleared first. It never runs implicitly.
+ * Bootstraps a brand-new database with the content document, exactly once.
+ *
+ * Whether a database has been bootstrapped is recorded explicitly in
+ * `content_bootstrap`, not inferred from its rows, so content edited or deleted
+ * later is never restored. Everything runs in one transaction, and claiming the
+ * marker row is what serializes concurrent runs: the loser waits on the primary
+ * key, then sees the conflict and skips. Safe to call on every deployment.
+ *
+ * `force` is the only destructive path: it clears every content table and
+ * reloads the document. It is a manual, local operation and is refused in
+ * deployments.
  */
 export async function seedContent(
   db: Database,
   input: unknown,
   { force = false }: { force?: boolean } = {},
 ): Promise<SeedResult> {
+  if (force && isDeployment()) {
+    throw new Error('Refusing to reset content from a deployment or CI environment.');
+  }
   const doc: ContentSeed = contentSeedSchema.parse(input);
 
   return db.transaction(async (tx) => {
-    const [existing] = await tx.select({ id: s.siteSettings.id }).from(s.siteSettings).limit(1);
-    if (existing && !force) {
-      return { status: 'skipped', reason: 'Database already contains content (use --force to reset it).' };
-    }
-    if (existing) {
-      const names = CONTENT_TABLES.map((t) => sql`${t}`);
+    if (force) {
+      const names = [...CONTENT_TABLES, s.contentBootstrap].map((t) => sql`${t}`);
       await tx.execute(sql`TRUNCATE ${sql.join(names, sql`, `)} CASCADE`);
+    } else {
+      const [marker] = await tx.select({ id: s.contentBootstrap.id }).from(s.contentBootstrap).limit(1);
+      if (marker) return { status: 'skipped' };
     }
+
+    const populated = CONTENT_TABLES.map((t) => sql`exists (select 1 from ${t})`);
+    const [existing] = await queryRows<{ present: boolean }>(
+      tx,
+      sql`select (${sql.join(populated, sql` or `)}) as present`,
+    );
+    const hasContent = existing?.present === true;
+
+    const [claimed] = await tx
+      .insert(s.contentBootstrap)
+      .values({ id: 1, source: hasContent ? 'adopted' : 'seed' })
+      .onConflictDoNothing()
+      .returning({ id: s.contentBootstrap.id });
+    if (!claimed) return { status: 'skipped' };
+    if (hasContent) return { status: 'adopted' };
 
     const insertMedia = async (media: MediaInput | null | undefined) => {
       if (!media) return null;

@@ -28,7 +28,7 @@ beforeAll(async () => {
 afterAll(() => close());
 
 describe('seed', () => {
-  it('refuses to overwrite existing content without --force', async () => {
+  it('does not touch a database that is already bootstrapped', async () => {
     const result = await seedContent(db, content);
     expect(result.status).toBe('skipped');
   });

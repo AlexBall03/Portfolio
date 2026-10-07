@@ -40,7 +40,8 @@ src/
   proxy.ts                locale routing; future Clerk middleware goes here
   config/                 env.ts (Zod, server-only), site.ts (URLs, ids), navigation.ts (route structure)
   i18n/                   locales, typed UI dictionaries (en/es), path helpers, translation fallback
-  db/                     client.ts, schema/*, migrations/ (committed SQL), seed/ (initial content), local.ts
+  db/                     client.ts (app, HTTP), schema/*, migrations/ (committed SQL), seed/ (initial content),
+                          prepare.ts (migrate + bootstrap), admin/ (tooling env + direct connection), cli/, local.ts
   features/<domain>/      types.ts (domain types) · schema.ts (Zod inputs) · repository.ts (DB) ·
                           queries.ts (cached reads) · components/ (feature UI)
       projects  skills  experience  profile  site  github  contact
@@ -71,6 +72,7 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 | Profile | `profile` (single row) · `profile_translations` (title, statement, about[], hero copy) · `social_links` · `profile_roles` · `profile_highlights` (differentiator/resume) · `snapshot_metrics` |
 | Site | `site_settings` (single row: brand, GitHub username, feature switch, default theme) · `page_content` (per-page SEO copy) · `section_content` (section headings) |
 | Media | `media_assets` (`storage` static/blob/external, src, dimensions) · `media_asset_translations` (alt text) |
+| System | `content_bootstrap` (single row: this database has received its initial content) |
 
 **Lifecycle.** Public reads return only `published` (or `visible`) rows ordered by `sort_order`. Archiving is a soft delete that keeps history and slug redirects intact.
 **Slugs.** `projects.slug` is the current public URL. When a slug changes, the old one goes into `project_slug_history`, and `/projects/<old>` answers with a permanent redirect.
@@ -83,9 +85,64 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 - `db/client.ts`: `getDb()` returns a Drizzle instance over Neon's **HTTP driver** (stateless, so there's no pool to exhaust on serverless). Phase 4 admin writes that need interactive transactions should add a `neon-serverless` Pool client for those paths only.
 - `db/types.ts`: `Database` is driver-agnostic (`PgDatabase`), so repositories run identically on Neon, on PGlite in tests, and on the optional local dev DB.
 - Caching: query functions use `'use cache'`, `cacheLife(CACHE_LIFE.content)`, and `cacheTag(CACHE_TAGS.x)` (`lib/cache-tags.ts`). **Admin mutations must call `updateTag(CACHE_TAGS.x)`** after a write.
-- Migrations: edit `db/schema/*`, run `npm run db:generate`, and commit the SQL. Apply with `npm run db:migrate` (uses `DATABASE_URL_UNPOOLED`).
-- Seed: `npm run db:seed` loads `db/seed/content.ts` (validated by `db/seed/schema.ts`) into an empty database in one transaction. It refuses to touch a database that already has content unless `--force` is passed. After bootstrap, **the database is the source of truth**.
-- Local without Neon: `DATABASE_URL=pglite:.pglite` (persisted) or `pglite:memory://` gives you an in-process Postgres that is migrated and seeded automatically. It is refused on Vercel and excluded from deployment bundles.
+- Migrations: edit `db/schema/*`, run `npm run db:generate`, and commit the SQL. Deployments apply it; see **Database lifecycle** below.
+- Seed: `db/seed/content.ts` (validated by `db/seed/schema.ts`) is the initial content for a brand-new database. After bootstrap, **the database is the source of truth**.
+- Local without Neon: `DATABASE_URL=pglite:.pglite` (persisted) or `pglite:memory://` gives you an in-process Postgres that is prepared automatically on connect. It is refused on Vercel and excluded from deployment bundles.
+
+## Database lifecycle
+
+Every Vercel deployment runs `npm run build:deploy` (set in `vercel.json`), which is `db:prepare` followed by `next build`. The schema and initial content therefore exist before Next.js prerenders anything from the database. A failure in `db:prepare` fails the deployment.
+
+```
+Vercel env (Preview or Production) ─► db:prepare ─► next build
+                                        1. take a session advisory lock
+                                        2. apply pending committed migrations
+                                        3. check that no committed migration was skipped
+                                        4. bootstrap initial content if the database has never had any
+```
+
+**Which database.** Nothing in the code names a Neon branch. The Neon integration sets `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) per Vercel environment: Production points at Neon `main`, Preview at the preview branch. `db:prepare` prints `target <host>/<database>` (no credentials) at the top of the build log.
+
+**Pooled vs direct.**
+
+| Variable | Used by | Why |
+|---|---|---|
+| `DATABASE_URL` (pooled) | the app, at build and at runtime (`db/client.ts`, Neon HTTP driver) | stateless queries from serverless functions |
+| `DATABASE_URL_UNPOOLED` (direct) | `db:prepare`, `db:migrate`, `db:seed`, `db:studio` (`db/admin/`) | DDL, interactive transactions, and a session advisory lock, none of which are reliable through PgBouncer |
+
+`db/admin/env.ts` refuses to run if the two variables name different databases, or if only a pooled URL is available. It falls back to `DATABASE_URL` only when that is itself a direct connection.
+
+**Environment precedence** for database tooling, highest first:
+
+1. Variables already in the process environment (Vercel, CI, your shell).
+2. `.env.local`, read **only when neither `VERCEL` nor `CI` is set**, and never overriding a variable that is already set.
+
+So a deployment can only reach the database Vercel selected for it. `.env.local` is also gitignored and never part of a deployment. Locally, `npm run dev` prepares the database `.env.local` points at; `npm run build` is plain `next build` and only reads it.
+
+**Migrations.** Only committed SQL in `db/migrations` is applied, through Drizzle's migrator and its ledger (`drizzle.__drizzle_migrations`). Nothing is generated or pushed at deploy time. With nothing pending the step is a no-op. The advisory lock serializes concurrent deployments against the same database.
+
+- Migrations run *before* the new build goes live, while the previous deployment is still serving. Keep them backward compatible: add first, remove in a later release.
+- Drizzle applies only migrations newer than the last one recorded. If a merge leaves a migration with an older timestamp, `db:prepare` fails and says so; regenerate that migration.
+- All Preview deployments share one Preview database. Two feature branches with conflicting migrations will collide there.
+
+**Bootstrap.** `seedContent` loads `db/seed/content.ts` exactly once per database. The decision is recorded in the single-row `content_bootstrap` table rather than inferred from content:
+
+| State | Result |
+|---|---|
+| marker row exists | `skipped`, nothing written |
+| no marker, any content table has rows | `adopted`: the marker is recorded, no content written |
+| no marker, every content table empty | `seeded`: marker and content written in one transaction |
+
+Claiming the marker row is what makes concurrent runs safe. Because the marker outlives the content, anything edited or deleted later (by hand now, through `/admin` from Phase 4) is never restored by a deployment.
+
+- The seed is for new databases only. Rows an *existing* database needs after a schema change belong in a migration (`drizzle-kit generate --custom`).
+- `npm run db:seed -- --force` truncates every content table and reloads the seed. It is refused when `VERCEL` or `CI` is set. Use it only on a database you are willing to lose; never on Production.
+
+**Local development.** `.env.local` holds the preview branch's two URLs, so local work and Preview deployments share one database and nothing done locally reaches the live site. `npm run dev` runs `db:prepare` first (`predev`), so a new migration is applied the next time the dev server starts. Production's URLs do not belong in `.env.local`: `main` is reached only by Production deployments.
+
+**New environment.** Point the Vercel environment (or `.env.local`) at the empty database and deploy (or start the dev server). No manual migrate or seed step.
+
+**Never** run `drizzle-kit push`, `db:seed -- --force`, or hand-written `DROP`/`TRUNCATE` against Production, and never edit a migration that has already been applied anywhere.
 
 ## Localization
 

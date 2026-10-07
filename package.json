@@ -7,8 +7,10 @@
     "node": ">=22"
   },
   "scripts": {
+    "predev": "npm run db:prepare",
     "dev": "next dev",
     "build": "next build",
+    "build:deploy": "npm run db:prepare && next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -16,8 +18,9 @@
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run lint && npm test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx --env-file-if-exists=.env.local src/db/seed/index.ts",
+    "db:prepare": "tsx src/db/cli/prepare.ts",
+    "db:migrate": "tsx src/db/cli/prepare.ts --migrate-only",
+    "db:seed": "tsx src/db/cli/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

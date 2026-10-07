@@ -32,23 +32,20 @@ npm run dev
 
 You don't need a Neon account for local work. Set `DATABASE_URL=pglite:.pglite` in `.env.local` to use an in-process Postgres that is migrated and seeded automatically.
 
-With Neon:
-
-```bash
-npm run db:migrate   # apply committed migrations
-npm run db:seed      # load the initial content into an empty database
-```
+With Neon, put the **preview branch's** two connection strings in `.env.local` (never Production's). There is no migrate or seed step: `npm run dev` first applies any pending migrations to that database and loads the initial content if it is new, and every deployment does the same for its own database.
 
 ## Scripts
 
 | Script | Purpose |
 |---|---|
-| `dev` / `build` / `start` | Next.js |
+| `dev` / `build` / `start` | Next.js. `dev` runs `db:prepare` first |
 | `check` | Type check + lint + tests |
 | `typecheck` · `lint` · `test` | Individually |
 | `db:generate` | Generate a migration from `src/db/schema` changes |
-| `db:migrate` | Apply migrations (uses `DATABASE_URL_UNPOOLED`) |
-| `db:seed` | Seed an empty database (`-- --force` resets content) |
+| `build:deploy` | What Vercel runs: `db:prepare`, then `next build` |
+| `db:prepare` | Apply pending migrations, then bootstrap content if the database is new. Safe to repeat |
+| `db:migrate` | Apply pending migrations only |
+| `db:seed` | Bootstrap content only. `-- --force` wipes and reloads content: disposable databases only, never Production |
 | `db:studio` | Drizzle Studio |
 
 ## Environment variables
@@ -58,7 +55,7 @@ All variables are server-only and validated in `src/config/env.ts`.
 | Variable | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | yes | Neon pooled connection string (or `pglite:…` locally) |
-| `DATABASE_URL_UNPOOLED` | for migrations | Neon direct connection string |
+| `DATABASE_URL_UNPOOLED` | for `db:*` and deployments | Neon direct connection string to the same database |
 | `GITHUB_TOKEN` | for GitHub section | Read-only token for the GitHub REST/GraphQL APIs |
 | `RESEND_API_KEY` | for contact form | Resend API key |
 | `CONTACT_TO_EMAIL` | no | Recipient (default `contact@alexball.dev`) |
@@ -69,6 +66,8 @@ If `GITHUB_TOKEN` or `RESEND_API_KEY` is missing, only that feature degrades; th
 ## Deployment
 
 Vercel deploys `master` to production. `dev` is the working branch.
+
+Each deployment prepares its own database before building: Production uses Neon `main`, Preview uses the Neon preview branch, selected only by the environment variables Vercel provides. Pending migrations are applied and a brand-new database receives its initial content; existing content is never modified. Details are in [ARCHITECTURE.md](ARCHITECTURE.md#database-lifecycle).
 
 ## Assets
 
