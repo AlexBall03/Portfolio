@@ -38,7 +38,7 @@ export function Hero({ profile, monogram, locale, t }: HeroProps) {
   ];
 
   return (
-    <section id="home" aria-labelledby="home-title" className="relative pt-12 sm:pt-16 lg:pt-24">
+    <section id="home" aria-labelledby="home-title" className="relative pt-page-top">
       <Container className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-20">
         <div className="flex min-w-0 flex-col">
           {profile.openToWork && (

@@ -99,6 +99,7 @@ export const en = {
     download: 'Download Resume',
     openFull: 'Open Full Page',
     viewerTitle: 'Resume PDF',
+    viewerError: "The preview couldn't load. You can still open or download the PDF.",
   },
   contact: {
     emailLabel: 'Email',
@@ -134,6 +135,7 @@ export const en = {
     email: 'Email',
     resume: 'Resume',
     lastUpdated: 'Last updated',
+    preferences: 'Preferences',
   },
   toggles: {
     theme: 'Theme',
@@ -190,6 +192,7 @@ export const en = {
     retry: 'Try again',
   },
   pager: { previous: 'Previous', next: 'Next' },
+  loading: { label: 'Loading' },
 };
 
 export type Dictionary = typeof en;

@@ -57,7 +57,7 @@ export function ContactSection({ section, email, socials, t }: ContactSectionPro
                     </span>
                     <Icon
                       name="arrowUpRight"
-                      className="ml-auto size-4 shrink-0 text-fg-faint transition-[transform,color] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
+                      className="ml-auto size-4 shrink-0 text-fg-faint transition-[translate,color] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
                     />
                   </a>
                 </li>

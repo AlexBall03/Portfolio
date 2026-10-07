@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Reveal } from '@/components/ui/Reveal';
 import { Section } from '@/components/ui/Section';
 import { Status } from '@/components/ui/Status';
@@ -24,8 +25,8 @@ interface ExperienceProps {
 function Timeline({ items, locale, t, education }: { items: ExperienceItem[]; locale: Locale; t: Dictionary['experience']; education: boolean }) {
   return (
     <ol>
-      {items.map((item) => (
-        <li key={item.id} className="group">
+      {items.map((item, i) => (
+        <li key={item.id} className="group" style={{ '--i': i } as CSSProperties}>
           <Reveal className="grid grid-cols-[1rem_minmax(0,1fr)] gap-x-5 md:grid-cols-[minmax(9rem,12rem)_1rem_minmax(0,1fr)] md:gap-x-8">
             <div className="col-start-2 flex flex-wrap items-center gap-3 pt-0.5 pb-3 md:col-start-1 md:row-start-1 md:flex-col md:items-end md:gap-2.5 md:pt-6 md:pb-0 md:text-right">
               <span className={cn('font-mono text-label tracking-[0.08em] uppercase', education ? 'text-accent-fg' : 'text-brand-fg')}>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { type CSSProperties, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
 import { pageForPath } from '@/config/navigation';
@@ -10,7 +10,7 @@ import { useLocalelessPath } from '@/lib/client/locale';
 import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { BrandMark } from './BrandMark';
 import { CommandPalette } from './CommandPalette';
-import { controlStyles, LocaleSwitch, ThemeToggle } from './Preferences';
+import { controlStyles, LocaleSwitch, ThemeSwitch, ThemeToggle } from './Preferences';
 import type { ChromeData } from './types';
 
 const noop = () => () => {};
@@ -42,6 +42,9 @@ function useScrolled(threshold = 24) {
   }, [threshold]);
   return scrolled;
 }
+
+/** Stagger index for `.drawer-item` (see system.css). */
+const stagger = (i: number) => ({ '--i': i }) as CSSProperties;
 
 const iconButton =
   'inline-flex size-10 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-[18px]';
@@ -95,15 +98,9 @@ export function SiteChrome({ data }: { data: ChromeData }) {
 
   return (
     <>
-      <header className="pointer-events-none fixed inset-x-0 top-3 z-50 sm:top-4">
+      <header data-scrolled={scrolled || undefined} className="chrome-bar fixed inset-x-0 top-0 z-50">
         <Container>
-          <nav
-            aria-label={T.nav.primary}
-            className={cn(
-              'pointer-events-auto flex h-14 items-center gap-1 rounded-lg px-2 transition-[background-color,box-shadow] duration-300',
-              scrolled ? 'glass-strong' : 'glass',
-            )}
-          >
+          <nav aria-label={T.nav.primary} className="-mx-2.5 flex h-16 items-center gap-1">
             <Link
               href={home?.href ?? '/'}
               onClick={closeMenu}
@@ -144,19 +141,21 @@ export function SiteChrome({ data }: { data: ChromeData }) {
               >
                 <Icon name="search" />
               </button>
-              <button
-                type="button"
-                onClick={openPalette}
-                aria-label={T.palette.open}
-                aria-keyshortcuts="Meta+K Control+K"
-                className={cn(controlStyles, 'hidden min-w-9 justify-center gap-2 px-2.5 hover:bg-fg/[0.06] lg:inline-flex [&_svg]:size-4')}
-              >
-                <Icon name="search" />
-                <kbd aria-hidden="true" className="hidden font-mono text-micro uppercase xl:inline">
-                  {shortcut}
-                </kbd>
-              </button>
               {/* Wrapped, so `hidden` never competes with the controls' own display classes. */}
+              <div className="hidden lg:flex">
+                <button
+                  type="button"
+                  onClick={openPalette}
+                  aria-label={T.palette.open}
+                  aria-keyshortcuts="Meta+K Control+K"
+                  className={cn(controlStyles, 'min-w-9 justify-center gap-2 px-2.5 hover:bg-fg/[0.06] [&_svg]:size-4')}
+                >
+                  <Icon name="search" />
+                  <kbd aria-hidden="true" className="hidden font-mono text-micro uppercase xl:inline">
+                    {shortcut}
+                  </kbd>
+                </button>
+              </div>
               <div className="hidden items-center gap-2 lg:flex">
                 <ThemeToggle t={T.toggles} />
                 <div className="hidden xl:block">
@@ -185,7 +184,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
         aria-hidden="true"
         onClick={closeMenu}
         className={cn(
-          'fixed inset-0 z-[60] bg-scrim transition-opacity duration-300 lg:hidden',
+          'fixed inset-0 z-[60] bg-scrim transition-opacity duration-300 ease-standard lg:hidden',
           menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       />
@@ -195,56 +194,64 @@ export function SiteChrome({ data }: { data: ChromeData }) {
         aria-modal="true"
         aria-label={T.nav.menu}
         inert={!menuOpen}
-        className={cn(
-          'glass-strong fixed inset-y-2 right-2 z-[61] flex w-[min(calc(100vw-1rem),24rem)] flex-col overflow-y-auto rounded-xl p-4 transition-[transform,visibility] duration-300 ease-out lg:hidden',
-          'pb-[calc(1rem+env(safe-area-inset-bottom,0px))]',
-          menuOpen ? 'visible translate-x-0' : 'invisible translate-x-[calc(100%+1rem)]',
-        )}
+        data-open={menuOpen || undefined}
+        className="drawer fixed inset-y-0 right-0 z-[61] flex w-full flex-col overflow-y-auto sm:w-[26rem] lg:hidden"
       >
-        <div className="flex items-center justify-between border-b border-line pb-3 pl-2">
-          <BrandMark text={data.brandMark} className="text-body" />
-          <button ref={drawerCloseRef} type="button" aria-label={T.nav.closeMenu} onClick={closeMenu} className={iconButton}>
-            <Icon name="x" />
+        {/* Same height and gutter as the command bar, so ✕ lands exactly where ☰ was. */}
+        <div className="flex h-16 shrink-0 items-center border-b border-line px-gutter">
+          <div style={stagger(0)} className="drawer-item -mx-2.5 flex flex-1 items-center justify-between">
+            <BrandMark text={data.brandMark} className="px-2.5 text-body" />
+            <button ref={drawerCloseRef} type="button" aria-label={T.nav.closeMenu} onClick={closeMenu} className={iconButton}>
+              <Icon name="x" />
+            </button>
+          </div>
+        </div>
+
+        {/* Wrapped, so the button's own `transition-colors` doesn't override the stagger. */}
+        <div style={stagger(1)} className="drawer-item px-gutter pt-5 pb-3">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              openPalette();
+            }}
+            className="flex h-12 w-full items-center gap-3 rounded-md border border-line bg-surface-inset/60 px-4 text-left text-body-sm text-fg-faint transition-colors hover:border-line-strong hover:text-fg-muted [&_svg]:size-4"
+          >
+            <Icon name="search" />
+            <span>{T.palette.open}</span>
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.currentTarget.blur();
-            openPalette();
-          }}
-          className="mt-4 flex h-12 w-full items-center gap-3 rounded-md border border-line bg-surface-inset/60 px-4 text-left text-body-sm text-fg-faint transition-colors hover:border-line-strong hover:text-fg-muted [&_svg]:size-4"
-        >
-          <Icon name="search" />
-          <span>{T.palette.open}</span>
-        </button>
-
-        <ul className="mt-3 flex flex-col gap-0.5">
+        {/* Full-bleed rows split by hairlines; the active page gets the bar's brand rule, turned vertical. */}
+        <ul className="flex flex-col border-t border-line">
           {data.pages.map((p, i) => {
             const active = current === p.key;
             return (
-              <li key={p.key}>
+              <li key={p.key} style={stagger(2 + i)} className="drawer-item border-b border-line">
                 <Link
                   href={p.href}
                   aria-current={active ? 'page' : undefined}
                   onClick={closeMenu}
                   className={cn(
-                    'flex items-center gap-4 rounded-md px-3 py-3 transition-colors',
-                    active ? 'bg-brand-soft text-fg' : 'text-fg-muted hover:bg-fg/[0.05] hover:text-fg',
+                    'relative flex items-center gap-4 px-gutter py-4 transition-colors',
+                    'before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-full before:bg-brand before:transition-opacity',
+                    active ? 'text-fg before:opacity-100' : 'text-fg-muted before:opacity-0 hover:bg-fg/[0.04] hover:text-fg',
                   )}
                 >
                   <span className="w-5 font-mono text-micro text-accent-fg">{String(i + 1).padStart(2, '0')}</span>
                   <span className="font-display text-h3 font-medium">{p.label}</span>
-                  {active && <span aria-hidden="true" className="ml-auto size-1.5 rounded-full bg-brand" />}
+                  <Icon name="arrowRight" className={cn('ml-auto size-4 transition-opacity', active ? 'text-brand-fg opacity-100' : 'opacity-0')} />
                 </Link>
               </li>
             );
           })}
         </ul>
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
-          <ThemeToggle t={T.toggles} labelled />
+        <div
+          style={stagger(2 + data.pages.length)}
+          className="drawer-item mt-auto flex items-center justify-between gap-3 border-t border-line px-gutter pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+        >
+          <ThemeSwitch t={T.toggles} />
           <LocaleSwitch locale={data.locale} t={T.toggles} />
         </div>
       </div>

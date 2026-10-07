@@ -94,6 +94,7 @@ export const es: Dictionary = {
     download: 'Descargar Currículum',
     openFull: 'Abrir Página Completa',
     viewerTitle: 'Currículum en PDF',
+    viewerError: 'No se pudo cargar la vista previa. Aún puedes abrir o descargar el PDF.',
   },
   contact: {
     emailLabel: 'Correo',
@@ -129,6 +130,7 @@ export const es: Dictionary = {
     email: 'Correo',
     resume: 'Currículum',
     lastUpdated: 'Última actualización',
+    preferences: 'Preferencias',
   },
   toggles: {
     theme: 'Tema',
@@ -184,4 +186,5 @@ export const es: Dictionary = {
     retry: 'Intentar de nuevo',
   },
   pager: { previous: 'Anterior', next: 'Siguiente' },
+  loading: { label: 'Cargando' },
 };

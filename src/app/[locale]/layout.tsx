@@ -8,7 +8,9 @@ import type { ReactNode } from 'react';
 import { Background } from '@/components/layout/Background';
 import { getChromeData } from '@/components/layout/chrome-data';
 import { Footer } from '@/components/layout/Footer';
+import { NavigationProgress } from '@/components/layout/NavigationProgress';
 import { SiteChrome } from '@/components/layout/SiteChrome';
+import { Splash } from '@/components/layout/Splash';
 import { JsonLd } from '@/components/ui/JsonLd';
 import { GOOGLE_ANALYTICS_ID, SITE_URL } from '@/config/site';
 import { getExperiences } from '@/features/experience/queries';
@@ -18,6 +20,7 @@ import { getSkills } from '@/features/skills/queries';
 import { isLocale, LOCALES } from '@/i18n/config';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { buildSiteGraph } from '@/lib/seo/structured-data';
+import { splashInitScript } from '@/lib/splash-script';
 import { themeInitScript } from '@/lib/theme-script';
 import '@/styles/globals.css';
 
@@ -93,6 +96,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript(settings.defaultTheme) }} />
+        <script dangerouslySetInnerHTML={{ __html: splashInitScript() }} />
       </head>
       <body>
         <a
@@ -101,7 +105,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
         >
           {dict.nav.skipToContent}
         </a>
+        <Splash text={settings.brandMark} label={dict.loading.label} />
         <Background />
+        <NavigationProgress />
         <SiteChrome data={chrome} />
         <main id="main" tabIndex={-1}>
           {children}

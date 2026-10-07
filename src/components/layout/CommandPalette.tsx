@@ -13,6 +13,7 @@ import {
 import { Icon } from '@/components/ui/Icon';
 import { LOCALES } from '@/i18n/config';
 import { useSwitchLocale } from '@/lib/client/locale';
+import { startNavigationProgress } from '@/lib/client/navigation-progress';
 import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { useTheme } from '@/lib/client/theme';
 import { cn } from '@/lib/cn';
@@ -87,7 +88,10 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
 
   const handlers = useMemo<CommandHandlers>(
     () => ({
-      navigate: (href) => router.push(href),
+      navigate: (href) => {
+        startNavigationProgress(href);
+        router.push(href);
+      },
       openExternal: (url) => window.open(url, '_blank', 'noopener,noreferrer'),
       download,
       toggleTheme: () => setTheme(theme === 'dark' ? 'light' : 'dark'),

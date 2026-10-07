@@ -63,6 +63,7 @@ export function Icon({ name, className }: IconProps) {
   return (
     <svg
       className={className}
+      data-icon={name}
       viewBox="0 0 24 24"
       fill={filled ? 'currentColor' : 'none'}
       stroke={filled ? 'none' : 'currentColor'}

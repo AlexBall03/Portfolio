@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { LOCALE_COOKIE, type Locale } from '@/i18n/config';
 import { localizedPath, splitLocale } from '@/i18n/paths';
+import { startNavigationProgress } from './navigation-progress';
 
 /** Switches language, keeping the visitor on the equivalent page. */
 export function useSwitchLocale() {
@@ -13,7 +14,9 @@ export function useSwitchLocale() {
     (target: Locale) => {
       // Remembered so unprefixed links (e.g. alexball.dev/about) honor the choice.
       document.cookie = `${LOCALE_COOKIE}=${target}; path=/; max-age=31536000; samesite=lax`;
-      router.push(localizedPath(target, splitLocale(pathname).path));
+      const href = localizedPath(target, splitLocale(pathname).path);
+      startNavigationProgress(href);
+      router.push(href);
     },
     [router, pathname],
   );

@@ -56,7 +56,8 @@
   /* ---- Spacing (4px base; Tailwind's default) + layout ---- */
   --spacing-section: clamp(4rem, 2.6rem + 6vw, 8rem);
   --spacing-gutter: clamp(1rem, 0.2rem + 4vw, 3.5rem);
-  --spacing-nav: 5rem;
+  --spacing-nav: 4rem;
+  --spacing-page-top: clamp(2rem, 1rem + 3vw, 3.5rem);
   --container-site: 76rem;
 
   /* ---- Radius tiers ---- */

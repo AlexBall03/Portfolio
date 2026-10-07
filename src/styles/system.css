@@ -47,6 +47,336 @@
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass { background: var(--surface-raised); }
     .glass-strong { background: var(--surface-raised); }
+    .chrome-bar[data-scrolled] { background: var(--surface-raised); }
+  }
+
+  /* ------------------------------------------------------------------
+     Command bar — edge to edge. Transparent over the top of the page,
+     then a blurred strip with a hairline once the page scrolls.
+     ------------------------------------------------------------------ */
+  .chrome-bar {
+    border-bottom: 1px solid transparent;
+    transition: background-color 300ms var(--ease-standard), border-color 300ms var(--ease-standard), box-shadow 300ms var(--ease-standard);
+  }
+  .chrome-bar[data-scrolled] {
+    border-bottom-color: var(--line);
+    background-color: var(--surface-glass-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    box-shadow: 0 8px 24px -16px oklch(0 0 0 / 0.35);
+  }
+
+  /* ------------------------------------------------------------------
+     Mobile drawer — an edge-anchored sheet in the command bar's material
+     (blurred strip + hairline, brand glow on the seam). Slides in from
+     the right while its contents stagger up (`--i` per item); closes
+     faster, all at once.
+     ------------------------------------------------------------------ */
+  .drawer {
+    background-color: var(--surface-glass-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-sat));
+    box-shadow: -24px 0 48px -32px oklch(0 0 0 / 0.5);
+    translate: 100% 0;
+    visibility: hidden;
+    transition:
+      translate 260ms var(--ease-standard),
+      visibility 0s linear 260ms;
+  }
+  .drawer::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    z-index: 1;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--line), color-mix(in oklab, var(--brand) 55%, transparent) 50%, var(--line));
+    pointer-events: none;
+  }
+  .drawer[data-open] {
+    translate: 0;
+    visibility: visible;
+    transition:
+      translate 460ms var(--ease-out),
+      visibility 0s;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .drawer { background-color: var(--surface-raised); }
+  }
+  .drawer-item {
+    opacity: 0;
+    translate: 0 8px;
+    transition: opacity 120ms var(--ease-standard), translate 0s linear 120ms;
+  }
+  .drawer[data-open] .drawer-item {
+    opacity: 1;
+    translate: 0;
+    transition: opacity 320ms var(--ease-standard), translate 420ms var(--ease-out);
+    transition-delay: calc(120ms + var(--i, 0) * 60ms);
+  }
+
+  /* ------------------------------------------------------------------
+     Loading — the first-visit splash, the initial-load bar, and the
+     navigation bar. `--boot` (0–100) is written to <html> by the inline
+     boot script (src/lib/splash-script.ts); it is a registered integer
+     so it animates and can feed the percentage counter.
+     ------------------------------------------------------------------ */
+  html { transition: --boot 700ms var(--ease-out); }
+
+  :root {
+    /* Blue-led, with brass only as a hint at the leading edge. */
+    --load-gradient: linear-gradient(90deg, var(--brand) 0%, var(--brand) 45%, var(--brand-fg) 85%, var(--accent) 100%);
+  }
+
+  .load-bar {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 70;
+    height: 2.5px;
+    pointer-events: none;
+    opacity: 0;
+    background: var(--load-gradient);
+    transform: translateX(calc((var(--p, 0) - 1) * 100%));
+  }
+  /* The glowing leading edge. */
+  .load-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6rem;
+    height: 100%;
+    box-shadow: 0 0 12px var(--brand), 0 0 4px var(--brand-fg);
+    opacity: 0.9;
+  }
+
+  .boot-bar {
+    --p: calc(var(--boot) / 100);
+    transition: opacity 400ms var(--ease-standard) 180ms;
+  }
+  html[data-splash='off']:not([data-booted]) .boot-bar { opacity: 1; transition: none; }
+
+  .nav-progress { transition: transform 280ms var(--ease-out), opacity 200ms var(--ease-standard); }
+  .nav-progress[data-phase='running'] { opacity: 1; }
+  .nav-progress[data-phase='finishing'] {
+    transition: transform 200ms var(--ease-out), opacity 300ms var(--ease-standard) 160ms;
+  }
+  .nav-progress[data-phase='idle'] { transition: none; }
+
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: none;
+    place-items: center;
+    background: var(--canvas);
+  }
+  html[data-splash='on'] #splash {
+    display: grid;
+    /* Safety net: even if scripts never run to completion, get out of the way. */
+    animation: splash-out 0s linear 10s forwards;
+  }
+  html[data-splash='on']:not([data-booted]) { overflow: hidden; }
+  html[data-booted] #splash {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 600ms var(--ease-standard) 120ms, visibility 0s linear 720ms;
+  }
+
+  .splash-body {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 700ms var(--ease-out), filter 500ms var(--ease-standard), opacity 450ms var(--ease-standard);
+  }
+  /* Exit: the content lifts toward the viewer and dissolves. */
+  html[data-booted] .splash-body { transform: scale(1.06); filter: blur(6px); opacity: 0; }
+
+  .splash-core {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+  /* A soft light behind the wordmark that breathes while loading. */
+  .splash-halo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: -1;
+    width: 22rem;
+    height: 11rem;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--brand) 70%, transparent), transparent);
+    filter: blur(26px);
+    pointer-events: none;
+    animation: splash-breathe 2.6s ease-in-out infinite;
+  }
+  .splash-halo-accent {
+    width: 9rem;
+    height: 5rem;
+    translate: -10% -30%;
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 40%, transparent), transparent);
+    animation-delay: -1.3s;
+  }
+  /* Exit: the light flares open into the page. */
+  html[data-booted] .splash-halo { animation: splash-flare 700ms var(--ease-out) forwards; }
+
+  .splash-mark {
+    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+    animation: splash-mark-in 720ms var(--ease-out) both;
+  }
+  .splash-mark [data-part] {
+    display: inline-block;
+    animation: splash-bracket-in 820ms var(--ease-out) 80ms both;
+  }
+  .splash-mark [data-part='open'] { --from: -0.5em; }
+  .splash-mark [data-part='close'] { --from: 0.5em; }
+
+  .splash-track {
+    position: relative;
+    width: min(13rem, 60vw);
+    height: 2px;
+    margin-top: 1.75rem;
+    border-radius: 999px;
+    background: var(--line-strong);
+    /* Clip sideways (the fill slides in from the left) but let the glow spill vertically. */
+    clip-path: inset(-8px 0 -8px 0 round 999px);
+    animation: splash-fade 500ms var(--ease-standard) 160ms both;
+  }
+  .splash-fill {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    background: var(--load-gradient);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--brand) 75%, transparent);
+    transform: translateX(calc((var(--boot) / 100 - 1) * 100%));
+  }
+  /* A light sweep so the line feels alive between milestones. */
+  .splash-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.75), transparent);
+    animation: splash-shimmer 1.6s ease-in-out infinite;
+  }
+
+  .splash-label {
+    display: flex;
+    gap: 0.6em;
+    margin-top: 1rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-micro);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    animation: splash-fade 500ms var(--ease-standard) 260ms both;
+  }
+  .splash-pct::after {
+    counter-reset: boot var(--boot);
+    content: counter(boot) '%';
+    display: inline-block;
+    min-width: 4ch;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+  }
+
+  /* The page settles in as the splash dissolves (only on loads that showed it). */
+  html[data-splash='on'] :is(.chrome-bar, #main, body > footer) {
+    transition:
+      opacity 700ms var(--ease-out) 180ms,
+      transform 900ms var(--ease-out) 180ms,
+      filter 700ms var(--ease-out) 180ms,
+      background-color 300ms var(--ease-standard),
+      border-color 300ms var(--ease-standard),
+      box-shadow 300ms var(--ease-standard);
+  }
+  html[data-splash='on']:not([data-booted]) :is(.chrome-bar, #main, body > footer) {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+    filter: blur(4px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .splash-halo,
+    .splash-fill::after { animation: none; }
+    html[data-booted] .splash-body { transform: none; filter: none; }
+    html[data-splash='on']:not([data-booted]) :is(.chrome-bar, #main, body > footer) { transform: none; filter: none; }
+  }
+
+  @keyframes splash-mark-in {
+    from { opacity: 0; filter: blur(8px); transform: translateY(6px); }
+  }
+  @keyframes splash-bracket-in {
+    from { opacity: 0; transform: translateX(var(--from)); }
+  }
+  @keyframes splash-fade {
+    from { opacity: 0; }
+  }
+  @keyframes splash-breathe {
+    0%, 100% { opacity: 0.5; scale: 0.9; }
+    50% { opacity: 1; scale: 1.08; }
+  }
+  @keyframes splash-flare {
+    0% { opacity: 1; scale: 1; }
+    35% { opacity: 1; }
+    100% { opacity: 0; scale: 1.8; }
+  }
+  @keyframes splash-shimmer {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(260%); }
+  }
+  @keyframes splash-out {
+    to { opacity: 0; visibility: hidden; pointer-events: none; }
+  }
+
+  /* ------------------------------------------------------------------
+     Segmented tabs + switching panels. One pill glides to the selected
+     tab (placed by JS); before hydration the selected tab styles itself.
+     Panels animate their items in from the direction of travel; the
+     animation restarts whenever a panel goes from [hidden] to shown.
+     ------------------------------------------------------------------ */
+  .segmented-pill {
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    left: 0;
+    border-radius: 999px;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-sm), 0 0 0 1px var(--line-strong);
+    opacity: 0;
+  }
+  .segmented[data-ready] .segmented-pill {
+    opacity: 1;
+    transition: transform 360ms var(--ease-out), width 360ms var(--ease-out);
+  }
+  .segmented:not([data-ready]) [aria-selected='true'] {
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-sm), 0 0 0 1px var(--line-strong);
+  }
+
+  .tab-panels[data-dir='next'] { --dx: 20px; }
+  .tab-panels[data-dir='prev'] { --dx: -20px; }
+  .tab-panels[data-dir] > [role='tabpanel'] > ol > li {
+    animation: tab-item-in 520ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+  /* Switched-in items are already on screen; skip their one-time scroll reveal. */
+  [data-anim-ready] .tab-panels[data-dir] .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  @keyframes tab-item-in {
+    from { opacity: 0; transform: translateX(var(--dx)); filter: blur(3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tab-panels[data-dir] > [role='tabpanel'] > ol > li { animation: none; }
   }
 
   /* ------------------------------------------------------------------
@@ -155,4 +485,11 @@
   .heat-cell[data-level='2'] { background: color-mix(in oklab, var(--brand) 52%, transparent); }
   .heat-cell[data-level='3'] { background: color-mix(in oklab, var(--brand) 76%, transparent); }
   .heat-cell[data-level='4'] { background: var(--brand); }
+}
+
+/* Registered so `--boot` interpolates (smooth fill and count-up) and works in counter(). */
+@property --boot {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
 }

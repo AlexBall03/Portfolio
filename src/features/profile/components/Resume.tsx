@@ -7,6 +7,7 @@ import { Surface } from '@/components/ui/Surface';
 import type { SectionContent } from '@/features/site/types';
 import type { Dictionary } from '@/i18n/get-dictionary';
 import type { Highlight, Profile } from '../types';
+import { ResumeViewer } from './ResumeViewer';
 
 interface ResumeProps {
   section: SectionContent;
@@ -40,11 +41,16 @@ export function Resume({ section, profile, highlights, t }: ResumeProps) {
             </ul>
           )}
           {resume && (
-            <div className="flex flex-wrap gap-3 lg:flex-col lg:items-stretch">
-              <a className={buttonStyles()} href={resume.src} download>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <a className={buttonStyles({ className: 'w-full' })} href={resume.src} download>
                 <Icon name="download" /> {t.download}
               </a>
-              <a className={buttonStyles({ variant: 'secondary' })} href={resume.src} target="_blank" rel="noopener noreferrer">
+              <a
+                className={buttonStyles({ variant: 'secondary', className: 'w-full' })}
+                href={resume.src}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Icon name="external" /> {t.openFull}
               </a>
             </div>
@@ -62,12 +68,9 @@ export function Resume({ section, profile, highlights, t }: ResumeProps) {
               </span>
               <span className="text-fg-faint">PDF</span>
             </div>
-            <iframe
-              className="block h-[min(80vh,70rem)] min-h-[28rem] w-full border-0 bg-surface-inset"
-              src={`${resume.src}#view=FitH&toolbar=0`}
-              title={t.viewerTitle}
-              loading="lazy"
-            />
+            <div className="bg-surface-inset p-3 sm:p-6 lg:p-10">
+              <ResumeViewer src={resume.src} t={t} />
+            </div>
           </Surface>
         </Reveal>
       )}

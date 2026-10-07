@@ -11,7 +11,7 @@ export function BrandMark({ text, className }: { text: string; className?: strin
       {parts.map((part, i) => {
         if (part === '</' || part === '\\>')
           return (
-            <span key={i} className="text-brand-fg">
+            <span key={i} data-part={part === '</' ? 'open' : 'close'} className="text-brand-fg">
               {part}
             </span>
           );

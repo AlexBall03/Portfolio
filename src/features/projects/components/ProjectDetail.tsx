@@ -106,7 +106,7 @@ interface ProjectDetailProps {
 
 export function ProjectDetail({ project: p, locale, t }: ProjectDetailProps) {
   return (
-    <article aria-labelledby="project-title" className="pt-12 sm:pt-16">
+    <article aria-labelledby="project-title" className="pt-page-top">
       <Container>
         <Reveal className="flex flex-col gap-6">
           <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ variant: 'quiet', className: 'self-start' })}>

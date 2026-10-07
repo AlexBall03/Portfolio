@@ -11,7 +11,8 @@ export async function PageShell({ page, locale, children }: { page: PageKey; loc
   const pages = await getNavPages(locale);
   return (
     <Screen>
-      <div className="flex-1">{children}</div>
+      {/* The first band sits just under the command bar, not a full section gap below it. */}
+      <div className="flex-1 [&>section:first-child]:pt-page-top">{children}</div>
       <Pager pages={pages} current={page} t={getDictionary(locale).pager} />
     </Screen>
   );

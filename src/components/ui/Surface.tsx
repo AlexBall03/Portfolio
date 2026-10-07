@@ -38,7 +38,7 @@ export function Surface({
         VARIANTS[variant],
         RADII[radius],
         interactive &&
-          'transition-[transform,border-color,box-shadow] duration-200 ease-standard hover:-translate-y-0.5 hover:border-line-strong',
+          'transition-[translate,border-color,box-shadow] duration-200 ease-standard hover:-translate-y-0.5 hover:border-line-strong',
         className,
       )}
     >

@@ -13,8 +13,8 @@ type Toggles = Dictionary['toggles'];
 export const controlStyles =
   'inline-flex h-9 items-center rounded-md border border-line text-fg-muted transition-colors hover:border-line-strong hover:text-fg';
 
-/** Theme switch. Icon-only in the command bar; labelled in the drawer and footer. */
-export function ThemeToggle({ t, labelled = false, className }: { t: Toggles; labelled?: boolean; className?: string }) {
+/** Icon-only theme toggle for the command bar; the drawer and footer use ThemeSwitch. */
+export function ThemeToggle({ t, className }: { t: Toggles; className?: string }) {
   const [theme, setTheme] = useTheme();
   const current = theme === 'dark' ? t.dark : t.light;
   return (
@@ -22,17 +22,43 @@ export function ThemeToggle({ t, labelled = false, className }: { t: Toggles; la
       type="button"
       aria-label={`${t.theme}: ${current}`}
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className={cn(
-        controlStyles,
-        'justify-center gap-2 hover:bg-fg/[0.06] [&_svg]:size-4',
-        // Fixed width, so switching DARK/LIGHT (OSCURO/CLARO) doesn't shift its neighbours.
-        labelled ? 'min-w-24 px-3 font-mono text-micro uppercase' : 'w-9',
-        className,
-      )}
+      className={cn(controlStyles, 'w-9 justify-center hover:bg-fg/[0.06] [&_svg]:size-4', className)}
     >
       <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
-      {labelled && <span>{current}</span>}
     </button>
+  );
+}
+
+/** One option of a segmented control (theme, language): equal-width, inner pill when selected. */
+const segment = (selected: boolean) =>
+  cn(
+    'inline-flex h-full min-w-9 items-center justify-center rounded-[calc(var(--radius-md)-3px)] px-2 font-mono text-micro uppercase transition-colors [&_svg]:size-4',
+    selected ? 'bg-brand-soft text-fg' : 'text-fg-faint hover:text-fg',
+  );
+
+/** Dark/light segmented control, the twin of LocaleSwitch. */
+export function ThemeSwitch({ t, className }: { t: Toggles; className?: string }) {
+  const [theme, setTheme] = useTheme();
+  const options = [
+    { value: 'dark', label: t.dark, icon: 'moon' },
+    { value: 'light', label: t.light, icon: 'sun' },
+  ] as const;
+  return (
+    <div role="group" aria-label={t.theme} className={cn(controlStyles, 'p-0.5', className)}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={theme === o.value}
+          aria-label={o.label}
+          title={o.label}
+          onClick={() => setTheme(o.value)}
+          className={segment(theme === o.value)}
+        >
+          <Icon name={o.icon} />
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -49,10 +75,7 @@ export function LocaleSwitch({ locale, t, className }: { locale: Locale; t: Togg
           aria-pressed={locale === l}
           aria-label={LOCALE_TAGS[l].label}
           onClick={() => locale !== l && switchLocale(l)}
-          className={cn(
-            'h-full rounded-[calc(var(--radius-md)-3px)] px-2.5 font-mono text-micro uppercase transition-colors',
-            locale === l ? 'bg-brand-soft text-fg' : 'text-fg-faint hover:text-fg',
-          )}
+          className={segment(locale === l)}
         >
           {l}
         </button>

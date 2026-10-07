@@ -3,7 +3,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { LOCALE_TAGS } from '@/i18n/config';
 import { BrandMark } from './BrandMark';
 import { FooterNav } from './FooterNav';
-import { LocaleSwitch, ThemeToggle } from './Preferences';
+import { LocaleSwitch, ThemeSwitch } from './Preferences';
 import { PLATFORM_ICONS, type ChromeData } from './types';
 
 /** Build timestamp, inlined by next.config.ts: when the live site was deployed. */
@@ -59,11 +59,14 @@ export function Footer({ data, ownerName, statement }: FooterProps) {
             </ul>
           </div>
 
-          <div className="flex flex-col items-start gap-4">
-            <span className={COLUMN_TITLE}>{data.dict.toggles.theme} · {data.dict.toggles.language}</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <ThemeToggle t={data.dict.toggles} labelled />
-              <LocaleSwitch locale={data.locale} t={data.dict.toggles} />
+          <div className="flex flex-col gap-4">
+            <span className={COLUMN_TITLE}>{T.preferences}</span>
+            {/* Label | control rows: labels align with the other columns' text, controls share a right edge. */}
+            <div className="grid w-fit grid-cols-[auto_auto] items-center gap-x-8 gap-y-3 text-body-sm text-fg-muted">
+              <span aria-hidden="true">{data.dict.toggles.theme}</span>
+              <ThemeSwitch t={data.dict.toggles} className="justify-self-end" />
+              <span aria-hidden="true">{data.dict.toggles.language}</span>
+              <LocaleSwitch locale={data.locale} t={data.dict.toggles} className="justify-self-end" />
             </div>
           </div>
         </div>
