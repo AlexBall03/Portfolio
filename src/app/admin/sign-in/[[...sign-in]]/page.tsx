@@ -29,7 +29,7 @@ export default async function SignInPage() {
             <BrandMark text={settings.brandMark} />
           </Link>
           <div className="flex flex-col items-center gap-2">
-            <Eyebrow>Admin</Eyebrow>
+            <Eyebrow align="center">Admin</Eyebrow>
             <h1 className="text-h2">Sign in</h1>
           </div>
         </header>
