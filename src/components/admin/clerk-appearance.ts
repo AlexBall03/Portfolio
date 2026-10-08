@@ -48,6 +48,10 @@ export const clerkAppearance: Appearance = {
       // No sign-up, anywhere: accounts are provisioned in Clerk only.
       footerAction: 'hidden',
       footer: 'bg-transparent',
+      // Clerk hangs "Last used" off the button's top-right corner; sit it
+      // inside the button instead, vertically centered at the trailing edge.
+      lastAuthenticationStrategyBadge:
+        'top-1/2 right-3 inline-flex -translate-y-1/2 transform-none items-center leading-none rtl:right-auto rtl:left-3 rtl:transform-none',
     },
   },
 };
