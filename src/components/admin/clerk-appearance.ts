@@ -48,10 +48,14 @@ export const clerkAppearance: Appearance = {
       // No sign-up, anywhere: accounts are provisioned in Clerk only.
       footerAction: 'hidden',
       footer: 'bg-transparent',
-      // Clerk hangs "Last used" off the button's top-right corner; sit it
-      // inside the button instead, vertically centered at the trailing edge.
+      // Clerk hangs "Last used" off the button's top-right corner as a filled
+      // chip; sit it inside the button, vertically centered at the trailing
+      // edge, as a faint outline tag that doesn't compete with the button.
       lastAuthenticationStrategyBadge:
-        'top-1/2 right-3 inline-flex -translate-y-1/2 transform-none items-center leading-none rtl:right-auto rtl:left-3 rtl:transform-none',
+        'top-1/2 right-3 inline-flex -translate-y-1/2 transform-none items-center border-line bg-transparent bg-none leading-none text-fg-faint shadow-none rtl:right-auto rtl:left-3 rtl:transform-none',
+      // The input's border is near-invisible, so its text inset (Clerk's 0.75rem
+      // padding + 1px border) is the edge the eye reads; align the label to it.
+      formFieldLabelRow: 'px-[calc(0.75rem+1px)]',
     },
   },
 };
