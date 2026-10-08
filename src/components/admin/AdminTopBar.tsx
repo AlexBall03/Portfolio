@@ -7,7 +7,7 @@ import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { stagger } from './styles';
 
 const iconButton =
-  'inline-flex size-10 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-[18px]';
+  'inline-flex size-11 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-5';
 
 function useScrolled(threshold = 8) {
   const [scrolled, setScrolled] = useState(false);

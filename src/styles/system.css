@@ -129,7 +129,21 @@
   }
 
   /* ------------------------------------------------------------------
-     Admin rail — the admin's sidebar in the command bar's material,
+     Scroll fade — the cue a hidden scrollbar leaves out. ScrollFade.tsx
+     sets `data-fade-top` / `data-fade-bottom` while content is past that
+     edge; the edge then fades out over `--fade-size`.
+     ------------------------------------------------------------------ */
+  .scroll-fade {
+    --fade-size: 2.5rem;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+    transition: --fade-top 200ms var(--ease-standard), --fade-bottom 200ms var(--ease-standard);
+  }
+  .scroll-fade[data-fade-top] { --fade-top: var(--fade-size); }
+  .scroll-fade[data-fade-bottom] { --fade-bottom: var(--fade-size); }
+
+  /* ------------------------------------------------------------------
+     Admin rail —the admin's sidebar in the command bar's material,
      turned vertical: an edge-anchored blurred strip with a hairline
      and the drawer's brand glow on the seam.
      ------------------------------------------------------------------ */
@@ -530,4 +544,16 @@
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
+}
+
+/* Registered so the scroll fade's edges grow and shrink instead of snapping. */
+@property --fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
 }

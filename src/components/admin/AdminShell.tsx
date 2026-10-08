@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { BrandMark } from '@/components/layout/BrandMark';
 import { ThemeSwitch } from '@/components/layout/Preferences';
 import { Icon } from '@/components/ui/Icon';
+import { ScrollFade } from '@/components/ui/ScrollFade';
 import { ADMIN_NAV, ADMIN_PATH } from '@/config/admin';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { cn } from '@/lib/cn';
@@ -38,9 +39,9 @@ function Panel({ profile, placement }: { profile: AdminProfile; placement: Admin
 
   return (
     <>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+      <ScrollFade className="flex-1">
         <AdminNav placement={placement} />
-      </div>
+      </ScrollFade>
 
       <div
         className={cn(
@@ -113,7 +114,9 @@ export function AdminShell({ profile, brandMark, children }: { profile: AdminPro
         Skip to content
       </a>
 
-      <aside aria-label="Admin sidebar" className="admin-rail sticky top-0 hidden h-svh w-64 shrink-0 flex-col lg:flex">
+      {/* Fixed, not sticky: a sticky rail gets nudged by sub-pixel amounts at the very bottom of a page
+          whose height is fractional, and its icons visibly re-snap. */}
+      <aside aria-label="Admin sidebar" className="admin-rail fixed inset-y-0 left-0 z-40 hidden w-64 flex-col lg:flex">
         <div className="flex h-16 shrink-0 items-center border-b border-line px-3.5">
           <AdminIdentity brandMark={brandMark} />
         </div>
@@ -124,7 +127,7 @@ export function AdminShell({ profile, brandMark, children }: { profile: AdminPro
         <Panel profile={profile} placement="drawer" />
       </AdminTopBar>
 
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 lg:pl-64">
         <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-8 px-gutter py-8 lg:px-10 lg:py-10">{children}</div>
       </main>
     </div>

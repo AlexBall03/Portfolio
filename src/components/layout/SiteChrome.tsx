@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { type CSSProperties, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
+import { ScrollFade } from '@/components/ui/ScrollFade';
 import { pageForPath } from '@/config/navigation';
 import { cn } from '@/lib/cn';
 import { useLocalelessPath } from '@/lib/client/locale';
@@ -47,7 +48,7 @@ function useScrolled(threshold = 24) {
 const stagger = (i: number) => ({ '--i': i }) as CSSProperties;
 
 const iconButton =
-  'inline-flex size-10 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-[18px]';
+  'inline-flex size-11 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-5';
 
 /** The drawer's quick actions (resume, email). */
 const drawerAction =
@@ -228,7 +229,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
 
         {/* Only the page list scrolls; the header, search, and footer stay put. Icon-led rows with
             each page's one-line description; the active page is a brand-tinted card. */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+        <ScrollFade className="flex-1">
           <ul className="flex flex-col gap-1 px-gutter pb-4">
             {data.pages.map((p, i) => {
               const active = current === p.key;
@@ -262,7 +263,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
               );
             })}
           </ul>
-        </div>
+        </ScrollFade>
 
         <div
           style={stagger(2 + data.pages.length)}
