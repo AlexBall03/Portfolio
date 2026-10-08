@@ -1,10 +1,10 @@
 import { relations } from 'drizzle-orm';
 import { integer, pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { localeEnum, timestamps } from './_shared';
+import { authorship, localeEnum, timestamps } from './_shared';
 
 /**
- * Where an asset's bytes live. `static` = a path under /public, `blob` = a
- * future uploaded file (e.g. Vercel Blob), `external` = any absolute URL.
+ * Where an asset's bytes live. `static` = a path under /public, `blob` = an
+ * uploaded file in Vercel Blob (public store), `external` = any absolute URL.
  * Consumers only ever see a resolved `src`, so storage can change per asset.
  */
 export const mediaStorageEnum = pgEnum('media_storage', ['static', 'blob', 'external']);
@@ -18,6 +18,7 @@ export const mediaAssets = pgTable('media_assets', {
   width: integer(),
   height: integer(),
   ...timestamps,
+  ...authorship,
 });
 
 export const mediaAssetTranslations = pgTable(
@@ -28,6 +29,8 @@ export const mediaAssetTranslations = pgTable(
       .references(() => mediaAssets.id, { onDelete: 'cascade' }),
     locale: localeEnum().notNull(),
     alt: text().notNull(),
+    /** Optional caption, shown with the image where the layout has room for one. */
+    caption: text(),
   },
   (t) => [primaryKey({ columns: [t.assetId, t.locale] })],
 );

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import type { FieldErrors, MutationResult } from '@/lib/cms/result';
 import { clearErrorsAt, deepEqual, getIn, type Path, pathKey, setIn } from '@/lib/cms/values';
+import { guardHistory } from '@/lib/client/history-guard';
 
 export type EditorStatus =
   | { kind: 'idle' }
@@ -11,6 +12,8 @@ export type EditorStatus =
 
 export interface Editor<V> {
   values: V;
+  /** What the server last stored (e.g. the saved status while edits are pending). */
+  baseline: V;
   /** Server-reported errors, keyed by path (`translations.es.title`). */
   errors: FieldErrors;
   dirty: boolean;
@@ -24,8 +27,14 @@ export interface Editor<V> {
   errorFor: (path: Path) => string | undefined;
   /** Props for a text field bound to `path`. */
   text: (path: Path) => { value: string; onChange: (value: string) => void; error: string | undefined };
-  submit: () => void;
+  /**
+   * Saves the current values. `override` is merged in for this save only
+   * (Publish = `submit({ status: 'published' })`) and allows saving with no edits.
+   */
+  submit: (override?: Partial<V>) => void;
   discard: () => void;
+  /** Replaces the baseline and values with state the server reports from elsewhere (an upload). */
+  reset: (values: V) => void;
 }
 
 /**
@@ -60,10 +69,10 @@ export function useEditor<V>(initial: V, save: (values: V) => Promise<MutationRe
     setStatus((s) => (s.kind === 'saved' ? { kind: 'idle' } : s));
   }, []);
 
-  const submit = () => {
-    if (inFlight.current || !dirty) return;
+  const submit = (override?: Partial<V>) => {
+    if (inFlight.current || (!dirty && !override)) return;
     inFlight.current = true;
-    const submitted = values;
+    const submitted = override ? { ...values, ...override } : values;
     startTransition(async () => {
       try {
         const result = await save(submitted);
@@ -90,8 +99,15 @@ export function useEditor<V>(initial: V, save: (values: V) => Promise<MutationRe
     setStatus({ kind: 'idle' });
   };
 
+  const reset = useCallback((next: V) => {
+    setBaseline(next);
+    setValues(next);
+    setErrors({});
+  }, []);
+
   return {
     values,
+    baseline,
     errors,
     dirty,
     pending,
@@ -110,15 +126,16 @@ export function useEditor<V>(initial: V, save: (values: V) => Promise<MutationRe
     },
     submit,
     discard,
+    reset,
   };
 }
 
 const LEAVE_MESSAGE = 'You have unsaved changes. Leave without saving?';
 
 /**
- * Asks before unsaved edits are lost: on reload/close (`beforeunload`) and on
- * in-app link clicks (a capture listener runs before Next's Link handler).
- * Browser back/forward within the app is not interceptable and isn't covered.
+ * Asks before unsaved edits are lost: on reload/close (`beforeunload`), on
+ * in-app link clicks (a capture listener runs before Next's Link handler), and
+ * on browser back/forward (`guardHistory`).
  */
 export function useUnsavedChangesGuard(active: boolean) {
   useEffect(() => {
@@ -141,7 +158,9 @@ export function useUnsavedChangesGuard(active: boolean) {
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     document.addEventListener('click', onClick, true);
+    const releaseHistory = guardHistory(window, () => window.confirm(LEAVE_MESSAGE));
     return () => {
+      releaseHistory();
       window.removeEventListener('beforeunload', onBeforeUnload);
       document.removeEventListener('click', onClick, true);
     };

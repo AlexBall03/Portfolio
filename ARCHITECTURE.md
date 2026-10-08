@@ -1,6 +1,6 @@
 # Architecture — alexball.dev
 
-A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 4A (CMS Foundation & Site Settings)**: Phase 1 laid the architecture, Phase 2 the design system, Phase 3 the private `/admin`, and Phase 4A the first write paths (Profile and Configuration editors) plus the conventions the remaining editors follow (see **Content management**).
+A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 4B (Project Management & Media)**: Phase 1 laid the architecture, Phase 2 the design system, Phase 3 the private `/admin`, Phase 4A the first write paths (Profile and Configuration editors) plus the conventions the remaining editors follow, and Phase 4B the Projects editor with its publication workflow, ordering, and Vercel Blob images (see **Content management**).
 
 ## Stack
 
@@ -10,6 +10,7 @@ A bilingual (English/Spanish) software-engineering portfolio, built as one full-
 | Framework | Next.js 16, App Router, **Cache Components** (`'use cache'`), Partial Prefetching |
 | Styling | Tailwind CSS v4 utilities over a semantic OKLCH token design system (see **Design system**) |
 | Database | Neon Postgres via **Drizzle ORM** (`neon-http` driver), migrations by drizzle-kit |
+| Media storage | Vercel Blob (public store) for uploaded images; metadata in Postgres |
 | Validation | Zod 4 (env, external APIs, content inputs, contact form) |
 | Email | Resend |
 | Hosting | Vercel (Fluid Compute, Node runtime) |
@@ -40,8 +41,8 @@ src/
                           not-found, error, [...rest] (404 catch-all); layout = root layout (html/body)
   app/admin/              the private admin (English-only, its own root layout): sign-in/[[...sign-in]],
                           (console)/ (guarded layout, dashboard, profile/{,roles,highlights,metrics},
-                          configuration, [...rest] 404), not-found, error
-  app/api/admin/          admin Route Handlers (session: the reference handler)
+                          configuration, projects/{,new,order,[id]/{,media,preview}}, [...rest] 404), not-found, error
+  app/api/admin/          admin Route Handlers (session: the reference handler; projects/[id]/media{,/[assetId]}: image uploads)
   app/                    sitemap.ts, robots.ts, manifest.ts, global-error.tsx
   proxy.ts                locale routing (public) + Clerk and the admin gate (admin, Server Actions)
   server/auth/            admin authorization: policy (the rule), gate (proxy decision), admin (requireAdmin…), route (adminRoute)
@@ -54,16 +55,18 @@ src/
   features/<domain>/      types.ts (domain types) · schema.ts (Zod inputs) · repository.ts (DB) ·
                           queries.ts (cached reads) · components/ (feature UI)
                           admin-managed domains add: service.ts (editor loads + transactional saves) ·
-                          mutations.ts (Server Actions) · components/admin/ (editor islands)
+                          mutations.ts (Server Actions) · components/admin/ (editor islands) · upload.ts (projects: upload request plumbing)
       projects  skills  experience  profile  site  github  contact  admin (dashboard facts)
-  integrations/           github/ (typed API client + Zod response schemas), resend/
+  integrations/           github/ (typed API client + Zod response schemas), resend/, blob/ (MediaStore over Vercel Blob)
   components/layout/      site chrome: SiteChrome (command bar + drawer + palette), Preferences, Footer, Pager, PageShell, Screen
   components/admin/       console UI: AdminShell, AdminNav, AdminTopBar (bar + drawer), AccountActions, AdminPageHeader, AdminLoading,
-                          AdminUnavailable, clerk-appearance (Clerk themed with the tokens)
-  components/admin/form/  editor primitives: useEditor, EditorForm (+ save bar), EditorSection, fields, LocaleTabs, RepeatableList
+                          AdminUnavailable, SectionTabs, ConfirmDialog, clerk-appearance (Clerk themed with the tokens)
+  components/admin/form/  editor primitives: useEditor, EditorForm (+ save bar), EditorSection, fields, LocaleTabs, RepeatableList,
+                          SortableList (drag + move buttons), ImageUploadField (+ checkImageFile, sendUpload)
   components/ui/          design-system primitives (Container, Section, SectionHeader, Eyebrow, Prose, Stat, Status,
                           Tag, Surface, SystemState, buttonStyles) + Icon, Reveal, CountUp, RelativeTime, LocalTime, JsonLd
-  lib/                    logger, errors, media resolution, cache tags/lifetimes, seo/, validation, client/,
+  lib/                    logger, errors (incl. FieldValidationError, NotFoundError), media resolution, image-file (byte sniffing),
+                          cache tags/lifetimes, seo/, validation, client/ (incl. history-guard),
                           cms/ (mutation result + runner, locale status, write conventions, form value helpers)
   styles/                 tokens.css (semantic roles per theme), globals.css (Tailwind theme), base.css, system.css
   test/                   PGlite test DB helper, server-only stub
@@ -83,15 +86,15 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 
 | Area | Tables |
 |---|---|
-| Projects | `projects` (slug, `status` draft/published/archived, featured, sort, live, links, published/archived timestamps) · `project_translations` · `project_slug_history` (retired slugs → 308) · `project_repositories` (0..n, provider + owner/name) · `project_technologies` · `project_media` |
+| Projects | `projects` (slug, `status` draft/published/archived, featured, sort, live, links, published/archived timestamps) · `project_translations` (name, tagline, summary, `body` paragraphs) · `project_slug_history` (retired slugs → 308) · `project_repositories` (0..n, provider + owner/name) · `project_technologies` · `project_media` (role cover/gallery; at most one cover per project) |
 | Skills | `technologies` (shared vocabulary) · `skill_categories` (`kind` stack/learning, icon, accent, status) · `skill_category_translations` · `skill_category_technologies` |
 | Experience | `experiences` (career/education, real dates + precision, current) · `experience_translations` (role, type, location, summary[], tags[]) |
 | Profile | `profile` (single row) · `profile_translations` (title, statement, about[], hero copy) · `social_links` · `profile_roles` · `profile_highlights` (differentiator/resume) · `snapshot_metrics` (`source` static/published_projects/technologies: derived values are counted from published content at read time) |
 | Site | `site_settings` (single row: brand, GitHub username, feature switch, default theme) · `page_content` (per-page SEO copy) · `section_content` (section headings) |
-| Media | `media_assets` (`storage` static/blob/external, src, dimensions) · `media_asset_translations` (alt text) |
+| Media | `media_assets` (`storage` static/blob/external, src, MIME type, dimensions) · `media_asset_translations` (alt text, optional caption) |
 | System | `content_bootstrap` (single row: this database has received its initial content) |
 
-**Authorship.** Admin-managed tables carry nullable `created_by` / `updated_by` (the admin's Clerk user ID, from `requireAdmin()`; `authorship` in `db/schema/_shared.ts`). So far: `profile`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `site_settings`. Each later editor adds them to its own tables in the same change. Seeded rows have null.
+**Authorship.** Admin-managed tables carry nullable `created_by` / `updated_by` (the admin's Clerk user ID, from `requireAdmin()`; `authorship` in `db/schema/_shared.ts`). So far: `profile`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `site_settings`, `projects`, `media_assets`. Each later editor adds them to its own tables in the same change. Seeded rows have null.
 
 **Lifecycle.** Public reads return only `published` (or `visible`) rows ordered by `sort_order`. Archiving is a soft delete that keeps history and slug redirects intact.
 **Slugs.** `projects.slug` is the current public URL. When a slug changes, the old one goes into `project_slug_history`, and `/projects/<old>` answers with a permanent redirect.
@@ -252,11 +255,24 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 **Editor primitives** (`components/admin/form`):
 - `useEditor(initial, action)`: values plus a saved baseline (dirty = deep inequality), path-keyed server errors (cleared as each field is edited), and a save that ignores duplicate submits while one is in flight. On success the baseline becomes what the server stored, so new rows get their ids.
 - `EditorForm`: disables fields while saving and has a sticky glass save bar (status, Discard, Save; Ctrl/⌘+S). The status is announced; a failure takes focus.
-- Unsaved changes: `beforeunload` plus a confirm on in-app link clicks. Browser back/forward inside the app can't be intercepted.
+- Unsaved changes: `beforeunload`, a confirm on in-app link clicks, and browser back/forward (`lib/client/history-guard.ts`). Browsers can't cancel a history traversal, so while an editor is dirty a same-URL sentinel entry (a copy of Next's history state) sits on top: Back lands on the page's own entry and asks; Stay re-adds the sentinel, Leave steps back once more. Saving or discarding consumes the sentinel; navigate programmatically after a save only after `await historySettled()`. A dirty editor has no forward history.
+- `useEditor` also exposes `baseline` (what the server stored), `submit(override)` (save with a field changed for this save only, e.g. Publish), and `reset(values)` (adopt state the server returned from elsewhere, e.g. an upload).
 - Fields (`TextField`, `SelectField`, `SwitchField`, `StringListField`) wire label, hint, and error with `aria-describedby` / `aria-invalid`.
 - `RepeatableList` reorders with move up/down buttons, so it works from the keyboard. Nothing is written until Save, so Discard undoes a removal.
+- `SortableList` adds drag-and-drop by a handle (native DnD) to the same move buttons and announces moves. `ConfirmDialog` (native `<dialog>`, Cancel focused, optional type-to-confirm) guards destructive actions. `ImageUploadField` picks or drops one image with a local preview; the server decides what the file is.
+- A service throws `FieldValidationError` for rules only the database can check (a slug in use) and `NotFoundError` for a vanished row; `runMutation` reports them as field / form errors.
 
-**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, and metrics; metrics are also tagged `projects`/`skills` for derived counts) and `site` (settings, page and section copy). Editor reads are uncached.
+**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, and metrics; metrics are also tagged `projects`/`skills` for derived counts), `site` (settings, page and section copy), and `projects` (every project write, including order and media). `updateTag` exists only in Server Actions, so the upload Route Handlers use `revalidateTag(tag, { expire: 0 })`, which serves no stale content either. Editor reads are uncached.
+
+**Projects** (`/admin/projects`: list · new · order · `[id]` Details · `[id]/media` · `[id]/preview`).
+- *Publication.* Draft and Published (legacy `archived` rows read as Archived). Save keeps the status, so a published project's edits go live on save; Publish / Unpublish are the same save with the other status (`submit({ status })`). Going live stamps `published_at`. No staged revisions. Every public read (list, slug lookup, retired slugs, sitemap slugs) filters `published`; the admin preview renders the real `ProjectDetail` from an unfiltered read.
+- *Slugs.* A slug change on a project that has ever been public retires the old slug into `project_slug_history` (308). A slug another project uses or used is a field error; a project may take back its own retired slug.
+- *Order.* One `sort_order`. The public page shows featured projects first, then the rest, each in order, so the Order page edits the two groups and saves them featured-first; new projects go last. Nothing is ordered by date or id.
+- *Delete* is permanent (cascades) and needs the slug typed, re-checked on the server; Unpublish is the reversible option.
+- *Technologies* are picked from the shared vocabulary; a new name adds a `technologies` row (existing names are never changed here).
+- *Images.* Upload (`POST /api/admin/projects/[id]/media`) and replace (`PUT …/media/[assetId]`) are Route Handlers (`adminRoute`): files exceed the Server Action body limit. Limits: 4 MB (under Vercel's 4.5 MB request cap); JPEG, PNG, WebP, AVIF decided from the bytes (`lib/image-file.ts`), never from the client's file name or MIME type; the server builds the object path (`projects/<project id>/<uuid>.<ext>`, public, never overwritten). Order, hero, alt text, captions, and removals are an ordinary editor save. A project's first image becomes its hero.
+- *Storage consistency* (`features/projects/service.ts`): a file is written before its transaction and deleted again if the transaction fails; files are deleted only after the transaction that dropped them commits, and only when no other row references the asset. A failed delete is logged (an orphaned file), never a failed save. `integrations/blob` deletes only URLs on a Vercel Blob public host under a known prefix. Services take a `MediaStore` (default: Blob), so tests and future callers can substitute storage.
+- `adminRoute` refuses non-GET requests whose `Origin` isn't the site (CSRF), on top of the admin check.
 
 **Configuration vs Profile.** Configuration owns `site_settings` only: brand mark, monogram, GitHub username and section switch, default theme. Personal content is Profile. Social links, contact, and page/section copy get their own editors.
 
@@ -289,8 +305,9 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 ## Future insertion points
 
 - **CMS (rest of Phase 4):**
-  - Each new editor copies the Profile shape in **Content management**: schema → repository (editor reads + writes) → `service.ts` → `mutations.ts` → editor component → console page. Add `authorship` columns to its tables (migration in the same change) and its entry to `ADMIN_NAV` in `config/admin.ts` (Content: Projects, Skills, Experience, Resume · Site: Social links, Contact, Page content).
-  - Projects (4B): status/slug changes belong in the service (slug history insert, `published_at`/`archived_at`), inside one `withTransaction`. Media uploads go to Vercel Blob through an admin Route Handler (`adminRoute`), and `media_assets` rows stay behind `resolveMedia`. Profile headshot/resume media is not editable yet for that reason.
+  - Each new editor copies the Profile/Projects shape in **Content management**: schema → repository (editor reads + writes) → `service.ts` → `mutations.ts` → editor component → console page. Add `authorship` columns to its tables (migration in the same change) and its entry to `ADMIN_NAV` in `config/admin.ts` (Content: Skills, Experience, Resume · Site: Social links, Contact, Page content).
+  - Phase 4C (Skills, Experience): reuse `SortableList` for ordering, `SectionTabs` for sub-editors, and the technology vocabulary the project editor already extends. Skills management owns renaming and removing technologies.
+  - Other images (profile headshot, later media): reuse `ImageUploadField`/`sendUpload`, `lib/image-file.ts`, and `MediaStore`; add a prefix to `MEDIA_PREFIXES` in `integrations/blob/store.ts` and a Route Handler shaped like the project one. `media_assets` rows stay behind `resolveMedia`.
   - Resume management: PDF bytes in Vercel Blob (private, served through an admin Route Handler for old versions), metadata in a `resume_versions` table with an explicit `is_current` / published pointer rather than "latest upload". `/resume` reads only the current version.
 - **Public API:** `app/api/v1/*` route handlers calling the same `queries.ts` and mapping domain types to versioned DTOs. Nothing in the domain layer depends on HTTP.
 - **SDLC Manager (Phase 6):**
@@ -318,7 +335,7 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 
   Everything else is utilities in components. Inline `style` is only for runtime custom properties (`--d`, `--weeks`, `--lang`, `--hue`) and `global-error.tsx`.
 - **Glass budget.** Command bar, drawer, palette, hero portrait, featured project cards, data panels (snapshot, contributions), project metadata, resume header, contact form, current role. Lists, timelines, and stacks use hairlines and type instead of boxes.
-- **Primitives** (`components/ui`). One `Surface` (variants plain / raised / inset / glass / glass-strong) instead of card variants, and `buttonStyles()` shared by `<button>`, `<a>`, and `<Link>`. `Status`, `Tag`/`TagList`, `Stat` (+ `statDividers`), `Eyebrow`, `SectionHeader`, `Section`/`Container`, `Prose`, and `SystemState` complete the set.
+- **Primitives** (`components/ui`). One `Surface` (variants plain / raised / inset / glass / glass-strong) instead of card variants, and `buttonStyles()` shared by `<button>`, `<a>`, and `<Link>` (variants primary / secondary / ghost / quiet / danger, the last outlined so the danger hue only carries text). `Status`, `Tag`/`TagList`, `Stat` (+ `statDividers`), `Eyebrow`, `SectionHeader`, `Section`/`Container`, `Prose`, and `SystemState` complete the set.
 - **Class composition.** `cn()` joins classes but does not merge conflicts. Don't pass a utility that fights a component's own (e.g. `hidden` against an `inline-flex`). Wrap the element or add a prop instead.
 - **Motion.** Interactions take 160–220ms; entrances take 520ms with opacity and a 12px rise. Nothing loops. `prefers-reduced-motion` disables transitions and animations globally.
 

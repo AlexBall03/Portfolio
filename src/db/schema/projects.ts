@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
   index,
@@ -10,7 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { authorship, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
 import { mediaAssets } from './media';
 import { technologies } from './skills';
 
@@ -37,6 +37,7 @@ export const projects = pgTable(
     publishedAt: timestamp({ withTimezone: true }),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
+    ...authorship,
   },
   (t) => [index('projects_status_sort_idx').on(t.status, t.sortOrder)],
 );
@@ -51,6 +52,11 @@ export const projectTranslations = pgTable(
     name: text().notNull(),
     tagline: text().notNull(),
     summary: text().notNull(),
+    /** Further description paragraphs, shown below the summary on the project page. */
+    body: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
   },
   (t) => [primaryKey({ columns: [t.projectId, t.locale] })],
 );
@@ -112,7 +118,11 @@ export const projectMedia = pgTable(
     role: projectMediaRoleEnum().notNull().default('gallery'),
     sortOrder: sortOrder(),
   },
-  (t) => [primaryKey({ columns: [t.projectId, t.assetId] })],
+  (t) => [
+    primaryKey({ columns: [t.projectId, t.assetId] }),
+    // One hero image per project.
+    uniqueIndex('project_media_one_cover_idx').on(t.projectId).where(sql`${t.role} = 'cover'`),
+  ],
 );
 
 export const projectsRelations = relations(projects, ({ many }) => ({

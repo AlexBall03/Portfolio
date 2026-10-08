@@ -1,5 +1,5 @@
 import 'server-only';
-import { authEnv, contactEnv, githubEnv } from '@/config/env';
+import { authEnv, blobEnv, contactEnv, githubEnv } from '@/config/env';
 import { getExperiences } from '@/features/experience/queries';
 import { getProfileTranslationCoverage } from '@/features/profile/service';
 import { getProjects } from '@/features/projects/queries';
@@ -45,6 +45,7 @@ export function getDeploymentOverview(): DeploymentOverview {
     integrations: [
       { label: 'GitHub', configured: configured(githubEnv) },
       { label: 'Resend (contact form)', configured: configured(contactEnv) },
+      { label: 'Vercel Blob (project images)', configured: configured(blobEnv) },
     ],
   };
 }

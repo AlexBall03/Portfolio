@@ -41,6 +41,17 @@ describe('admin Route Handlers (direct HTTP)', () => {
     expect((await GET(request(), undefined)).status).toBe(404);
   });
 
+  it('refuse cross-site writes from the admin session (CSRF)', async () => {
+    session.userId = ADMIN_ID;
+    const handler = vi.fn(() => Response.json({}));
+    const post = (headers: Record<string, string>) =>
+      adminRoute(handler)(new Request('https://alexball.dev/api/admin/x', { method: 'POST', headers }), {});
+    expect((await post({ origin: 'https://evil.example', host: 'alexball.dev' })).status).toBe(404);
+    expect((await post({ host: 'alexball.dev' })).status).toBe(404);
+    expect(handler).not.toHaveBeenCalled();
+    expect((await post({ origin: 'https://alexball.dev', host: 'alexball.dev' })).status).toBe(200);
+  });
+
   it('never run the handler for a non-admin', async () => {
     const handler = vi.fn(() => Response.json({}));
     session.userId = OTHER_ID;

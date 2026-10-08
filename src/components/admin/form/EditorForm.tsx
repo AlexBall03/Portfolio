@@ -15,7 +15,28 @@ const savedTime = (iso: string) =>
  * while saving (a fieldset), Save is disabled until something changes, and
  * Ctrl/⌘+S saves. Status changes are announced politely; failures assertively.
  */
-export function EditorForm<V>({ editor, label, children }: { editor: Editor<V>; label: string; children: ReactNode }) {
+interface EditorFormProps<V> {
+  editor: Editor<V>;
+  label: string;
+  children: ReactNode;
+  /** Extra save-bar buttons, left of Save (e.g. Publish). */
+  actions?: ReactNode;
+  submitLabel?: string;
+  /** What a successful save means, after "Saved at …". */
+  savedNote?: ReactNode;
+  /** Shown while nothing is unsaved (instead of "All changes saved"). */
+  idleNote?: ReactNode;
+}
+
+export function EditorForm<V>({
+  editor,
+  label,
+  children,
+  actions,
+  submitLabel = 'Save changes',
+  savedNote = 'the public site is updated',
+  idleNote = 'All changes saved',
+}: EditorFormProps<V>) {
   const { dirty, pending, status } = editor;
   const statusRef = useRef<HTMLParagraphElement>(null);
 
@@ -39,8 +60,8 @@ export function EditorForm<V>({ editor, label, children }: { editor: Editor<V>; 
   if (pending) message = 'Saving…';
   else if (status.kind === 'error') message = status.message;
   else if (dirty) message = 'Unsaved changes';
-  else if (status.kind === 'saved') message = <>Saved at {savedTime(status.at)} · the public site is updated</>;
-  else message = 'All changes saved';
+  else if (status.kind === 'saved') message = <>Saved at {savedTime(status.at)} · {savedNote}</>;
+  else message = idleNote;
 
   return (
     <form aria-label={label} noValidate onSubmit={onSubmit} onKeyDown={onKeyDown} aria-busy={pending} className="flex flex-col gap-6">
@@ -67,7 +88,7 @@ export function EditorForm<V>({ editor, label, children }: { editor: Editor<V>; 
           )}
           {message}
         </p>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <button
             type="button"
             onClick={editor.discard}
@@ -76,11 +97,12 @@ export function EditorForm<V>({ editor, label, children }: { editor: Editor<V>; 
           >
             Discard
           </button>
+          {actions}
           <button type="submit" disabled={!dirty || pending} className={buttonStyles({ size: 'sm', className: 'min-w-28' })}>
             {pending && (
               <span aria-hidden="true" className="size-3.5 rounded-full border-2 border-current border-r-transparent motion-safe:animate-spin" />
             )}
-            {pending ? 'Saving' : 'Save changes'}
+            {pending ? 'Saving' : submitLabel}
           </button>
         </div>
       </div>

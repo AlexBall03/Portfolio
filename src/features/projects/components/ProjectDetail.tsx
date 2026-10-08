@@ -147,7 +147,7 @@ export function ProjectDetail({ project: p, locale, t }: ProjectDetailProps) {
 
             <Reveal>
               <DetailSection id="project-overview" title={t.overview}>
-                <Prose paragraphs={[p.summary]} lead />
+                <Prose paragraphs={[p.summary, ...p.body]} lead />
               </DetailSection>
             </Reveal>
 
@@ -156,8 +156,13 @@ export function ProjectDetail({ project: p, locale, t }: ProjectDetailProps) {
                 <DetailSection id="project-gallery" title={t.gallery}>
                   <ul className="grid gap-4 sm:grid-cols-2">
                     {p.gallery.map((m) => (
-                      <li key={m.src} className="relative aspect-video overflow-hidden rounded-lg border border-line bg-surface-inset">
-                        <Image src={m.src} alt={m.alt} fill sizes="(max-width: 640px) 100vw, 380px" className="object-cover" />
+                      <li key={m.src}>
+                        <figure className="flex flex-col gap-2.5">
+                          <div className="relative aspect-video overflow-hidden rounded-lg border border-line bg-surface-inset">
+                            <Image src={m.src} alt={m.alt} fill sizes="(max-width: 640px) 100vw, 380px" className="object-cover" />
+                          </div>
+                          {m.caption && <figcaption className="text-body-sm text-fg-muted">{m.caption}</figcaption>}
+                        </figure>
                       </li>
                     ))}
                   </ul>

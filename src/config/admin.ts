@@ -9,6 +9,11 @@ export const ADMIN_SIGN_IN_PATH = '/admin/sign-in';
 export const ADMIN_API_PATH = '/api/admin';
 export const ADMIN_PROFILE_PATH = '/admin/profile';
 export const ADMIN_CONFIGURATION_PATH = '/admin/configuration';
+export const ADMIN_PROJECTS_PATH = '/admin/projects';
+
+/** A project's admin pages: the Details editor, or one of its tabs. */
+export const adminProjectPath = (id: string, tab?: 'media' | 'preview') =>
+  `${ADMIN_PROJECTS_PATH}/${id}${tab ? `/${tab}` : ''}`;
 
 const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
 
@@ -31,11 +36,12 @@ export interface AdminNavGroup {
 
 /**
  * Console navigation. Only working destinations are listed; later Phase 4
- * steps add theirs (Content: Projects, Skills, Experience, Resume · Site:
- * Social links, Contact, Page content).
+ * steps add theirs (Content: Skills, Experience, Resume · Site: Social links,
+ * Contact, Page content).
  */
 export const ADMIN_NAV: readonly AdminNavGroup[] = [
   { items: [{ label: 'Dashboard', href: ADMIN_PATH, icon: 'layout' }] },
+  { label: 'Content', items: [{ label: 'Projects', href: ADMIN_PROJECTS_PATH, icon: 'layers' }] },
   {
     label: 'Site',
     items: [

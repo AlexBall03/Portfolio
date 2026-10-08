@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'quiet';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const BASE =
@@ -18,6 +18,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'rounded-md border border-line-strong bg-surface-raised/50 text-fg hover:border-brand/45 hover:bg-surface-raised active:translate-y-px',
   ghost: 'rounded-md text-fg-muted hover:bg-fg/[0.06] hover:text-fg',
   quiet: 'rounded-sm text-brand-fg hover:text-fg',
+  // Destructive actions: outlined, so the danger hue only carries text (AA in both themes).
+  danger: 'rounded-md border border-danger/45 text-danger hover:bg-danger/10 active:translate-y-px',
 };
 
 const SIZES: Record<ButtonSize, string> = {

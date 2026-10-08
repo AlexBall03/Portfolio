@@ -67,6 +67,17 @@ Do this when you're ready for `/admin` to work on the live site. Until then, Pro
 - **Allowlist.** If your plan offers an allowlist (under *Protect* / restrictions), adding only your email address is belt-and-braces on top of Invite-only mode.
 - **Sign in with Vercel.** Possible, but it needs its own OAuth app per instance and adds nothing that GitHub/Google don't already give a single admin. Skipped for now; it's purely a Clerk dashboard change if you ever want it (no code change).
 
+## Project images: Vercel Blob
+
+Project images are uploaded through `/admin/projects/<id>/media` into a **public** Vercel Blob store. Until a store is connected, everything else works and the Media tab says uploads aren't configured (the dashboard lists it under integrations).
+
+1. Vercel dashboard → the project → **Storage** → **Create** → **Blob**. Choose **Public** access (project images are public assets).
+2. Connect it to the project for **Production, Preview, and Development**. Vercel adds the store's credentials (`BLOB_READ_WRITE_TOKEN`, or `BLOB_STORE_ID` with OIDC) to those environments; `@vercel/blob` reads them itself.
+3. Redeploy so the new variables reach the functions.
+4. Local: `vercel env pull .env.local` (or copy `BLOB_READ_WRITE_TOKEN` into `.env.local` by hand). Local uploads then go to the same store as Preview, under `projects/<project id>/`.
+
+No migration or bucket setup beyond that: object paths are chosen by the server (`projects/<project id>/<uuid>.<ext>`), and files are deleted when an image is removed or replaced, or its project deleted.
+
 ## Checking it works
 
 - Signed out, `/admin` → redirected to `/admin/sign-in`, and there's no sign-up link anywhere.

@@ -300,7 +300,8 @@ interface ItemControlsProps {
   index: number;
   count: number;
   onMove: (from: number, to: number) => void;
-  onRemove: () => void;
+  /** Omitted for lists that can only be reordered. */
+  onRemove?: () => void;
   disabled?: boolean;
   className?: string;
 }
@@ -330,15 +331,17 @@ export function ItemControls({ label, index, count, onMove, onRemove, disabled, 
       >
         <Icon name="arrowDown" />
       </button>
-      <button
-        type="button"
-        className={cn(iconButton, 'hover:bg-danger/10 hover:text-danger')}
-        aria-label={`Remove ${label}`}
-        disabled={disabled}
-        onClick={onRemove}
-      >
-        <Icon name="x" />
-      </button>
+      {onRemove && (
+        <button
+          type="button"
+          className={cn(iconButton, 'hover:bg-danger/10 hover:text-danger')}
+          aria-label={`Remove ${label}`}
+          disabled={disabled}
+          onClick={onRemove}
+        >
+          <Icon name="x" />
+        </button>
+      )}
     </div>
   );
 }
