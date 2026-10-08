@@ -62,11 +62,13 @@ describe('secrets stay on the server', () => {
 describe('the public site is not auth-aware', () => {
   // A feature's mutations.ts is its admin entry point: the one feature file allowed the guard.
   const isMutations = (rel: string) => /^features\/[^/]+\/mutations\.ts$/.test(rel);
+  // Every route outside the admin: localized pages and root routes (resume.pdf, sitemap, robots, manifest).
+  const isPublicRoute = (rel: string) => rel.startsWith('app/') && !rel.startsWith('app/admin/') && !rel.startsWith('app/api/admin/');
 
   it('public routes, chrome, and features never touch Clerk or the auth layer', () => {
     const publicCode = sources.filter(
       (f) =>
-        (f.rel.startsWith('app/[locale]/') || f.rel.startsWith('components/layout/') || f.rel.startsWith('features/')) &&
+        (isPublicRoute(f.rel) || f.rel.startsWith('components/layout/') || f.rel.startsWith('features/')) &&
         !f.rel.startsWith('features/admin/') &&
         !isMutations(f.rel),
     );
@@ -75,7 +77,7 @@ describe('the public site is not auth-aware', () => {
   });
 
   it('public routes and chrome never reach admin writes or editors', () => {
-    const publicCode = sources.filter((f) => f.rel.startsWith('app/[locale]/') || f.rel.startsWith('components/layout/'));
+    const publicCode = sources.filter((f) => isPublicRoute(f.rel) || f.rel.startsWith('components/layout/'));
     const offenders = publicCode.filter((f) =>
       /from ['"][^'"]*(\/mutations|\/service|\/components\/admin\/|lib\/cms\/)/.test(f.code),
     );

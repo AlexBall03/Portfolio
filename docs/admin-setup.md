@@ -78,9 +78,24 @@ Project images are uploaded through `/admin/projects/<id>/media` into a **public
 
 No migration or bucket setup beyond that: object paths are chosen by the server (`projects/<project id>/<uuid>.<ext>`), and files are deleted when an image is removed or replaced, or its project deleted.
 
+## Resume: private Vercel Blob
+
+Resume PDFs are uploaded through `/admin/resume` into a **second, private** Blob store. Every version stays private; the site serves only the published one, through `/resume.pdf`. Until the store is connected, `/admin/resume` says uploads aren't configured and the public resume page says the resume is being updated.
+
+1. Vercel dashboard → the project → **Storage** → **Create** → **Blob**. Choose **Private** access.
+2. Connect it to the project for **Production, Preview, and Development** with the **environment variable prefix `PRIVATE_BLOB`** (not the default `BLOB`, which is the public image store). Vercel then adds `PRIVATE_BLOB_READ_WRITE_TOKEN` (or `PRIVATE_BLOB_STORE_ID` with OIDC). The app passes these explicitly, so the two stores never mix.
+3. Redeploy so the new variables reach the functions.
+4. Local: `vercel env pull .env.local` (or copy `PRIVATE_BLOB_READ_WRITE_TOKEN` by hand).
+5. In `/admin/resume`: upload the PDF (one page; the public page previews page 1 only), then **Publish** it. Uploading never publishes.
+
+Production starts with **no resume** after the Phase 4D deployment (the old static `public/assets/Alexander-Ball-Resume.pdf` was retired). Step 5 on Production is the one manual step. Preview deployments use their own copy of the database, so publish there too if you want to see it.
+
+Rules: exactly one version can be published (the database enforces it); any version, including an older one, can be published; the published version can't be deleted (publish another or unpublish first); deleting a version deletes its file.
+
 ## Checking it works
 
 - Signed out, `/admin` → redirected to `/admin/sign-in`, and there's no sign-up link anywhere.
 - Signed in as you → the dashboard. The *Session* panel shows your user ID and which Clerk instance (Development/Production) the deployment uses.
 - Any other identity (e.g. a test user you create) → `/admin` responds exactly like a page that doesn't exist (404).
 - `GET /api/admin/session` → `200 {"userId": …}` for you, `404` for everyone else.
+- `GET /api/admin/resume/<version id>` → the PDF for you, `404` for everyone else. `/resume.pdf` → the published version for anyone, `404` when none is published.

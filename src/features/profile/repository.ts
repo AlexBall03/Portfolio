@@ -45,7 +45,6 @@ export async function getProfile(db: Database, locale: Locale): Promise<Profile 
     with: {
       translations: true,
       headshot: { with: { translations: true } },
-      resume: { with: { translations: true } },
     },
   });
   const t = row && pickTranslation(row.translations, locale);
@@ -60,7 +59,6 @@ export async function getProfile(db: Database, locale: Locale): Promise<Profile 
     addressRegion: row.addressRegion,
     addressCountry: row.addressCountry,
     headshot: resolveMedia(row.headshot, locale),
-    resume: resolveMedia(row.resume, locale),
     title: t.title,
     statement: t.statement,
     availabilityText: t.availabilityText,

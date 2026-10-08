@@ -6,3 +6,4 @@ export * from './experience';
 export * from './profile';
 export * from './site';
 export * from './system';
+export * from './resume';

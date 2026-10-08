@@ -12,6 +12,7 @@ import {
   ADMIN_EXPERIENCE_PATH,
   ADMIN_PROFILE_PATH,
   ADMIN_PROJECTS_PATH,
+  ADMIN_RESUME_PATH,
   ADMIN_SKILLS_PATH,
   ADMIN_SOCIAL_LINKS_PATH,
 } from '@/config/admin';
@@ -95,6 +96,10 @@ export default async function DashboardPage() {
       value: <EditorLink href={ADMIN_EXPERIENCE_PATH} label="Career, education" spanish={translations.experience} />,
     },
     {
+      label: 'Resume',
+      value: <EditorLink href={ADMIN_RESUME_PATH} label={content.resume ? `Published: ${content.resume}` : 'None published'} />,
+    },
+    {
       label: 'Profile',
       value: <EditorLink href={ADMIN_PROFILE_PATH} label="Details, roles, highlights, metrics" spanish={translations.profile} />,
     },
@@ -169,7 +174,7 @@ export default async function DashboardPage() {
             ))}
           </dl>
           <p className="mt-4 border-t border-line pt-4 text-body-sm text-fg-muted">
-            What the public site shows right now. Resume management is coming to this console.
+            What the public site shows right now.
           </p>
         </Panel>
       </div>

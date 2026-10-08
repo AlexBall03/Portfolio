@@ -22,6 +22,15 @@ const blobSchema = z.union([
   z.object({ BLOB_READ_WRITE_TOKEN: nonEmpty }),
   z.object({ BLOB_STORE_ID: nonEmpty }),
 ]);
+/**
+ * Vercel Blob (private store, resume PDFs). A second store, connected with the
+ * env prefix `PRIVATE_BLOB` so its credentials never mix with the public
+ * store's; passed explicitly by `integrations/blob/private-store.ts`.
+ */
+const privateBlobSchema = z.union([
+  z.object({ PRIVATE_BLOB_READ_WRITE_TOKEN: nonEmpty }).transform((e) => ({ token: e.PRIVATE_BLOB_READ_WRITE_TOKEN })),
+  z.object({ PRIVATE_BLOB_STORE_ID: nonEmpty }).transform((e) => ({ storeId: e.PRIVATE_BLOB_STORE_ID })),
+]);
 const contactSchema = z.object({
   RESEND_API_KEY: nonEmpty,
   CONTACT_TO_EMAIL: z.email().default('contact@alexball.dev'),
@@ -93,6 +102,7 @@ export const databaseEnv = () => {
 export const githubEnv = () => read(githubSchema, 'GitHub');
 export const contactEnv = () => read(contactSchema, 'contact');
 export const blobEnv = () => read(blobSchema, 'Vercel Blob');
+export const privateBlobEnv = (): { token: string } | { storeId: string } => read(privateBlobSchema, 'private Vercel Blob');
 
 export interface AuthEnv {
   adminUserId: string;

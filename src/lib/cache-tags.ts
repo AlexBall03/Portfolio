@@ -9,6 +9,7 @@ export const CACHE_TAGS = {
   profile: 'profile',
   site: 'site',
   github: 'github',
+  resume: 'resume',
 } as const;
 
 /** Cache lifetimes (seconds) for `cacheLife()`. */

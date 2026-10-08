@@ -12,6 +12,7 @@ import { contentSeedSchema, type ContentSeed } from './schema';
  * A database counts as new only while all of them are empty.
  */
 const CONTENT_TABLES = [
+  s.resumeVersions,
   s.projectMedia,
   s.projectRepositories,
   s.projectTechnologies,
@@ -138,12 +139,11 @@ export async function seedContent(
     }
 
     // Profile
-    const { headshot, resume, translations: profileTranslations, ...profile } = doc.profile;
+    const { headshot, translations: profileTranslations, ...profile } = doc.profile;
     await tx.insert(s.profile).values({
       id: 1,
       ...profile,
       headshotAssetId: await insertMedia(headshot),
-      resumeAssetId: await insertMedia(resume),
     });
     await tx.insert(s.profileTranslations).values(rows(profileTranslations, { profileId: 1 }));
 

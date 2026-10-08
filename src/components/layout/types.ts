@@ -18,7 +18,8 @@ export interface ChromeData {
   brandMark: string;
   pages: NavPage[];
   email: string;
-  resumeHref: string | null;
+  /** The published resume's public URL and file name; null when none is published. */
+  resume: { href: string; fileName: string } | null;
   socials: SocialLink[];
   dict: Pick<Dictionary, 'nav' | 'palette' | 'toggles' | 'footer'>;
 }

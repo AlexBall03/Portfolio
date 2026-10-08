@@ -98,6 +98,8 @@ export const en = {
     openFull: 'Open Full Page',
     viewerTitle: 'Resume PDF',
     viewerError: "The preview couldn't load. You can still open or download the PDF.",
+    unavailableTitle: 'The resume is being updated',
+    unavailableBody: 'A new version will be here shortly. In the meantime, the contact page is the quickest way to reach me.',
   },
   contact: {
     emailLabel: 'Email',

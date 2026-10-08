@@ -21,6 +21,11 @@ const MAX_PIXEL_RATIO = 3;
  * The resume is always exactly one page, so this draws page 1 to a canvas sized
  * to its own aspect ratio: no inner scrolling, and no wheel/touch handling, so
  * scrolling over it always scrolls the page. pdf.js loads only near the viewport.
+ *
+ * Only page 1 is ever drawn: this is not the browser's PDF viewer (an iframe
+ * with `#page=1` would still let a visitor scroll the whole document). pdf.js
+ * does fetch the full file, which is fine: `src` is the published resume,
+ * public in full through Download. Historical versions are never reachable here.
  */
 export function ResumeViewer({ src, t }: { src: string; t: Dictionary['resume'] }) {
   const frameRef = useRef<HTMLDivElement>(null);

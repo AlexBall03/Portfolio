@@ -93,6 +93,8 @@ export const es: Dictionary = {
     openFull: 'Abrir Página Completa',
     viewerTitle: 'Currículum en PDF',
     viewerError: 'No se pudo cargar la vista previa. Aún puedes abrir o descargar el PDF.',
+    unavailableTitle: 'El currículum se está actualizando',
+    unavailableBody: 'Pronto habrá una nueva versión aquí. Mientras tanto, la página de contacto es la forma más rápida de comunicarte conmigo.',
   },
   contact: {
     emailLabel: 'Correo',

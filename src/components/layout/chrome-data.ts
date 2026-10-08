@@ -1,6 +1,7 @@
 import 'server-only';
 import { PAGES } from '@/config/navigation';
 import { getProfile, getSocialLinks } from '@/features/profile/queries';
+import { getPublishedResume } from '@/features/resume/queries';
 import { getPageContent, getSiteSettings } from '@/features/site/queries';
 import type { Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/get-dictionary';
@@ -22,18 +23,19 @@ export async function getNavPages(locale: Locale): Promise<NavPage[]> {
 
 export async function getChromeData(locale: Locale): Promise<ChromeData> {
   const dict = getDictionary(locale);
-  const [settings, profile, socials, pages] = await Promise.all([
+  const [settings, profile, socials, pages, resume] = await Promise.all([
     getSiteSettings(),
     getProfile(locale),
     getSocialLinks(),
     getNavPages(locale),
+    getPublishedResume(),
   ]);
   return {
     locale,
     brandMark: settings.brandMark,
     pages,
     email: profile.email,
-    resumeHref: profile.resume?.src ?? null,
+    resume: resume && { href: resume.href, fileName: resume.fileName },
     socials,
     dict: { nav: dict.nav, palette: dict.palette, toggles: dict.toggles, footer: dict.footer },
   };

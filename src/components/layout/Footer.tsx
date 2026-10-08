@@ -28,7 +28,7 @@ export function Footer({ data, ownerName, statement }: FooterProps) {
   const links: { key: string; label: string; href: string; icon: IconName }[] = [
     ...data.socials.map((s) => ({ key: s.platform, label: s.label, href: s.url, icon: PLATFORM_ICONS[s.platform] })),
     { key: 'email', label: T.email, href: `mailto:${data.email}`, icon: 'mail' },
-    ...(data.resumeHref ? [{ key: 'resume', label: T.resume, href: data.resumeHref, icon: 'download' as const }] : []),
+    ...(data.resume ? [{ key: 'resume', label: T.resume, href: data.resume.href, icon: 'download' as const }] : []),
   ];
 
   return (

@@ -34,12 +34,12 @@ export interface CommandHandlers {
  * effects are injected so this stays pure data assembly.
  */
 export function buildCommands(
-  data: Pick<ChromeData, 'pages' | 'email' | 'resumeHref' | 'socials'> & { dict: ChromeData['dict'] },
+  data: Pick<ChromeData, 'pages' | 'email' | 'resume' | 'socials'> & { dict: ChromeData['dict'] },
   theme: 'dark' | 'light',
   handlers: CommandHandlers,
 ): Command[] {
   const T = data.dict.palette;
-  const resume = data.resumeHref;
+  const resume = data.resume;
   const kw = T.keywords;
 
   const nav: Command[] = data.pages.map((p) => ({
@@ -59,10 +59,10 @@ export function buildCommands(
             id: 'action-resume',
             group: 'actions' as const,
             label: T.downloadResume,
-            hint: resume.split('/').pop(),
+            hint: resume.fileName,
             icon: 'download' as const,
             keywords: kw.downloadResume,
-            run: () => handlers.download(resume),
+            run: () => handlers.download(resume.href),
           },
         ]
       : []),

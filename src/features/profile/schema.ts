@@ -29,7 +29,6 @@ export const profileInput = z.object({
   addressRegion: z.string().trim().max(100).nullish(),
   addressCountry: z.string().trim().length(2).nullish(),
   headshot: mediaInput.nullish(),
-  resume: mediaInput.nullish(),
   translations: localized(profileTranslationInput),
 });
 export type ProfileInput = z.infer<typeof profileInput>;
@@ -88,7 +87,7 @@ export type SnapshotMetricInput = z.infer<typeof snapshotMetricInput>;
 const iconName = z.string().trim().refine(isIconName, 'Choose an icon from the set');
 const rowId = z.uuid().optional();
 
-export const profileDetailsInput = profileInput.omit({ headshot: true, resume: true }).extend({
+export const profileDetailsInput = profileInput.omit({ headshot: true }).extend({
   addressRegion: nullableText(100),
   addressCountry: blankToNull(
     z

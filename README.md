@@ -37,7 +37,7 @@ With Neon, put the **`dev` branch's** two connection strings in `.env.local` (ne
 
 ## Admin & authentication
 
-`/admin` is the site's private control room, linked discreetly as **Admin** in the footer. Phase 4 adds content management there; today it has the authenticated console and a status dashboard.
+`/admin` is the site's private control room, linked discreetly as **Admin** in the footer. It is a small CMS: every piece of public content has one editor there (projects with drafts, order, and images; skills; experience; resume versions; profile; social links; contact copy; page copy; site configuration), plus a status dashboard. Content is bilingual through per-locale translations with English fallback.
 
 - **Clerk** handles sign-in (email + password, GitHub, Google). **The site** decides who is admin: exactly one Clerk user, identified by `ADMIN_CLERK_USER_ID`. Authentication alone grants nothing.
 - **There is no sign-up.** The single admin account is created by hand in Clerk, and the Clerk instance is set to *Invite-only*, so nobody can register.
@@ -75,8 +75,10 @@ All variables are validated in `src/config/env.ts` and are server-only, except C
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | for `/admin` | Clerk publishable key (`pk_test_…` locally/Preview, `pk_live_…` Production) |
 | `CLERK_SECRET_KEY` | for `/admin` | Clerk secret key from the same instance |
 | `ADMIN_CLERK_USER_ID` | for `/admin` | The admin's Clerk user ID (`user_…`) in that instance |
+| `BLOB_READ_WRITE_TOKEN` or `BLOB_STORE_ID` | for project images | The **public** Vercel Blob store (set by connecting it) |
+| `PRIVATE_BLOB_READ_WRITE_TOKEN` or `PRIVATE_BLOB_STORE_ID` | for resumes | The **private** Vercel Blob store, connected with the env prefix `PRIVATE_BLOB` |
 
-If `GITHUB_TOKEN` or `RESEND_API_KEY` is missing, only that feature degrades. Without the Clerk variables, `/admin` is switched off. The rest of the site works either way.
+If `GITHUB_TOKEN`, `RESEND_API_KEY`, or a Blob store is missing, only that feature degrades (no resume is served until the private store exists and a version is published). Without the Clerk variables, `/admin` is switched off. The rest of the site works either way.
 
 Who sets what: the Neon integration provides both database variables in Vercel Production and Preview. `GITHUB_TOKEN`, `RESEND_API_KEY`, and the optional contact addresses are added by hand in Vercel for both environments. The Clerk variables are added by hand per environment: Development-instance values for Preview, Production-instance values for Production. Locally, everything comes from `.env.local`.
 
@@ -88,7 +90,7 @@ Each deployment prepares its own database before building: Production uses Neon 
 
 ## Assets
 
-Icons, the social card, and the resume live in `public/`. To regenerate the icon set:
+Icons and the social card live in `public/`. The resume is not a static file: versions are uploaded in `/admin/resume` (private Vercel Blob) and the published one is served at `/resume.pdf`. To regenerate the icon set:
 
 ```bash
 powershell -File scripts/generate-icons.ps1

@@ -19,7 +19,7 @@ const build = (dict: typeof en) =>
       dict,
       pages: PAGES.map((p) => ({ ...p, href: p.path, label: dict.nav[p.key], description: null })),
       email: 'contact@alexball.dev',
-      resumeHref: '/assets/Alexander-Ball-Resume.pdf',
+      resume: { href: '/resume.pdf?v=0123abcd', fileName: 'Alexander-Ball-Resume.pdf' },
       socials: [{ platform: 'github', label: 'GitHub', url: 'https://github.com/AlexBall03', handle: '@AlexBall03' }],
     },
     'dark',

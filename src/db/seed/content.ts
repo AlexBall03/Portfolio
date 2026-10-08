@@ -36,12 +36,6 @@ export const content: z.input<typeof contentSeedSchema> = {
       height: 1254,
       alt: { en: 'Alexander D. Ball', es: 'Alexander D. Ball' },
     },
-    resume: {
-      storage: 'static',
-      src: '/assets/Alexander-Ball-Resume.pdf',
-      mimeType: 'application/pdf',
-      alt: { en: 'Alexander D. Ball — Resume (PDF)', es: 'Alexander D. Ball — Currículum (PDF)' },
-    },
     translations: {
       en: {
         title: 'Software Engineer',

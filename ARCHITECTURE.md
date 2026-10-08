@@ -1,6 +1,6 @@
 # Architecture — alexball.dev
 
-A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 4C (Remaining Content Editors)**: Phase 1 laid the architecture, Phase 2 the design system, Phase 3 the private `/admin`, Phase 4A the first write paths (Profile and Configuration editors) plus the conventions the remaining editors follow, Phase 4B the Projects editor with its publication workflow, ordering, and Vercel Blob images, and Phase 4C the Skills, Experience, Social links, Contact, and Page content editors (see **Content management**). Every piece of public content except the resume PDF (Phase 4D) now has exactly one admin owner.
+A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 4 (CMS) is complete**: Phase 1 laid the architecture, Phase 2 the design system, Phase 3 the private `/admin`, Phase 4A the first write paths (Profile and Configuration editors) plus the conventions the remaining editors follow, Phase 4B the Projects editor with its publication workflow, ordering, and Vercel Blob images, Phase 4C the Skills, Experience, Social links, Contact, and Page content editors, and Phase 4D versioned resume PDFs in private Blob storage with an explicit Publish pointer (see **Content management**). Every piece of public content has exactly one admin owner.
 
 ## Stack
 
@@ -10,7 +10,7 @@ A bilingual (English/Spanish) software-engineering portfolio, built as one full-
 | Framework | Next.js 16, App Router, **Cache Components** (`'use cache'`), Partial Prefetching |
 | Styling | Tailwind CSS v4 utilities over a semantic OKLCH token design system (see **Design system**) |
 | Database | Neon Postgres via **Drizzle ORM** (`neon-http` driver), migrations by drizzle-kit |
-| Media storage | Vercel Blob (public store) for uploaded images; metadata in Postgres |
+| Media storage | Vercel Blob: a public store for project images, a private store for resume PDFs; metadata in Postgres |
 | Validation | Zod 4 (env, external APIs, content inputs, contact form) |
 | Email | Resend |
 | Hosting | Vercel (Fluid Compute, Node runtime) |
@@ -42,9 +42,10 @@ src/
   app/admin/              the private admin (English-only, its own root layout): sign-in/[[...sign-in]],
                           (console)/ (guarded layout, dashboard, profile/{,roles,highlights,metrics},
                           configuration, projects/{,new,order,[id]/{,media,preview}}, skills/{,technologies}, experience,
-                          social-links, contact, content/{,[page]}, [...rest] 404), not-found, error
-  app/api/admin/          admin Route Handlers (session: the reference handler; projects/[id]/media{,/[assetId]}: image uploads)
-  app/                    sitemap.ts, robots.ts, manifest.ts, global-error.tsx
+                          resume, social-links, contact, content/{,[page]}, [...rest] 404), not-found, error
+  app/api/admin/          admin Route Handlers (session: the reference handler; projects/[id]/media{,/[assetId]}: image uploads;
+                          resume: PDF upload; resume/[id]: any version's PDF, admin only)
+  app/                    resume.pdf/ (public: the published resume only), sitemap.ts, robots.ts, manifest.ts, global-error.tsx
   proxy.ts                locale routing (public) + Clerk and the admin gate (admin, Server Actions)
   server/auth/            admin authorization: policy (the rule), gate (proxy decision), admin (requireAdmin…), route (adminRoute)
   config/                 env.ts (Zod, server-only), site.ts (URLs, ids), navigation.ts (route structure),
@@ -56,9 +57,11 @@ src/
   features/<domain>/      types.ts (domain types) · schema.ts (Zod inputs) · repository.ts (DB) ·
                           queries.ts (cached reads) · components/ (feature UI)
                           admin-managed domains add: service.ts (editor loads + transactional saves) ·
-                          mutations.ts (Server Actions) · components/admin/ (editor islands) · upload.ts (projects: upload request plumbing)
-      projects  skills  experience  profile  site  github  contact  admin (dashboard facts)
-  integrations/           github/ (typed API client + Zod response schemas), resend/, blob/ (MediaStore over Vercel Blob)
+                          mutations.ts (Server Actions) · components/admin/ (editor islands) · upload.ts (projects: image upload specifics)
+                          resume adds delivery.ts (read-only file access + PDF response for the two delivery routes)
+      projects  skills  experience  resume  profile  site  github  contact  admin (dashboard facts)
+  integrations/           github/ (typed API client + Zod response schemas), resend/,
+                          blob/ (store.ts: MediaStore over the public store; private-store.ts: DocumentStore over the private store)
   components/layout/      site chrome: SiteChrome (command bar + drawer + palette), Preferences, Footer, Pager, PageShell, Screen
   components/admin/       console UI: AdminShell, AdminNav, AdminTopBar (bar + drawer), AccountActions, AdminPageHeader, AdminLoading,
                           AdminUnavailable, SectionTabs, ConfirmDialog, clerk-appearance (Clerk themed with the tokens)
@@ -68,8 +71,8 @@ src/
   components/ui/          design-system primitives (Container, Section, SectionHeader, Eyebrow, Prose, Stat, Status,
                           Tag, Surface, SystemState, buttonStyles) + Icon, Reveal, CountUp, RelativeTime, LocalTime, JsonLd
   lib/                    logger, errors (incl. FieldValidationError, NotFoundError), media resolution, image-file (byte sniffing),
-                          cache tags/lifetimes, seo/, validation, client/ (incl. history-guard),
-                          cms/ (mutation result + runner, locale status, write conventions, form value helpers, slugify)
+                          pdf-file (PDF byte check, safe file names), cache tags/lifetimes, seo/, validation, client/ (incl. history-guard),
+                          cms/ (mutation result + runner, upload request plumbing, locale status, write conventions, form value helpers, slugify)
   styles/                 tokens.css (semantic roles per theme), globals.css (Tailwind theme), base.css, system.css
   test/                   PGlite test DB helper, server-only stub
 ```
@@ -80,7 +83,7 @@ src/
 - `integrations/*` know nothing about UI or the domain model; they validate and normalize upstream data.
 - Every server-only module imports `server-only`.
 - Client Components are limited to interactive islands: nav/drawer/palette, theme and locale toggles, the contact form, the experience tabs, the role cycler, and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. In the admin: the nav (active state), the mobile drawer, the account actions, Clerk's own sign-in, and the editors (`features/*/components/admin`). Server children pass through client wrappers unchanged.
-- Nothing public imports Clerk or `server/auth`; the public site has no auth-aware components. The one feature file allowed the guard is `features/*/mutations.ts`. Public routes and chrome never import mutations, services, or admin UI, and client modules reach the server only through Server Actions (all enforced by `server/auth/boundaries.test.ts`).
+- Nothing public imports Clerk or `server/auth`; the public site has no auth-aware components. The one feature file allowed the guard is `features/*/mutations.ts`. Public routes (every `app/` route outside `app/admin` and `app/api/admin`, including `resume.pdf`) and chrome never import mutations, services, or admin UI, and client modules reach the server only through Server Actions (all enforced by `server/auth/boundaries.test.ts`).
 
 ## Domain model (Neon)
 
@@ -94,9 +97,10 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 | Profile | `profile` (single row) · `profile_translations` (title, statement, about[], hero copy) · `social_links` · `profile_roles` · `profile_highlights` (differentiator/resume) · `snapshot_metrics` (`source` static/published_projects/technologies: derived values are counted from published content at read time) |
 | Site | `site_settings` (single row: brand, GitHub username, feature switch, default theme) · `page_content` (per-page SEO copy) · `section_content` (section headings: eyebrow, title, subtitle, body, and `aside`, a secondary heading: About's differentiators heading, Stack's learning-banner label) |
 | Media | `media_assets` (`storage` static/blob/external, src, MIME type, dimensions) · `media_asset_translations` (alt text, optional caption) |
+| Resume | `resume_versions` (private Blob `pathname`, sanitized `file_name`, size, optional admin `label`, `is_published` + `published_at`; a partial unique index allows at most one published row). Not translated: one PDF serves both locales. `profile.resume_asset_id` is **deprecated** (nothing reads it since 4D; drop it in a later release) |
 | System | `content_bootstrap` (single row: this database has received its initial content) |
 
-**Authorship.** Admin-managed tables carry nullable `created_by` / `updated_by` (the admin's Clerk user ID, from `requireAdmin()`; `authorship` in `db/schema/_shared.ts`). Present on `profile`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `social_links`, `site_settings`, `page_content`, `section_content`, `projects`, `media_assets`, `skill_categories`, `technologies`, `experiences`. A new admin-managed table adds them in the same change. Seeded rows have null.
+**Authorship.** Admin-managed tables carry nullable `created_by` / `updated_by` (the admin's Clerk user ID, from `requireAdmin()`; `authorship` in `db/schema/_shared.ts`). Present on `profile`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `social_links`, `site_settings`, `page_content`, `section_content`, `projects`, `media_assets`, `skill_categories`, `technologies`, `experiences`, `resume_versions` (where `created_by` is the uploader). A new admin-managed table adds them in the same change. Seeded rows have null.
 
 **Lifecycle.** Public reads return only `published` (or `visible`) rows ordered by `sort_order`. Archiving is a soft delete that keeps history and slug redirects intact.
 **Slugs.** `projects.slug` is the current public URL. When a slug changes, the old one goes into `project_slug_history`, and `/projects/<old>` answers with a permanent redirect.
@@ -264,7 +268,7 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 - `SortableList` adds drag-and-drop by a handle (native DnD) to the same move buttons and announces moves. `ConfirmDialog` (native `<dialog>`, Cancel focused, optional type-to-confirm) guards destructive actions. `ImageUploadField` picks or drops one image with a local preview; the server decides what the file is.
 - A service throws `FieldValidationError` for rules only the database can check (a slug in use) and `NotFoundError` for a vanished row; `runMutation` reports them as field / form errors.
 
-**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, metrics, and social links; metrics are also tagged `projects`/`skills` for derived counts), `site` (settings, page and section copy, contact copy), `projects` (every project write, including order and media), `skills` (categories; technology renames and removals also refresh `projects`), and `experience`. `updateTag` exists only in Server Actions, so the upload Route Handlers use `revalidateTag(tag, { expire: 0 })`, which serves no stale content either. Editor reads are uncached.
+**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, metrics, and social links; metrics are also tagged `projects`/`skills` for derived counts), `site` (settings, page and section copy, contact copy), `projects` (every project write, including order and media), `skills` (categories; technology renames and removals also refresh `projects`), `experience`, and `resume` (publish, unpublish, delete; read by the resume page, footer, palette, and dashboard). `updateTag` exists only in Server Actions, so the upload Route Handlers use `revalidateTag(tag, { expire: 0 })`, which serves no stale content either. Editor reads are uncached.
 
 **Projects** (`/admin/projects`: list · new · order · `[id]` Details · `[id]/media` · `[id]/preview`).
 - *Publication.* Draft and Published (legacy `archived` rows read as Archived). Save keeps the status, so a published project's edits go live on save; Publish / Unpublish are the same save with the other status (`submit({ status })`). Going live stamps `published_at`. No staged revisions. Every public read (list, slug lookup, retired slugs, sitemap slugs) filters `published`; the admin preview renders the real `ProjectDetail` from an unfiltered read.
@@ -287,6 +291,17 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 **Contact** (`/admin/contact`) owns the contact section's copy: eyebrow, h1, introduction (`section_content.contact`). It shows, read-only with links, what other owners hold: the public email (Profile), the channels (Social links), whether Resend is configured (never an env value), and the page's SEO copy (Page content). The form, Server Action, honeypot, and Resend integration are unchanged; form labels and messages are interface chrome in the dictionaries.
 
 **Page content** (`/admin/content`, `/admin/content/[page]`). One editor per public page: its SEO title and description (`page_content`) and the headings of the sections it shows (`section_content`). Which page shows which section, and which fields each section renders (each with a hint saying where it appears), is a code map (`PAGES`, `SECTIONS` in `features/site/types.ts`): page composition is Next.js code; the copy is content. A section owned by another editor (contact) appears as a link, and the action rejects it. All copy is plain text rendered as text nodes. The index shows each page's Spanish completeness.
+
+**Resume** (`/admin/resume`; `features/resume`).
+- *Versions.* Each upload is a `resume_versions` row plus one object in the **private** Blob store at a server-built pathname (`resumes/<uuid>.pdf`). The database stores the pathname, never a URL; no Blob URL or credential ever reaches a browser. The list is newest first, with label (admin-only, editable), sanitized file name, size, upload time and uploader, and Published/Private status.
+- *Publication.* An explicit pointer, never "latest upload": `is_published` with a partial unique index, so Postgres allows at most one. Uploading never publishes. Publish (one `withTransaction`: clear, then set) works for any version, including older ones; Unpublish leaves none, and the public page then says the resume is being updated (dictionary copy). Publish/Unpublish/Delete are Server Actions that `updateTag('resume')`.
+- *Delete.* Only unpublished versions, in one `DELETE … WHERE NOT is_published` statement (nothing can publish in between), then the file is removed best-effort (a failure is logged as an orphan). The published version can't be deleted: publish another or unpublish first.
+- *Upload* (`POST /api/admin/resume`, `adminRoute`). 4 MB limit; the bytes must be a complete PDF (`%PDF-` header and `%%EOF` trailer, `lib/pdf-file.ts`), whatever the client's name or MIME type says. File first, then row; a failed insert deletes the file again. Shared request plumbing: `lib/cms/upload.ts` (projects use it too).
+- *Delivery.* Two Route Handlers, both reading through `features/resume/delivery.ts` and **streaming** the bytes (no redirect to Blob):
+  - `GET /api/admin/resume/[id]` (`adminRoute`): any version, admin only, `private, no-store`; `?download=1` for an attachment. Unknown, deleted, or missing-file versions get the same 404 as an outsider.
+  - `GET /resume.pdf` (public, outside the proxy matcher): the published version only, because the route takes no id at all. Otherwise 404. `public, s-maxage=300`. Pages link it as `/resume.pdf?v=<id prefix>` (from the `resume`-tagged `getPublishedResume()`), so a new publication is never served from a stale CDN entry; the bare URL is stable for sharing and catches up within 5 minutes.
+- *Page 1 only.* `ResumeViewer` draws page 1 to a canvas with pdf.js, not the browser's PDF viewer (an iframe `#page=1` still lets a visitor scroll every page). pdf.js fetches the whole published file, which is intended: Download serves the same file in full. Historical versions are never reachable from the public site.
+- `DocumentStore` (`integrations/blob/private-store.ts`) passes the `PRIVATE_BLOB_*` credentials explicitly (the store is connected with that env prefix) and refuses pathnames outside `resumes/`. Services take it as a parameter, so tests substitute it.
 
 **Configuration vs Profile.** Configuration owns `site_settings` only: brand mark, monogram, GitHub username and section switch, default theme. Personal content is Profile. Social links, contact copy, and page/section copy have their own editors (above); every content domain has exactly one owner.
 
@@ -318,11 +333,10 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 
 ## Future insertion points
 
-- **CMS (Phase 4D, resume):**
-  - Copy the shape in **Content management**: schema → repository (editor reads + writes) → `service.ts` → `mutations.ts` → editor → console page, with `authorship` columns and a migration in the same change, and an `ADMIN_NAV` entry (Content: Resume).
-  - Resume: PDF bytes in Vercel Blob (private, old versions served through an admin Route Handler), metadata in a `resume_versions` table with an explicit `is_current` / published pointer rather than "latest upload". `/resume` reads only the current version. Upload follows the project image Route Handler (`adminRoute`, byte sniffing, `MediaStore`, a `MEDIA_PREFIXES` entry). Resume highlights stay in Profile; the resume page's heading and SEO copy stay in Page content.
-  - Other images (profile headshot): reuse `ImageUploadField`/`sendUpload`, `lib/image-file.ts`, and `MediaStore`; `media_assets` rows stay behind `resolveMedia`.
-- **Public API:** `app/api/v1/*` route handlers calling the same `queries.ts` and mapping domain types to versioned DTOs. Nothing in the domain layer depends on HTTP.
+- **A new admin-managed domain** copies the shape in **Content management**: schema → repository (editor reads + writes) → `service.ts` → `mutations.ts` → editor → console page, with `authorship` columns and a migration in the same change, an `ADMIN_NAV` entry, and a cache tag.
+- **Other images** (profile headshot): reuse `ImageUploadField`/`sendUpload`, `lib/image-file.ts`, `lib/cms/upload.ts`, and `MediaStore`; `media_assets` rows stay behind `resolveMedia`.
+- **Cleanup:** drop the deprecated `profile.resume_asset_id` (and its orphaned `media_assets` row) in a later migration, once no deployment reads it.
+- **Public API (Phase 5):** `app/api/v1/*` route handlers calling the same `queries.ts` and mapping domain types to versioned DTOs. Nothing in the domain layer depends on HTTP. Writes, if ever exposed, call the same `service.ts` functions behind their own authorization (each service already takes an `actor` and, for files, a store).
 - **SDLC Manager (Phase 6):**
   - Sync goes through the domain mutations, never straight to tables or UI.
   - Store external links and synced fields in a dedicated table (e.g. `project_sources`: project id, source, external id, synced-at).

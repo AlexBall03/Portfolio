@@ -1,8 +1,9 @@
 import 'server-only';
-import { authEnv, blobEnv, contactEnv, githubEnv } from '@/config/env';
+import { authEnv, blobEnv, contactEnv, githubEnv, privateBlobEnv } from '@/config/env';
 import { getExperiences } from '@/features/experience/queries';
 import { getExperienceTranslationCoverage } from '@/features/experience/service';
 import { getSocialLinks } from '@/features/profile/queries';
+import { getPublishedResume } from '@/features/resume/queries';
 import { getProfileTranslationCoverage } from '@/features/profile/service';
 import { getProjects } from '@/features/projects/queries';
 import { getSkills } from '@/features/skills/queries';
@@ -51,6 +52,7 @@ export function getDeploymentOverview(): DeploymentOverview {
       { label: 'GitHub', configured: configured(githubEnv) },
       { label: 'Resend (contact form)', configured: configured(contactEnv) },
       { label: 'Vercel Blob (project images)', configured: configured(blobEnv) },
+      { label: 'Vercel Blob, private (resumes)', configured: configured(privateBlobEnv) },
     ],
   };
 }
@@ -61,15 +63,18 @@ export interface ContentOverview {
   career: number;
   education: number;
   socialLinks: number;
+  /** The published resume's file name; null when none is published. */
+  resume: string | null;
 }
 
 /** Counts of what the public site currently shows (same cached reads as the pages). */
 export async function getContentOverview(): Promise<ContentOverview> {
-  const [projects, skills, experiences, socials] = await Promise.all([
+  const [projects, skills, experiences, socials, resume] = await Promise.all([
     getProjects(DEFAULT_LOCALE),
     getSkills(DEFAULT_LOCALE),
     getExperiences(DEFAULT_LOCALE),
     getSocialLinks(),
+    getPublishedResume(),
   ]);
   return {
     publishedProjects: projects.length,
@@ -77,6 +82,7 @@ export async function getContentOverview(): Promise<ContentOverview> {
     career: experiences.filter((e) => e.kind === 'career').length,
     education: experiences.filter((e) => e.kind === 'education').length,
     socialLinks: socials.length,
+    resume: resume?.fileName ?? null,
   };
 }
 

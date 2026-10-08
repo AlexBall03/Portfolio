@@ -51,7 +51,6 @@ describe('content repositories', () => {
     const es = await getProfile(db, 'es');
     expect(en?.title).toBe('Software Engineer');
     expect(es?.title).toBe('Ingeniero de Software');
-    expect(en?.resume?.src).toBe('/assets/Alexander-Ball-Resume.pdf');
     expect(es?.about).toHaveLength(en!.about.length);
   });
 

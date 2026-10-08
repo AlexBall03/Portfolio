@@ -57,6 +57,13 @@
       "when": 1791487609308,
       "tag": "0007_section_asides",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791489827829,
+      "tag": "0008_resume_versions",
+      "breakpoints": true
     }
   ]
 }

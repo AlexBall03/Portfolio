@@ -15,6 +15,7 @@ export const ADMIN_EXPERIENCE_PATH = '/admin/experience';
 export const ADMIN_SOCIAL_LINKS_PATH = '/admin/social-links';
 export const ADMIN_CONTACT_PATH = '/admin/contact';
 export const ADMIN_CONTENT_PATH = '/admin/content';
+export const ADMIN_RESUME_PATH = '/admin/resume';
 
 /** A project's admin pages: the Details editor, or one of its tabs. */
 export const adminProjectPath = (id: string, tab?: 'media' | 'preview') =>
@@ -40,8 +41,7 @@ export interface AdminNavGroup {
 }
 
 /**
- * Console navigation. Only working destinations are listed (Phase 4D adds
- * Resume under Content).
+ * Console navigation. Only working destinations are listed.
  */
 export const ADMIN_NAV: readonly AdminNavGroup[] = [
   { items: [{ label: 'Dashboard', href: ADMIN_PATH, icon: 'layout' }] },
@@ -51,6 +51,7 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
       { label: 'Projects', href: ADMIN_PROJECTS_PATH, icon: 'layers' },
       { label: 'Skills', href: ADMIN_SKILLS_PATH, icon: 'code' },
       { label: 'Experience', href: ADMIN_EXPERIENCE_PATH, icon: 'briefcase' },
+      { label: 'Resume', href: ADMIN_RESUME_PATH, icon: 'award' },
     ],
   },
   {

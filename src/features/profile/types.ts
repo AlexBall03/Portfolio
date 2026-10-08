@@ -13,7 +13,6 @@ export interface Profile {
   addressRegion: string | null;
   addressCountry: string | null;
   headshot: MediaAsset | null;
-  resume: MediaAsset | null;
   title: string;
   statement: string;
   availabilityText: string;
