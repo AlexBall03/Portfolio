@@ -4,7 +4,15 @@ import { updateTag } from 'next/cache';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 import { runMutation } from '@/lib/cms/mutation';
 import { requireAdmin } from '@/server/auth/admin';
-import { deleteProjectInput, projectEditorInput, projectMediaInput, projectOrderInput } from './schema';
+import {
+  deleteProjectInput,
+  projectEditorInput,
+  projectMediaInput,
+  projectMilestonesInput,
+  projectOrderInput,
+  projectRelationsInput,
+  projectSectionsInput,
+} from './schema';
 import * as service from './service';
 
 /**
@@ -54,6 +62,33 @@ export async function saveProjectMedia(input: unknown) {
   const admin = await requireAdmin();
   return runMutation(projectMediaInput, input, async (data) => {
     const saved = await service.saveProjectMedia(data, admin);
+    updateTag(CACHE_TAGS.projects);
+    return saved;
+  });
+}
+
+export async function saveProjectSections(input: unknown) {
+  const admin = await requireAdmin();
+  return runMutation(projectSectionsInput, input, async (data) => {
+    const saved = await service.saveProjectSections(data, admin);
+    updateTag(CACHE_TAGS.projects);
+    return saved;
+  });
+}
+
+export async function saveProjectMilestones(input: unknown) {
+  const admin = await requireAdmin();
+  return runMutation(projectMilestonesInput, input, async (data) => {
+    const saved = await service.saveProjectMilestones(data, admin);
+    updateTag(CACHE_TAGS.projects);
+    return saved;
+  });
+}
+
+export async function saveProjectRelations(input: unknown) {
+  const admin = await requireAdmin();
+  return runMutation(projectRelationsInput, input, async (data) => {
+    const saved = await service.saveProjectRelations(data, admin);
     updateTag(CACHE_TAGS.projects);
     return saved;
   });

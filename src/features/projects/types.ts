@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config';
 import type { TranslationStatus } from '@/lib/cms/locale';
 import type { MediaAsset } from '@/lib/media';
+import type { MilestoneKind, MilestonePrecision, SectionKind } from './case-study';
 
 export interface Technology {
   slug: string;
@@ -33,9 +34,51 @@ export interface Project {
   gallery: MediaAsset[];
 }
 
+export interface CaseStudyItem {
+  title: string;
+  body: string | null;
+}
+
+/** One case-study section, resolved for a locale. Fields a kind doesn't use are empty. */
+export interface CaseStudySection {
+  id: string;
+  kind: SectionKind;
+  heading: string;
+  /** Paragraphs with light inline markup (`lib/inline-markup.ts`). */
+  body: string[];
+  items: CaseStudyItem[];
+  media: MediaAsset[];
+  videoUrl: string | null;
+  /** Only in the admin preview: the section isn't public yet. */
+  hidden: boolean;
+}
+
+export interface Milestone {
+  id: string;
+  /** Calendar date (`YYYY-MM-DD`), shown at `precision`. */
+  date: string;
+  precision: MilestonePrecision;
+  kind: MilestoneKind;
+  title: string;
+  description: string | null;
+  url: string | null;
+  image: MediaAsset | null;
+  /** Only in the admin preview: the milestone isn't public yet. */
+  hidden: boolean;
+}
+
+/** A project with everything its own page shows. Lists use the lighter `Project`. */
+export interface ProjectCaseStudy extends Project {
+  sections: CaseStudySection[];
+  /** Chronological (oldest first). */
+  milestones: Milestone[];
+  /** Explicitly related projects, in order. Pages resolve them against published projects only. */
+  relatedIds: string[];
+}
+
 /** Result of resolving a public project slug. */
 export type ProjectLookup =
-  | { kind: 'found'; project: Project }
+  | { kind: 'found'; project: ProjectCaseStudy }
   | { kind: 'redirect'; slug: string }
   | { kind: 'not-found' };
 
@@ -127,4 +170,67 @@ export interface ProjectOrderItem {
 export interface ProjectOrderValues {
   featured: ProjectOrderItem[];
   other: ProjectOrderItem[];
+}
+
+/** One of the project's images, offered by the case-study and milestone editors. */
+export interface ProjectImageChoice {
+  assetId: string;
+  src: string;
+  alt: string;
+}
+
+export interface SectionItemValues {
+  key: string;
+  id?: string;
+  translations: Record<Locale, { title: string; body: string }>;
+}
+
+export interface SectionValues {
+  key: string;
+  id?: string;
+  kind: SectionKind;
+  visible: boolean;
+  videoUrl: string;
+  translations: Record<Locale, { heading: string; body: string[] }>;
+  items: SectionItemValues[];
+  /** Asset ids of the project's images, in display order. */
+  media: string[];
+}
+
+export interface CaseStudyValues {
+  sections: SectionValues[];
+}
+
+export interface MilestoneValues {
+  key: string;
+  id?: string;
+  occurredOn: string;
+  datePrecision: MilestonePrecision;
+  kind: MilestoneKind;
+  url: string;
+  /** '' = no image. */
+  assetId: string;
+  visible: boolean;
+  translations: Record<Locale, { title: string; description: string }>;
+}
+
+export interface MilestonesValues {
+  milestones: MilestoneValues[];
+}
+
+export interface RelatedProjectValues {
+  key: string;
+  id: string;
+}
+
+export interface RelatedValues {
+  related: RelatedProjectValues[];
+}
+
+/** A project the Related editor can offer. */
+export interface ProjectChoice {
+  id: string;
+  name: string;
+  slug: string;
+  status: ProjectStatus;
 }

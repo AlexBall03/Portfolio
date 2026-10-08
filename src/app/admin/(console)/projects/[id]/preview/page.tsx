@@ -6,7 +6,8 @@ import { buttonStyles } from '@/components/ui/button-styles';
 import { adminProjectPath } from '@/config/admin';
 import { ProjectStatusPill } from '@/features/projects/components/admin/ProjectStatus';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
-import { loadProject, loadProjectPreview } from '@/features/projects/service';
+import { pickRelated } from '@/features/projects/case-study';
+import { loadProject, loadProjectPreview, loadPublishedProjects } from '@/features/projects/service';
 import { uuidParam } from '@/features/projects/upload';
 import { DEFAULT_LOCALE, isLocale, LOCALE_TAGS, LOCALES } from '@/i18n/config';
 import { getDictionary } from '@/i18n/get-dictionary';
@@ -30,8 +31,11 @@ export default async function ProjectPreviewPage({ params, searchParams }: Previ
   const requested = (await searchParams).locale;
   const locale = isLocale(requested) ? requested : DEFAULT_LOCALE;
   const valid = uuidParam.safeParse(id).success;
-  const [values, project] = valid ? await Promise.all([loadProject(id), loadProjectPreview(id, locale)]) : [null, null];
+  const [values, project, published] = valid
+    ? await Promise.all([loadProject(id), loadProjectPreview(id, locale), loadPublishedProjects(locale)])
+    : [null, null, []];
   if (!values || !project) notFound();
+  const hiddenCount = [...project.sections, ...project.milestones].filter((x) => x.hidden).length;
 
   return (
     <>
@@ -39,6 +43,7 @@ export default async function ProjectPreviewPage({ params, searchParams }: Previ
         <div className="flex flex-wrap items-center gap-3 text-body-sm text-fg-muted">
           <ProjectStatusPill status={values.status} />
           {values.status === 'published' ? 'Preview of the live project page.' : 'Preview · not on the public site.'}
+          {hiddenCount > 0 && ` ${hiddenCount} hidden ${hiddenCount === 1 ? 'item is' : 'items are'} shown, marked Hidden.`}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <nav aria-label="Preview language" className="flex gap-1">
@@ -62,7 +67,12 @@ export default async function ProjectPreviewPage({ params, searchParams }: Previ
         </div>
       </div>
       <div className="overflow-hidden rounded-xl border border-line pb-14">
-        <ProjectDetail project={project} locale={locale} t={getDictionary(locale).projects} />
+        <ProjectDetail
+          project={project}
+          related={pickRelated(project.id, project.relatedIds, published)}
+          locale={locale}
+          t={getDictionary(locale).projects}
+        />
       </div>
     </>
   );

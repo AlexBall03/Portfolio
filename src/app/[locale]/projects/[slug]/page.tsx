@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { Screen } from '@/components/layout/Screen';
 import { PagerLink, PagerNav } from '@/components/layout/Pager';
 import { JsonLd } from '@/components/ui/JsonLd';
+import { pickRelated } from '@/features/projects/case-study';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
 import { getProjectBySlug, getProjects, getProjectSlugs } from '@/features/projects/queries';
 import { isLocale } from '@/i18n/config';
@@ -39,11 +40,14 @@ async function resolve(params: ProjectPageProps['params']) {
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { locale, project } = await resolve(params);
+  const cover = project.cover;
   return pageMetadata({
     locale,
     path: `/projects/${project.slug}`,
     title: project.name,
     description: project.tagline,
+    // Only absolute (uploaded or external) covers: a crawler can't resolve a site-relative path here.
+    image: cover && /^https?:\/\//.test(cover.src) ? { url: cover.src, width: cover.width, height: cover.height, alt: cover.alt } : null,
   });
 }
 
@@ -61,7 +65,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   return (
     <Screen>
       <div className="flex-1">
-        <ProjectDetail project={p} locale={locale} t={t} />
+        <ProjectDetail project={p} related={pickRelated(p.id, p.relatedIds, all)} locale={locale} t={t} />
       </div>
       {(prev || next) && (
         <PagerNav label={`${t.previousProject} / ${t.nextProject}`}>

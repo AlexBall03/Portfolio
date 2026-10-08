@@ -22,9 +22,19 @@ interface ProjectCardProps {
   layout?: 'feature' | 'compact';
   /** Feature layout only: put the media on the right. */
   reverse?: boolean;
+  /** The card title's level: h2 in the projects list, h3 under another section's heading. */
+  headingLevel?: 'h2' | 'h3';
 }
 
-export function ProjectCard({ project: p, index, locale, t, layout = 'feature', reverse = false }: ProjectCardProps) {
+export function ProjectCard({
+  project: p,
+  index,
+  locale,
+  t,
+  layout = 'feature',
+  reverse = false,
+  headingLevel: Heading = 'h2',
+}: ProjectCardProps) {
   const href = localizedPath(locale, `/projects/${p.slug}`);
   const number = String(index + 1).padStart(2, '0');
   const feature = layout === 'feature';
@@ -54,14 +64,14 @@ export function ProjectCard({ project: p, index, locale, t, layout = 'feature', 
           </div>
 
           <div className="flex flex-col gap-2">
-            <h2 className={feature ? 'text-h2' : 'text-h3'}>
+            <Heading className={feature ? 'text-h2' : 'text-h3'}>
               <Link
                 href={href}
                 className="after:absolute after:inset-0 after:z-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus"
               >
                 {p.name}
               </Link>
-            </h2>
+            </Heading>
             <p className="text-body-lg text-fg">{p.tagline}</p>
           </div>
 

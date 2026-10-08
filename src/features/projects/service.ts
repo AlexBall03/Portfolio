@@ -7,8 +7,23 @@ import { FieldValidationError, NotFoundError } from '@/lib/errors';
 import { MAX_IMAGE_BYTES, sniffImage } from '@/lib/image-file';
 import { createLogger } from '@/lib/logger';
 import * as repo from './repository';
-import type { ProjectEditorInput, ProjectMediaInput, ProjectOrderInput, UploadMetaInput } from './schema';
-import type { Project, ProjectMediaValues, ProjectValues } from './types';
+import type {
+  ProjectEditorInput,
+  ProjectMediaInput,
+  ProjectMilestonesInput,
+  ProjectOrderInput,
+  ProjectRelationsInput,
+  ProjectSectionsInput,
+  UploadMetaInput,
+} from './schema';
+import type {
+  CaseStudyValues,
+  MilestonesValues,
+  ProjectCaseStudy,
+  ProjectMediaValues,
+  ProjectValues,
+  RelatedValues,
+} from './types';
 
 /**
  * Project administration: the domain operations behind the admin editors and
@@ -53,9 +68,14 @@ export async function loadTechnologies() {
   return repo.listTechnologies(await getDb());
 }
 
-/** A project as its public page would render it, whatever its status. */
-export async function loadProjectPreview(id: string, locale: Locale = DEFAULT_LOCALE): Promise<Project | null> {
+/** A project as its public page would render it, whatever its status, with hidden content flagged. */
+export async function loadProjectPreview(id: string, locale: Locale = DEFAULT_LOCALE): Promise<ProjectCaseStudy | null> {
   return repo.findProjectForPreview(await getDb(), id, locale);
+}
+
+/** Published projects, for the preview's related-projects section (the same set public pages use). */
+export async function loadPublishedProjects(locale: Locale = DEFAULT_LOCALE) {
+  return repo.listPublishedProjects(await getDb(), locale);
 }
 
 export async function loadProjectOrder() {
@@ -115,6 +135,49 @@ export async function saveProjectMedia(
   const files = await withTransaction((tx) => repo.saveProjectMedia(tx, data, actor));
   await removeFiles(store, files);
   return (await loadProjectMedia(data.projectId)) ?? { items: [] };
+}
+
+/* ── Case study, milestones, related projects ───────────────────────────────
+ * Each save is one transaction, then a re-read (the editor's new baseline).
+ * Like every project edit, it is public at once if the project is published;
+ * new sections and milestones start hidden, so they can be drafted first.
+ */
+
+/** Everything the Case study editor needs, or null for an unknown project. */
+export async function loadProjectCaseStudy(projectId: string) {
+  const db = await getDb();
+  if (!(await repo.projectExists(db, projectId))) return null;
+  const [values, images] = await Promise.all([repo.getCaseStudyValues(db, projectId), repo.listProjectImages(db, projectId)]);
+  return { values, images };
+}
+
+export async function loadProjectMilestones(projectId: string) {
+  const db = await getDb();
+  if (!(await repo.projectExists(db, projectId))) return null;
+  const [values, images] = await Promise.all([repo.getMilestoneValues(db, projectId), repo.listProjectImages(db, projectId)]);
+  return { values, images };
+}
+
+export async function loadProjectRelated(projectId: string) {
+  const db = await getDb();
+  if (!(await repo.projectExists(db, projectId))) return null;
+  const [values, choices] = await Promise.all([repo.getRelatedValues(db, projectId), repo.listProjectChoices(db, projectId)]);
+  return { values, choices };
+}
+
+export async function saveProjectSections(data: ProjectSectionsInput, actor: repo.Actor): Promise<CaseStudyValues> {
+  await withTransaction((tx) => repo.saveProjectSections(tx, data, actor));
+  return repo.getCaseStudyValues(await getDb(), data.projectId);
+}
+
+export async function saveProjectMilestones(data: ProjectMilestonesInput, actor: repo.Actor): Promise<MilestonesValues> {
+  await withTransaction((tx) => repo.saveProjectMilestones(tx, data, actor));
+  return repo.getMilestoneValues(await getDb(), data.projectId);
+}
+
+export async function saveProjectRelations(data: ProjectRelationsInput, actor: repo.Actor): Promise<RelatedValues> {
+  await withTransaction((tx) => repo.saveProjectRelations(tx, data, actor));
+  return repo.getRelatedValues(await getDb(), data.projectId);
 }
 
 /** Checks an uploaded file by its bytes (never its name or declared type). */

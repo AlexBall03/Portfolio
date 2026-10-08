@@ -13,6 +13,14 @@ import { contentSeedSchema, type ContentSeed } from './schema';
  */
 const CONTENT_TABLES = [
   s.resumeVersions,
+  s.projectRelations,
+  s.projectMilestoneTranslations,
+  s.projectMilestones,
+  s.projectSectionMedia,
+  s.projectSectionItemTranslations,
+  s.projectSectionItems,
+  s.projectSectionTranslations,
+  s.projectSections,
   s.projectMedia,
   s.projectRepositories,
   s.projectTechnologies,

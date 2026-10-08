@@ -9,14 +9,17 @@ import { ProjectStatusPill, publicProjectPath } from './ProjectStatus';
 
 interface ProjectPageHeaderProps {
   project: { id: string; name: string; slug: string; status: ProjectStatus };
-  current: 'details' | 'media';
+  current: 'details' | 'case-study' | 'media' | 'milestones' | 'related';
 }
 
-/** Header for one project's editors: name, status, preview / live links, and the Details · Media tabs. */
+/** Header for one project's editors: name, status, preview / live links, and the section tabs. */
 export function ProjectPageHeader({ project, current }: ProjectPageHeaderProps) {
   const tabs = [
     { key: 'details', label: 'Details', href: adminProjectPath(project.id) },
+    { key: 'case-study', label: 'Case study', href: adminProjectPath(project.id, 'case-study') },
     { key: 'media', label: 'Media', href: adminProjectPath(project.id, 'media') },
+    { key: 'milestones', label: 'Milestones', href: adminProjectPath(project.id, 'milestones') },
+    { key: 'related', label: 'Related', href: adminProjectPath(project.id, 'related') },
   ] as const;
   return (
     <>

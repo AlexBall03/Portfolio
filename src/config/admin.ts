@@ -18,7 +18,7 @@ export const ADMIN_CONTENT_PATH = '/admin/content';
 export const ADMIN_RESUME_PATH = '/admin/resume';
 
 /** A project's admin pages: the Details editor, or one of its tabs. */
-export const adminProjectPath = (id: string, tab?: 'media' | 'preview') =>
+export const adminProjectPath = (id: string, tab?: 'case-study' | 'media' | 'milestones' | 'related' | 'preview') =>
   `${ADMIN_PROJECTS_PATH}/${id}${tab ? `/${tab}` : ''}`;
 
 const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);

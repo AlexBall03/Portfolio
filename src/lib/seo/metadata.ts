@@ -25,12 +25,17 @@ interface PageMetadataInput {
   path: string;
   title: string;
   description: string;
+  /** Absolute URL of a page-specific share image (a project cover); the site image otherwise. */
+  image?: { url: string; width: number | null; height: number | null; alt: string } | null;
   /** Absolute document title (skips the "— Name" template). */
   absoluteTitle?: boolean;
 }
 
-export function pageMetadata({ locale, path, title, description, absoluteTitle }: PageMetadataInput): Metadata {
+export function pageMetadata({ locale, path, title, description, image, absoluteTitle }: PageMetadataInput): Metadata {
   const url = absoluteUrl(localizedPath(locale, path));
+  const share = image
+    ? { url: image.url, width: image.width ?? undefined, height: image.height ?? undefined, alt: image.alt || title }
+    : { url: OG_IMAGE.path, width: OG_IMAGE.width, height: OG_IMAGE.height, alt: title };
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
@@ -42,9 +47,9 @@ export function pageMetadata({ locale, path, title, description, absoluteTitle }
       description,
       locale: LOCALE_TAGS[locale].og,
       alternateLocale: LOCALES.filter((l) => l !== locale).map((l) => LOCALE_TAGS[l].og),
-      images: [{ url: OG_IMAGE.path, width: OG_IMAGE.width, height: OG_IMAGE.height, alt: title }],
+      images: [share],
     },
-    twitter: { card: 'summary_large_image', title, description, images: [OG_IMAGE.path] },
+    twitter: { card: 'summary_large_image', title, description, images: [share.url] },
   };
 }
 

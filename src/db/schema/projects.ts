@@ -1,6 +1,8 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
+  date,
   index,
   pgEnum,
   pgTable,
@@ -32,7 +34,7 @@ export const projects = pgTable(
     isLive: boolean().notNull().default(false),
     demoUrl: text(),
     sourceUrl: text(),
-    /** Long-form write-up (README, case study…) until project pages carry their own. */
+    /** An external long-form write-up (README, article…), linked from the project page. */
     detailsUrl: text(),
     publishedAt: timestamp({ withTimezone: true }),
     archivedAt: timestamp({ withTimezone: true }),
@@ -125,12 +127,169 @@ export const projectMedia = pgTable(
   ],
 );
 
+/* ── Case study ─────────────────────────────────────────────────────────────
+ * Structure (identity, kind, order, visibility, media) is shared by every
+ * locale; text lives in translation tables. Which fields a kind uses is a code
+ * map (`features/projects/case-study.ts`), enforced by validation.
+ */
+
+export const projectSectionKindEnum = pgEnum('project_section_kind', [
+  'narrative',
+  'highlights',
+  'architecture',
+  'challenges',
+  'lessons',
+  'outcomes',
+  'gallery',
+  'video',
+]);
+
+/** One case-study section. New sections start hidden, so they can be drafted on a live project. */
+export const projectSections = pgTable(
+  'project_sections',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    kind: projectSectionKindEnum().notNull(),
+    visible: boolean().notNull().default(false),
+    sortOrder: sortOrder(),
+    /** External video (kind `video`): an http(s) URL; YouTube and Vimeo are embedded. */
+    videoUrl: text(),
+    ...timestamps,
+    ...authorship,
+  },
+  (t) => [index('project_sections_project_sort_idx').on(t.projectId, t.sortOrder)],
+);
+
+export const projectSectionTranslations = pgTable(
+  'project_section_translations',
+  {
+    sectionId: uuid()
+      .notNull()
+      .references(() => projectSections.id, { onDelete: 'cascade' }),
+    locale: localeEnum().notNull(),
+    heading: text().notNull(),
+    /** Paragraphs with light inline markup (`lib/inline-markup.ts`), never HTML. */
+    body: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+  },
+  (t) => [primaryKey({ columns: [t.sectionId, t.locale] })],
+);
+
+/** A list entry of a section: a highlight, a challenge and its solution, an outcome, a lesson. */
+export const projectSectionItems = pgTable(
+  'project_section_items',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    sectionId: uuid()
+      .notNull()
+      .references(() => projectSections.id, { onDelete: 'cascade' }),
+    sortOrder: sortOrder(),
+  },
+  (t) => [index('project_section_items_section_idx').on(t.sectionId, t.sortOrder)],
+);
+
+export const projectSectionItemTranslations = pgTable(
+  'project_section_item_translations',
+  {
+    itemId: uuid()
+      .notNull()
+      .references(() => projectSectionItems.id, { onDelete: 'cascade' }),
+    locale: localeEnum().notNull(),
+    title: text().notNull(),
+    body: text(),
+  },
+  (t) => [primaryKey({ columns: [t.itemId, t.locale] })],
+);
+
+/** Images a section shows, in order: always images of the section's own project (`project_media`). */
+export const projectSectionMedia = pgTable(
+  'project_section_media',
+  {
+    sectionId: uuid()
+      .notNull()
+      .references(() => projectSections.id, { onDelete: 'cascade' }),
+    assetId: uuid()
+      .notNull()
+      .references(() => mediaAssets.id, { onDelete: 'cascade' }),
+    sortOrder: sortOrder(),
+  },
+  (t) => [primaryKey({ columns: [t.sectionId, t.assetId] }), index('project_section_media_asset_idx').on(t.assetId)],
+);
+
+export const milestoneKindEnum = pgEnum('milestone_kind', ['started', 'feature', 'release', 'launch', 'refactor', 'other']);
+
+/** How much of a milestone's date is shown: "Mar 4, 2026", "Mar 2026", or "2026". */
+export const milestoneDatePrecisionEnum = pgEnum('milestone_date_precision', ['day', 'month', 'year']);
+
+/** A curated point in a project's development story (never inferred from commits). */
+export const projectMilestones = pgTable(
+  'project_milestones',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    occurredOn: date({ mode: 'string' }).notNull(),
+    datePrecision: milestoneDatePrecisionEnum().notNull().default('month'),
+    kind: milestoneKindEnum().notNull().default('other'),
+    url: text(),
+    /** Optional image: one of the project's own images. */
+    assetId: uuid().references(() => mediaAssets.id, { onDelete: 'set null' }),
+    visible: boolean().notNull().default(false),
+    /** Tie-break among milestones on the same date. */
+    sortOrder: sortOrder(),
+    ...timestamps,
+    ...authorship,
+  },
+  (t) => [index('project_milestones_project_date_idx').on(t.projectId, t.occurredOn)],
+);
+
+export const projectMilestoneTranslations = pgTable(
+  'project_milestone_translations',
+  {
+    milestoneId: uuid()
+      .notNull()
+      .references(() => projectMilestones.id, { onDelete: 'cascade' }),
+    locale: localeEnum().notNull(),
+    title: text().notNull(),
+    description: text(),
+  },
+  (t) => [primaryKey({ columns: [t.milestoneId, t.locale] })],
+);
+
+/** Explicit "related projects" picks, in order. Directional: A listing B doesn't make B list A. */
+export const projectRelations = pgTable(
+  'project_relations',
+  {
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    relatedProjectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    sortOrder: sortOrder(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.projectId, t.relatedProjectId] }),
+    index('project_relations_related_idx').on(t.relatedProjectId),
+    check('project_relations_not_self', sql`${t.projectId} <> ${t.relatedProjectId}`),
+  ],
+);
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   translations: many(projectTranslations),
   technologies: many(projectTechnologies),
   repositories: many(projectRepositories),
   media: many(projectMedia),
   slugHistory: many(projectSlugHistory),
+  sections: many(projectSections),
+  milestones: many(projectMilestones),
+  related: many(projectRelations, { relationName: 'relatedFrom' }),
 }));
 
 export const projectTranslationsRelations = relations(projectTranslations, ({ one }) => ({
@@ -156,4 +315,51 @@ export const projectRepositoriesRelations = relations(projectRepositories, ({ on
 export const projectMediaRelations = relations(projectMedia, ({ one }) => ({
   project: one(projects, { fields: [projectMedia.projectId], references: [projects.id] }),
   asset: one(mediaAssets, { fields: [projectMedia.assetId], references: [mediaAssets.id] }),
+}));
+
+export const projectSectionsRelations = relations(projectSections, ({ one, many }) => ({
+  project: one(projects, { fields: [projectSections.projectId], references: [projects.id] }),
+  translations: many(projectSectionTranslations),
+  items: many(projectSectionItems),
+  media: many(projectSectionMedia),
+}));
+
+export const projectSectionTranslationsRelations = relations(projectSectionTranslations, ({ one }) => ({
+  section: one(projectSections, { fields: [projectSectionTranslations.sectionId], references: [projectSections.id] }),
+}));
+
+export const projectSectionItemsRelations = relations(projectSectionItems, ({ one, many }) => ({
+  section: one(projectSections, { fields: [projectSectionItems.sectionId], references: [projectSections.id] }),
+  translations: many(projectSectionItemTranslations),
+}));
+
+export const projectSectionItemTranslationsRelations = relations(projectSectionItemTranslations, ({ one }) => ({
+  item: one(projectSectionItems, { fields: [projectSectionItemTranslations.itemId], references: [projectSectionItems.id] }),
+}));
+
+export const projectSectionMediaRelations = relations(projectSectionMedia, ({ one }) => ({
+  section: one(projectSections, { fields: [projectSectionMedia.sectionId], references: [projectSections.id] }),
+  asset: one(mediaAssets, { fields: [projectSectionMedia.assetId], references: [mediaAssets.id] }),
+}));
+
+export const projectMilestonesRelations = relations(projectMilestones, ({ one, many }) => ({
+  project: one(projects, { fields: [projectMilestones.projectId], references: [projects.id] }),
+  asset: one(mediaAssets, { fields: [projectMilestones.assetId], references: [mediaAssets.id] }),
+  translations: many(projectMilestoneTranslations),
+}));
+
+export const projectMilestoneTranslationsRelations = relations(projectMilestoneTranslations, ({ one }) => ({
+  milestone: one(projectMilestones, {
+    fields: [projectMilestoneTranslations.milestoneId],
+    references: [projectMilestones.id],
+  }),
+}));
+
+export const projectRelationsRelations = relations(projectRelations, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectRelations.projectId],
+    references: [projects.id],
+    relationName: 'relatedFrom',
+  }),
+  related: one(projects, { fields: [projectRelations.relatedProjectId], references: [projects.id] }),
 }));

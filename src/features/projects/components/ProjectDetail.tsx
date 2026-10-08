@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { buttonStyles } from '@/components/ui/button-styles';
@@ -13,26 +12,14 @@ import { TagList } from '@/components/ui/Tag';
 import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/get-dictionary';
 import { localizedPath } from '@/i18n/paths';
-import type { Project } from '../types';
+import type { Project, ProjectCaseStudy } from '../types';
+import { CaseStudyBlock, CaseStudyContent, lightboxLabels, sectionAnchor } from './CaseStudySection';
+import { GalleryLightbox } from './GalleryLightbox';
+import { MilestoneTimeline } from './MilestoneTimeline';
+import { ProjectCard } from './ProjectCard';
 import { ProjectMedia } from './ProjectMedia';
 
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
-
-/**
- * A titled block in the project body. Overview and Gallery use it today;
- * richer case-study content (architecture, decisions, outcomes) slots in as
- * more DetailSections without changing the page's structure.
- */
-function DetailSection({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return (
-    <section aria-labelledby={id} className="flex flex-col gap-6 border-t border-line pt-8">
-      <h2 id={id} className="font-mono text-label tracking-[0.16em] text-fg-faint uppercase">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
 
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -48,7 +35,7 @@ function ProjectMeta({ project: p, t }: { project: Project; t: Dictionary['proje
   const linkClass =
     'inline-flex items-center gap-2 text-body-sm text-fg-muted transition-colors hover:text-fg [&_svg]:size-4 [&_svg]:text-brand-fg';
   return (
-    <Surface variant="glass" radius="xl" as="aside" className="p-6 sm:p-7 lg:sticky lg:top-28">
+    <Surface variant="glass" radius="xl" as="aside" className="p-6 sm:p-7">
       <dl className="divide-y divide-line">
         {p.isLive && (
           <MetaRow label={t.status}>
@@ -98,13 +85,62 @@ function ProjectMeta({ project: p, t }: { project: Project; t: Dictionary['proje
   );
 }
 
+interface TocEntry {
+  anchor: string;
+  label: string;
+}
+
+/** "On this page": anchors to the numbered blocks, shown once there are enough to need it. */
+function OnThisPage({ entries, t }: { entries: TocEntry[]; t: Dictionary['projects'] }) {
+  return (
+    <nav aria-labelledby="project-toc" className="hidden flex-col gap-3 px-1 lg:flex">
+      <h2 id="project-toc" className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">
+        {t.onThisPage}
+      </h2>
+      <ol className="flex flex-col border-l border-line">
+        {entries.map((e, i) => (
+          <li key={e.anchor}>
+            <a
+              href={`#${e.anchor}`}
+              className="-ml-px flex gap-3 border-l border-transparent py-1.5 pl-4 text-body-sm text-fg-muted transition-colors hover:border-brand hover:text-fg"
+            >
+              <span aria-hidden="true" className="font-mono text-micro text-fg-faint tabular-nums">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span className="min-w-0">{e.label}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
 interface ProjectDetailProps {
-  project: Project;
+  project: ProjectCaseStudy;
+  /** The related projects to show: already resolved against published projects, in order. */
+  related: Project[];
   locale: Locale;
   t: Dictionary['projects'];
 }
 
-export function ProjectDetail({ project: p, locale, t }: ProjectDetailProps) {
+/**
+ * A project's page: hero, then the case study (overview, the project's
+ * sections, timeline) beside a sticky metadata panel, then related projects.
+ * Every block is optional except the overview, so a project with no case
+ * study renders as it did before Phase 5A.
+ */
+export function ProjectDetail({ project: p, related, locale, t }: ProjectDetailProps) {
+  const legacyGallery = p.gallery.length > 0 && !p.sections.some((s) => s.kind === 'gallery');
+  const blocks: TocEntry[] = [
+    { anchor: 'project-overview', label: t.overview },
+    ...p.sections.map((s) => ({ anchor: sectionAnchor(s.id), label: s.heading })),
+    ...(legacyGallery ? [{ anchor: 'project-gallery', label: t.gallery }] : []),
+    ...(p.milestones.length ? [{ anchor: 'project-timeline', label: t.timeline }] : []),
+  ];
+  const toc = [...blocks, ...(related.length ? [{ anchor: 'project-related', label: t.related }] : [])];
+  const indexOf = (anchor: string) => blocks.findIndex((b) => b.anchor === anchor) + 1;
+
   return (
     <article aria-labelledby="project-title" className="pt-page-top">
       <Container>
@@ -146,35 +182,59 @@ export function ProjectDetail({ project: p, locale, t }: ProjectDetailProps) {
             </Reveal>
 
             <Reveal>
-              <DetailSection id="project-overview" title={t.overview}>
+              <CaseStudyBlock anchor="project-overview" index={1} heading={t.overview} t={t}>
                 <Prose paragraphs={[p.summary, ...p.body]} lead />
-              </DetailSection>
+              </CaseStudyBlock>
             </Reveal>
 
-            {p.gallery.length > 0 && (
+            {p.sections.map((s) => (
+              <Reveal key={s.id}>
+                <CaseStudyBlock anchor={sectionAnchor(s.id)} index={indexOf(sectionAnchor(s.id))} heading={s.heading} hidden={s.hidden} t={t}>
+                  <CaseStudyContent section={s} title={p.name} t={t} />
+                </CaseStudyBlock>
+              </Reveal>
+            ))}
+
+            {legacyGallery && (
               <Reveal>
-                <DetailSection id="project-gallery" title={t.gallery}>
-                  <ul className="grid gap-4 sm:grid-cols-2">
-                    {p.gallery.map((m) => (
-                      <li key={m.src}>
-                        <figure className="flex flex-col gap-2.5">
-                          <div className="relative aspect-video overflow-hidden rounded-lg border border-line bg-surface-inset">
-                            <Image src={m.src} alt={m.alt} fill sizes="(max-width: 640px) 100vw, 380px" className="object-cover" />
-                          </div>
-                          {m.caption && <figcaption className="text-body-sm text-fg-muted">{m.caption}</figcaption>}
-                        </figure>
-                      </li>
-                    ))}
-                  </ul>
-                </DetailSection>
+                <CaseStudyBlock anchor="project-gallery" index={indexOf('project-gallery')} heading={t.gallery} t={t}>
+                  <GalleryLightbox images={p.gallery} labels={lightboxLabels(t)} />
+                </CaseStudyBlock>
               </Reveal>
             )}
+
+            {p.milestones.length > 0 && (
+              <Reveal>
+                <CaseStudyBlock anchor="project-timeline" index={indexOf('project-timeline')} heading={t.timeline} t={t}>
+                  <p className="-mt-3 max-w-[60ch] text-body text-fg-muted">{t.timelineLead}</p>
+                  <MilestoneTimeline milestones={p.milestones} locale={locale} t={t} />
+                </CaseStudyBlock>
+              </Reveal>
+            )}
+
+            {/* Phase 5B: the project's GitHub activity (its `repositories`) slots in here, after the curated timeline. */}
           </div>
 
-          <Reveal delay={100}>
-            <ProjectMeta project={p} t={t} />
+          <Reveal delay={100} className="lg:sticky lg:top-28 lg:self-start">
+            <div className="flex flex-col gap-8">
+              <ProjectMeta project={p} t={t} />
+              {toc.length > 2 && <OnThisPage entries={toc} t={t} />}
+            </div>
           </Reveal>
         </div>
+
+        {related.length > 0 && (
+          <section id="project-related" aria-labelledby="project-related-title" className="mt-24 scroll-mt-28 border-t border-line pt-10">
+            <h2 id="project-related-title" className="mb-8 text-h2">
+              {t.related}
+            </h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {related.map((r, i) => (
+                <ProjectCard key={r.id} project={r} index={i} locale={locale} t={t} layout="compact" headingLevel="h3" />
+              ))}
+            </div>
+          </section>
+        )}
       </Container>
     </article>
   );

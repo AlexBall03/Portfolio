@@ -5,8 +5,16 @@ import {
   mediaAssetTranslations,
   profile,
   projectMedia,
+  projectMilestones,
+  projectMilestoneTranslations,
+  projectRelations,
   projectRepositories,
   projects,
+  projectSectionItems,
+  projectSectionItemTranslations,
+  projectSectionMedia,
+  projectSections,
+  projectSectionTranslations,
   projectSlugHistory,
   projectTechnologies,
   projectTranslations,
@@ -19,9 +27,23 @@ import { localeRecord, translationStatus } from '@/lib/cms/locale';
 import { reconcileList, syncTranslations } from '@/lib/cms/write';
 import { FieldValidationError, NotFoundError } from '@/lib/errors';
 import { type MediaStorage, resolveMedia } from '@/lib/media';
-import { projectTranslationInput, type ProjectEditorInput, type ProjectMediaInput, type ProjectOrderInput } from './schema';
+import {
+  projectTranslationInput,
+  type ProjectEditorInput,
+  type ProjectMediaInput,
+  type ProjectMilestonesInput,
+  type ProjectOrderInput,
+  type ProjectRelationsInput,
+  type ProjectSectionsInput,
+} from './schema';
 import type {
+  CaseStudyValues,
+  MilestonesValues,
   Project,
+  ProjectCaseStudy,
+  ProjectChoice,
+  ProjectImageChoice,
+  RelatedValues,
   ProjectListItem,
   ProjectLookup,
   ProjectMediaValues,
@@ -101,7 +123,8 @@ export async function findProjectBySlug(db: Database, slug: string, locale: Loca
   const [row] = await queryProjects(db, and(published, eq(projects.slug, slug)));
   if (row) {
     const [project] = mapTranslated([row], locale, (r, t) => toProject(r, t, locale));
-    return project ? { kind: 'found', project } : { kind: 'not-found' };
+    if (!project) return { kind: 'not-found' };
+    return { kind: 'found', project: { ...project, ...(await loadCaseStudy(db, project.id, locale, false)) } };
   }
 
   const [retired] = await db
@@ -117,11 +140,75 @@ export async function findProjectBySlug(db: Database, slug: string, locale: Loca
  * Uncached and complete: drafts included, every locale's raw translation.
  */
 
-/** Any project, whatever its status, as the public page would render it (admin preview). */
-export async function findProjectForPreview(db: Database, id: string, locale: Locale): Promise<Project | null> {
+/**
+ * Any project, whatever its status, as the public page would render it (admin
+ * preview), including hidden sections and milestones (flagged `hidden`).
+ */
+export async function findProjectForPreview(db: Database, id: string, locale: Locale): Promise<ProjectCaseStudy | null> {
   const [row] = await queryProjects(db, eq(projects.id, id));
   if (!row) return null;
-  return mapTranslated([row], locale, (r, t) => toProject(r, t, locale))[0] ?? null;
+  const project = mapTranslated([row], locale, (r, t) => toProject(r, t, locale))[0];
+  return project ? { ...project, ...(await loadCaseStudy(db, id, locale, true)) } : null;
+}
+
+/**
+ * A project's case study for one locale: sections in order, milestones
+ * chronologically (same-day ties by list order), related project ids in
+ * order. Public reads leave hidden content out; text falls back to English
+ * per section, entry, and milestone.
+ */
+async function loadCaseStudy(
+  db: Database,
+  projectId: string,
+  locale: Locale,
+  includeHidden: boolean,
+): Promise<Pick<ProjectCaseStudy, 'sections' | 'milestones' | 'relatedIds'>> {
+  const [sectionRows, milestoneRows, related] = await Promise.all([
+    db.query.projectSections.findMany({
+      where: and(eq(projectSections.projectId, projectId), includeHidden ? undefined : eq(projectSections.visible, true)),
+      orderBy: [asc(projectSections.sortOrder), asc(projectSections.createdAt)],
+      with: {
+        translations: true,
+        items: { orderBy: [asc(projectSectionItems.sortOrder)], with: { translations: true } },
+        media: { orderBy: [asc(projectSectionMedia.sortOrder)], with: { asset: { with: { translations: true } } } },
+      },
+    }),
+    db.query.projectMilestones.findMany({
+      where: and(eq(projectMilestones.projectId, projectId), includeHidden ? undefined : eq(projectMilestones.visible, true)),
+      orderBy: [asc(projectMilestones.occurredOn), asc(projectMilestones.sortOrder)],
+      with: { translations: true, asset: { with: { translations: true } } },
+    }),
+    db
+      .select({ id: projectRelations.relatedProjectId })
+      .from(projectRelations)
+      .where(eq(projectRelations.projectId, projectId))
+      .orderBy(asc(projectRelations.sortOrder)),
+  ]);
+
+  return {
+    sections: mapTranslated(sectionRows, locale, (row, t) => ({
+      id: row.id,
+      kind: row.kind,
+      heading: t.heading,
+      body: t.body,
+      items: mapTranslated(row.items, locale, (_, it) => ({ title: it.title, body: it.body })),
+      media: row.media.map((m) => resolveMedia(m.asset, locale)).filter((m) => m !== null),
+      videoUrl: row.videoUrl,
+      hidden: !row.visible,
+    })),
+    milestones: mapTranslated(milestoneRows, locale, (row, t) => ({
+      id: row.id,
+      date: row.occurredOn,
+      precision: row.datePrecision,
+      kind: row.kind,
+      title: t.title,
+      description: t.description,
+      url: row.url,
+      image: resolveMedia(row.asset, locale),
+      hidden: !row.visible,
+    })),
+    relatedIds: related.map((r) => r.id),
+  };
 }
 
 const iso = (d: Date | null) => d?.toISOString() ?? null;
@@ -516,7 +603,10 @@ export async function saveProjectMedia(db: Database, input: ProjectMediaInput, a
   const keep = items.map((i) => i.assetId);
 
   const removed = [...existing].filter((id) => !keep.includes(id));
-  if (removed.length) await db.delete(projectMedia).where(and(ofProject, inArray(projectMedia.assetId, removed)));
+  if (removed.length) {
+    await db.delete(projectMedia).where(and(ofProject, inArray(projectMedia.assetId, removed)));
+    await detachFromCaseStudy(db, input.projectId, removed);
+  }
 
   // Demote first: the one-hero index must hold after every statement.
   await db.update(projectMedia).set({ role: 'gallery' }).where(ofProject);
@@ -529,4 +619,322 @@ export async function saveProjectMedia(db: Database, input: ProjectMediaInput, a
     await syncMediaTranslations(db, item.assetId, item.translations);
   }
   return deleteUnreferencedAssets(db, removed);
+}
+
+/* ── Case study, milestones, related projects ─────────────────────────────── */
+
+/** The project's images, for the editors that reference them (sections, milestones). */
+export async function listProjectImages(db: Database, projectId: string): Promise<ProjectImageChoice[]> {
+  const { items } = await getProjectMediaValues(db, projectId);
+  return items.map((i) => ({ assetId: i.assetId, src: i.src, alt: i.translations.en.alt }));
+}
+
+export async function getCaseStudyValues(db: Database, projectId: string): Promise<CaseStudyValues> {
+  const rows = await db.query.projectSections.findMany({
+    where: eq(projectSections.projectId, projectId),
+    orderBy: [asc(projectSections.sortOrder), asc(projectSections.createdAt)],
+    with: {
+      translations: true,
+      items: { orderBy: [asc(projectSectionItems.sortOrder)], with: { translations: true } },
+      media: { orderBy: [asc(projectSectionMedia.sortOrder)] },
+    },
+  });
+  return {
+    sections: rows.map((row) => ({
+      key: row.id,
+      id: row.id,
+      kind: row.kind,
+      visible: row.visible,
+      videoUrl: row.videoUrl ?? '',
+      translations: localeRecord(
+        row.translations,
+        (t) => ({ heading: t.heading, body: t.body }),
+        () => ({ heading: '', body: [] as string[] }),
+      ),
+      items: row.items.map((item) => ({
+        key: item.id,
+        id: item.id,
+        translations: localeRecord(
+          item.translations,
+          (t) => ({ title: t.title, body: t.body ?? '' }),
+          () => ({ title: '', body: '' }),
+        ),
+      })),
+      media: row.media.map((m) => m.assetId),
+    })),
+  };
+}
+
+export async function getMilestoneValues(db: Database, projectId: string): Promise<MilestonesValues> {
+  const rows = await db.query.projectMilestones.findMany({
+    where: eq(projectMilestones.projectId, projectId),
+    orderBy: [asc(projectMilestones.sortOrder), asc(projectMilestones.createdAt)],
+    with: { translations: true },
+  });
+  return {
+    milestones: rows.map((row) => ({
+      key: row.id,
+      id: row.id,
+      occurredOn: row.occurredOn,
+      datePrecision: row.datePrecision,
+      kind: row.kind,
+      url: row.url ?? '',
+      assetId: row.assetId ?? '',
+      visible: row.visible,
+      translations: localeRecord(
+        row.translations,
+        (t) => ({ title: t.title, description: t.description ?? '' }),
+        () => ({ title: '', description: '' }),
+      ),
+    })),
+  };
+}
+
+export async function getRelatedValues(db: Database, projectId: string): Promise<RelatedValues> {
+  const rows = await db
+    .select({ id: projectRelations.relatedProjectId })
+    .from(projectRelations)
+    .where(eq(projectRelations.projectId, projectId))
+    .orderBy(asc(projectRelations.sortOrder));
+  return { related: rows.map((r) => ({ key: r.id, id: r.id })) };
+}
+
+/** Every other project, whatever its status (the Related editor's options). */
+export async function listProjectChoices(db: Database, exceptId: string): Promise<ProjectChoice[]> {
+  return (await listProjectsForAdmin(db))
+    .filter((p) => p.id !== exceptId)
+    .map(({ id, name, slug, status }) => ({ id, name, slug, status }));
+}
+
+/** Locks the project row (so a concurrent delete can't interleave) and fails if it's gone. */
+async function lockProject(db: Database, projectId: string) {
+  const [row] = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).for('update');
+  if (!row) throw new NotFoundError('The project');
+}
+
+/** Rejects references to images that aren't this project's (one field error per offending path). */
+async function assertProjectImages(db: Database, projectId: string, refs: { path: string; ids: readonly string[] }[]) {
+  const wanted = refs.flatMap((r) => r.ids);
+  if (!wanted.length) return;
+  const own = new Set(
+    (
+      await db
+        .select({ id: projectMedia.assetId })
+        .from(projectMedia)
+        .where(and(eq(projectMedia.projectId, projectId), inArray(projectMedia.assetId, wanted)))
+    ).map((r) => r.id),
+  );
+  const errors = Object.fromEntries(
+    refs.filter((r) => r.ids.some((id) => !own.has(id))).map((r) => [r.path, 'Choose images from this project’s media']),
+  );
+  if (Object.keys(errors).length) throw new FieldValidationError(errors);
+}
+
+/**
+ * Saves a project's sections: list order is display order; each section's
+ * text, entries, and images are replaced by the input's. Runs in the
+ * caller's transaction.
+ */
+export async function saveProjectSections(db: Database, input: ProjectSectionsInput, actor: Actor): Promise<void> {
+  const { projectId } = input;
+  await lockProject(db, projectId);
+  await assertProjectImages(
+    db,
+    projectId,
+    input.sections.map((s, i) => ({ path: `sections.${i}.media`, ids: s.media })),
+  );
+
+  const existing = await db
+    .select({ id: projectSections.id })
+    .from(projectSections)
+    .where(eq(projectSections.projectId, projectId));
+  const fields = (s: ProjectSectionsInput['sections'][number]) => ({
+    kind: s.kind,
+    visible: s.visible,
+    videoUrl: s.videoUrl ?? null,
+    updatedBy: actor.userId,
+  });
+  const ids = await reconcileList(
+    existing.map((r) => r.id),
+    input.sections,
+    {
+      update: (id, s, sortOrder) =>
+        db
+          .update(projectSections)
+          .set({ ...fields(s), sortOrder })
+          .where(and(eq(projectSections.id, id), eq(projectSections.projectId, projectId))),
+      insert: async (s, sortOrder) => {
+        const [row] = await db
+          .insert(projectSections)
+          .values({ projectId, ...fields(s), sortOrder, createdBy: actor.userId })
+          .returning({ id: projectSections.id });
+        return row!.id;
+      },
+      remove: (stale) => db.delete(projectSections).where(inArray(projectSections.id, stale)),
+    },
+  );
+
+  for (const [i, sectionId] of ids.entries()) {
+    const section = input.sections[i]!;
+    await syncTranslations(section.translations, {
+      upsert: (locale, t) =>
+        db
+          .insert(projectSectionTranslations)
+          .values({ sectionId, locale, ...t })
+          .onConflictDoUpdate({ target: [projectSectionTranslations.sectionId, projectSectionTranslations.locale], set: t }),
+      remove: (locale) =>
+        db
+          .delete(projectSectionTranslations)
+          .where(and(eq(projectSectionTranslations.sectionId, sectionId), eq(projectSectionTranslations.locale, locale))),
+    });
+
+    const items = await db
+      .select({ id: projectSectionItems.id })
+      .from(projectSectionItems)
+      .where(eq(projectSectionItems.sectionId, sectionId));
+    const itemIds = await reconcileList(
+      items.map((r) => r.id),
+      section.items,
+      {
+        update: (id, _, sortOrder) =>
+          db
+            .update(projectSectionItems)
+            .set({ sortOrder })
+            .where(and(eq(projectSectionItems.id, id), eq(projectSectionItems.sectionId, sectionId))),
+        insert: async (_, sortOrder) => {
+          const [row] = await db
+            .insert(projectSectionItems)
+            .values({ sectionId, sortOrder })
+            .returning({ id: projectSectionItems.id });
+          return row!.id;
+        },
+        remove: (stale) => db.delete(projectSectionItems).where(inArray(projectSectionItems.id, stale)),
+      },
+    );
+    for (const [j, itemId] of itemIds.entries()) {
+      await syncTranslations(section.items[j]!.translations, {
+        upsert: (locale, t) => {
+          const values = { title: t.title, body: t.body ?? null };
+          return db
+            .insert(projectSectionItemTranslations)
+            .values({ itemId, locale, ...values })
+            .onConflictDoUpdate({
+              target: [projectSectionItemTranslations.itemId, projectSectionItemTranslations.locale],
+              set: values,
+            });
+        },
+        remove: (locale) =>
+          db
+            .delete(projectSectionItemTranslations)
+            .where(and(eq(projectSectionItemTranslations.itemId, itemId), eq(projectSectionItemTranslations.locale, locale))),
+      });
+    }
+
+    await db.delete(projectSectionMedia).where(eq(projectSectionMedia.sectionId, sectionId));
+    if (section.media.length) {
+      await db
+        .insert(projectSectionMedia)
+        .values(section.media.map((assetId, sortOrder) => ({ sectionId, assetId, sortOrder })));
+    }
+  }
+}
+
+/** Saves a project's milestones. List position breaks same-date ties; public order is by date. */
+export async function saveProjectMilestones(db: Database, input: ProjectMilestonesInput, actor: Actor): Promise<void> {
+  const { projectId } = input;
+  await lockProject(db, projectId);
+  await assertProjectImages(
+    db,
+    projectId,
+    input.milestones.flatMap((m, i) => (m.assetId ? [{ path: `milestones.${i}.assetId`, ids: [m.assetId] }] : [])),
+  );
+
+  const existing = await db
+    .select({ id: projectMilestones.id })
+    .from(projectMilestones)
+    .where(eq(projectMilestones.projectId, projectId));
+  const fields = (m: ProjectMilestonesInput['milestones'][number]) => ({
+    occurredOn: m.occurredOn,
+    datePrecision: m.datePrecision,
+    kind: m.kind,
+    url: m.url ?? null,
+    assetId: m.assetId ?? null,
+    visible: m.visible,
+    updatedBy: actor.userId,
+  });
+  const ids = await reconcileList(
+    existing.map((r) => r.id),
+    input.milestones,
+    {
+      update: (id, m, sortOrder) =>
+        db
+          .update(projectMilestones)
+          .set({ ...fields(m), sortOrder })
+          .where(and(eq(projectMilestones.id, id), eq(projectMilestones.projectId, projectId))),
+      insert: async (m, sortOrder) => {
+        const [row] = await db
+          .insert(projectMilestones)
+          .values({ projectId, ...fields(m), sortOrder, createdBy: actor.userId })
+          .returning({ id: projectMilestones.id });
+        return row!.id;
+      },
+      remove: (stale) => db.delete(projectMilestones).where(inArray(projectMilestones.id, stale)),
+    },
+  );
+
+  for (const [i, milestoneId] of ids.entries()) {
+    await syncTranslations(input.milestones[i]!.translations, {
+      upsert: (locale, t) => {
+        const values = { title: t.title, description: t.description ?? null };
+        return db
+          .insert(projectMilestoneTranslations)
+          .values({ milestoneId, locale, ...values })
+          .onConflictDoUpdate({
+            target: [projectMilestoneTranslations.milestoneId, projectMilestoneTranslations.locale],
+            set: values,
+          });
+      },
+      remove: (locale) =>
+        db
+          .delete(projectMilestoneTranslations)
+          .where(
+            and(eq(projectMilestoneTranslations.milestoneId, milestoneId), eq(projectMilestoneTranslations.locale, locale)),
+          ),
+    });
+  }
+}
+
+/**
+ * Replaces a project's related projects. Ids of projects that don't exist are
+ * dropped (never trusted); validation already rejected self-references and
+ * duplicates. Publication isn't checked here: public pages show only the
+ * related projects that are published.
+ */
+export async function saveProjectRelations(db: Database, input: ProjectRelationsInput, actor: Actor): Promise<void> {
+  const { projectId } = input;
+  await lockProject(db, projectId);
+  const wanted = [...new Set(input.related.map((r) => r.id))].filter((id) => id !== projectId);
+  const known = new Set(
+    wanted.length
+      ? (await db.select({ id: projects.id }).from(projects).where(inArray(projects.id, wanted))).map((r) => r.id)
+      : [],
+  );
+  await db.delete(projectRelations).where(eq(projectRelations.projectId, projectId));
+  const rows = wanted
+    .filter((id) => known.has(id))
+    .map((relatedProjectId, sortOrder) => ({ projectId, relatedProjectId, sortOrder }));
+  if (rows.length) await db.insert(projectRelations).values(rows);
+  await db.update(projects).set({ updatedBy: actor.userId }).where(eq(projects.id, projectId));
+}
+
+/** Drops a project's section and milestone references to images it no longer has. */
+async function detachFromCaseStudy(db: Database, projectId: string, assetIds: string[]) {
+  const sections = db.select({ id: projectSections.id }).from(projectSections).where(eq(projectSections.projectId, projectId));
+  await db
+    .delete(projectSectionMedia)
+    .where(and(inArray(projectSectionMedia.sectionId, sections), inArray(projectSectionMedia.assetId, assetIds)));
+  await db
+    .update(projectMilestones)
+    .set({ assetId: null })
+    .where(and(eq(projectMilestones.projectId, projectId), inArray(projectMilestones.assetId, assetIds)));
 }
