@@ -17,6 +17,13 @@ describe('authEnv', () => {
     expect(authEnv().publishableKey).toBe(fakeKey('pk'));
   });
 
+  it('rejects publishable keys Clerk would reject', () => {
+    for (const pk of [`${fakeKey('pk')}​`, `${fakeKey('pk')}${fakeKey('pk')}`, `${fakeKey('pk')}"`, 'pk_test_bm8tZG9sbGFy']) {
+      stubAuthEnv({ pk });
+      expect(() => authEnv()).toThrow(/NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY/);
+    }
+  });
+
   it('names every missing variable', () => {
     clearAuthEnv();
     expect(() => authEnv()).toThrow(ConfigError);

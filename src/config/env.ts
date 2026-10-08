@@ -24,9 +24,27 @@ const contactSchema = z.object({
 const clerkKey = (prefix: 'pk' | 'sk') => z.string().trim().regex(new RegExp(`^${prefix}_(test|live)_\\S+$`));
 const instanceOf = (key: string) => (key.split('_')[1] === 'live' ? 'production' : 'development');
 
+/**
+ * Clerk's own publishable-key rules (`isPublishableKey` in @clerk/shared): three
+ * `_` parts, the last base64 for `<frontend-api host>$`. Checked here so that a
+ * key Clerk would reject (a stray invisible character, a doubled paste) turns
+ * admin off with a named warning instead of a 500 from inside Clerk.
+ */
+function isClerkPublishableKey(key: string) {
+  const [prefix, , encoded, ...rest] = key.split('_');
+  if (prefix !== 'pk' || !encoded || rest.length || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) return false;
+  try {
+    const decoded = atob(encoded);
+    const host = decoded.slice(0, -1);
+    return decoded.endsWith('$') && !host.includes('$') && host.includes('.');
+  } catch {
+    return false;
+  }
+}
+
 const authSchema = z
   .object({
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: clerkKey('pk'),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: clerkKey('pk').refine(isClerkPublishableKey),
     CLERK_SECRET_KEY: clerkKey('sk'),
     // The one administrator, by Clerk's stable user ID (differs per Clerk instance).
     ADMIN_CLERK_USER_ID: z.string().trim().regex(/^user_[A-Za-z0-9]+$/),
