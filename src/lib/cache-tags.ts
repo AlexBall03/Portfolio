@@ -1,5 +1,5 @@
 /**
- * Cache tags for `cacheTag()`. Future Admin mutations (Phase 4) call
+ * Cache tags for `cacheTag()`. Admin mutations (each feature's mutations.ts) call
  * `updateTag(CACHE_TAGS.x)` after a save so the public site updates immediately.
  */
 export const CACHE_TAGS = {

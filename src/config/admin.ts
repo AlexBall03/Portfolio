@@ -7,6 +7,8 @@ import type { IconName } from '@/components/ui/Icon';
 export const ADMIN_PATH = '/admin';
 export const ADMIN_SIGN_IN_PATH = '/admin/sign-in';
 export const ADMIN_API_PATH = '/api/admin';
+export const ADMIN_PROFILE_PATH = '/admin/profile';
+export const ADMIN_CONFIGURATION_PATH = '/admin/configuration';
 
 const within = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
 
@@ -28,11 +30,20 @@ export interface AdminNavGroup {
 }
 
 /**
- * Console navigation. Only working destinations are listed; Phase 4 adds its
- * groups here (Content: Projects, Skills, Experience, Resume · Site: Profile,
- * Social links, Contact, Page content, Configuration).
+ * Console navigation. Only working destinations are listed; later Phase 4
+ * steps add theirs (Content: Projects, Skills, Experience, Resume · Site:
+ * Social links, Contact, Page content).
  */
-export const ADMIN_NAV: readonly AdminNavGroup[] = [{ items: [{ label: 'Dashboard', href: ADMIN_PATH, icon: 'layout' }] }];
+export const ADMIN_NAV: readonly AdminNavGroup[] = [
+  { items: [{ label: 'Dashboard', href: ADMIN_PATH, icon: 'layout' }] },
+  {
+    label: 'Site',
+    items: [
+      { label: 'Profile', href: ADMIN_PROFILE_PATH, icon: 'user' },
+      { label: 'Configuration', href: ADMIN_CONFIGURATION_PATH, icon: 'gauge' },
+    ],
+  },
+];
 
 /** The nav item a pathname belongs to: exact for the dashboard, prefix for sections. */
 export function activeAdminHref(pathname: string): string | null {

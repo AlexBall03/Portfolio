@@ -1,15 +1,18 @@
 import { z } from 'zod';
-import { localized, optionalText, text } from '@/lib/validation';
+import { blankToNull, localized, optionalText, text } from '@/lib/validation';
 import { PAGE_KEYS, SECTION_KEYS } from './types';
 
 export const siteSettingsInput = z.object({
   brandMark: text(40),
   monogram: text(20),
-  githubUsername: z
-    .string()
-    .trim()
-    .regex(/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i, 'Not a valid GitHub username')
-    .nullish(),
+  /** Blank means "no GitHub account": the section is hidden. */
+  githubUsername: blankToNull(
+    z
+      .string()
+      .trim()
+      .regex(/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i, 'Not a valid GitHub username')
+      .nullish(),
+  ),
   showGithubSection: z.boolean().default(true),
   defaultTheme: z.enum(['dark', 'light']).default('dark'),
 });

@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Stat, statDividers } from '@/components/ui/Stat';
 import { Status } from '@/components/ui/Status';
 import { Surface } from '@/components/ui/Surface';
-import { getContentOverview, getDeploymentOverview } from '@/features/admin/overview';
+import { ADMIN_CONFIGURATION_PATH, ADMIN_PROFILE_PATH } from '@/config/admin';
+import { getContentOverview, getDeploymentOverview, getTranslationOverview } from '@/features/admin/overview';
 import { cn } from '@/lib/cn';
 import { getAdminProfile } from '@/server/auth/admin';
 
@@ -45,7 +47,8 @@ export default async function DashboardPage() {
   // Every console page authorizes itself too; this also returns the display identity.
   const profile = await getAdminProfile();
   const deployment = getDeploymentOverview();
-  const content = await getContentOverview();
+  const [content, translations] = await Promise.all([getContentOverview(), getTranslationOverview()]);
+  const spanish = translations.profile;
 
   const counts = [
     { label: 'Published projects', value: content.publishedProjects },
@@ -59,7 +62,7 @@ export default async function DashboardPage() {
       <AdminPageHeader
         eyebrow="Overview"
         title="Dashboard"
-        lead={<>Signed in as <span className="text-fg">{profile.name}</span>. This is where alexball.dev&apos;s content will be managed.</>}
+        lead={<>Signed in as <span className="text-fg">{profile.name}</span>. This is where alexball.dev&apos;s content is managed.</>}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -105,6 +108,35 @@ export default async function DashboardPage() {
           />
         </Panel>
 
+        <Panel title="Site" className="md:col-span-2">
+          <Facts
+            rows={[
+              {
+                label: 'Profile',
+                value: (
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Link href={ADMIN_PROFILE_PATH} className="text-brand-fg underline-offset-4 hover:underline">
+                      Details, roles, highlights, metrics
+                    </Link>
+                    <Status tone={spanish.complete === spanish.total ? 'success' : 'accent'}>
+                      Spanish {spanish.complete}/{spanish.total}
+                    </Status>
+                    {spanish.partial > 0 && <span className="text-fg-muted">{spanish.partial} incomplete</span>}
+                  </span>
+                ),
+              },
+              {
+                label: 'Configuration',
+                value: (
+                  <Link href={ADMIN_CONFIGURATION_PATH} className="text-brand-fg underline-offset-4 hover:underline">
+                    Branding, GitHub, default theme
+                  </Link>
+                ),
+              },
+            ]}
+          />
+        </Panel>
+
         <Panel title="Published content" className="md:col-span-2">
           <dl className="grid grid-cols-2 lg:grid-cols-4">
             {counts.map((c, i) => (
@@ -112,8 +144,8 @@ export default async function DashboardPage() {
             ))}
           </dl>
           <p className="mt-4 border-t border-line pt-4 text-body-sm text-fg-muted">
-            What the public site shows right now. Editing for projects, skills, experience, the resume, and site copy will
-            live in this console.
+            What the public site shows right now. Editing for projects, skills, experience, the resume, and page copy is
+            coming to this console.
           </p>
         </Panel>
       </div>

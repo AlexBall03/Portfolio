@@ -32,3 +32,6 @@ export interface SectionContent {
   subtitle: string | null;
   body: string | null;
 }
+
+/** Configuration editor values: the stored settings, with "no GitHub account" as an empty field. */
+export type SiteSettingsValues = Omit<SiteSettings, 'githubUsername'> & { githubUsername: string };

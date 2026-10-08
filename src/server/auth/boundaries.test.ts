@@ -60,13 +60,42 @@ describe('secrets stay on the server', () => {
 });
 
 describe('the public site is not auth-aware', () => {
+  // A feature's mutations.ts is its admin entry point: the one feature file allowed the guard.
+  const isMutations = (rel: string) => /^features\/[^/]+\/mutations\.ts$/.test(rel);
+
   it('public routes, chrome, and features never touch Clerk or the auth layer', () => {
     const publicCode = sources.filter(
       (f) =>
         (f.rel.startsWith('app/[locale]/') || f.rel.startsWith('components/layout/') || f.rel.startsWith('features/')) &&
-        !f.rel.startsWith('features/admin/'),
+        !f.rel.startsWith('features/admin/') &&
+        !isMutations(f.rel),
     );
     const offenders = publicCode.filter((f) => /from ['"](@clerk\/|@\/server\/auth)/.test(f.code));
+    expect(offenders.map((f) => f.rel)).toEqual([]);
+  });
+
+  it('public routes and chrome never reach admin writes or editors', () => {
+    const publicCode = sources.filter((f) => f.rel.startsWith('app/[locale]/') || f.rel.startsWith('components/layout/'));
+    const offenders = publicCode.filter((f) =>
+      /from ['"][^'"]*(\/mutations|\/service|\/components\/admin\/|lib\/cms\/)/.test(f.code),
+    );
+    expect(offenders.map((f) => f.rel)).toEqual([]);
+  });
+});
+
+describe('admin writes stay on the server', () => {
+  it('domain services and the mutation runner are server-only', () => {
+    const modules = sources.filter(
+      (f) => /^features\/[^/]+\/service\.ts$/.test(f.rel) || /^lib\/cms\/(mutation|write)\.ts$/.test(f.rel),
+    );
+    expect(modules.length).toBeGreaterThan(0);
+    for (const m of modules) expect(m.code, m.rel).toMatch(/^import 'server-only';/);
+  });
+
+  it('client modules reach the server only through Server Actions', () => {
+    const offenders = sources
+      .filter((f) => isClient(f.code))
+      .filter((f) => /from ['"][^'"]*(\/service|\/repository|\/queries|@\/db\/)['"]/.test(f.code));
     expect(offenders.map((f) => f.rel)).toEqual([]);
   });
 });

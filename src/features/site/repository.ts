@@ -4,11 +4,15 @@ import { pageContent, sectionContent, siteSettings } from '@/db/schema';
 import type { Database } from '@/db/types';
 import type { Locale } from '@/i18n/config';
 import { pickTranslation } from '@/i18n/translations';
+import type { SiteSettingsInput } from './schema';
 import type { PageContent, PageKey, SectionContent, SectionKey, SiteSettings } from './types';
 
 export async function getSiteSettings(db: Database): Promise<SiteSettings | null> {
   const [row] = await db.select().from(siteSettings).where(eq(siteSettings.id, 1)).limit(1);
-  if (!row) return null;
+  return row ? toSiteSettings(row) : null;
+}
+
+function toSiteSettings(row: typeof siteSettings.$inferSelect): SiteSettings {
   return {
     brandMark: row.brandMark,
     monogram: row.monogram,
@@ -16,6 +20,17 @@ export async function getSiteSettings(db: Database): Promise<SiteSettings | null
     showGithubSection: row.showGithubSection,
     defaultTheme: row.defaultTheme,
   };
+}
+
+/** Admin write; `actorId` (the admin's Clerk user ID) is recorded as updated_by. */
+export async function updateSiteSettings(db: Database, data: SiteSettingsInput, actorId: string): Promise<SiteSettings> {
+  const [row] = await db
+    .update(siteSettings)
+    .set({ ...data, githubUsername: data.githubUsername ?? null, updatedBy: actorId })
+    .where(eq(siteSettings.id, 1))
+    .returning();
+  if (!row) throw new Error('The site settings row is missing');
+  return toSiteSettings(row);
 }
 
 export async function getPageContent(db: Database, page: PageKey, locale: Locale): Promise<PageContent | null> {

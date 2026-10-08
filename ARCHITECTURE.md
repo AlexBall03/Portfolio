@@ -1,6 +1,6 @@
 # Architecture — alexball.dev
 
-A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 3 (Authentication & Admin Foundation)**: Phase 1 laid the architecture, Phase 2 the design system, and Phase 3 the private `/admin`.
+A bilingual (English/Spanish) software-engineering portfolio, built as one full-stack Next.js application. This document describes the system as it exists after **Phase 4A (CMS Foundation & Site Settings)**: Phase 1 laid the architecture, Phase 2 the design system, Phase 3 the private `/admin`, and Phase 4A the first write paths (Profile and Configuration editors) plus the conventions the remaining editors follow (see **Content management**).
 
 ## Stack
 
@@ -39,7 +39,8 @@ src/
   app/[locale]/           routes: home, about, projects, projects/[slug], experience, resume, contact,
                           not-found, error, [...rest] (404 catch-all); layout = root layout (html/body)
   app/admin/              the private admin (English-only, its own root layout): sign-in/[[...sign-in]],
-                          (console)/ (guarded layout, dashboard, [...rest] 404), not-found, error
+                          (console)/ (guarded layout, dashboard, profile/{,roles,highlights,metrics},
+                          configuration, [...rest] 404), not-found, error
   app/api/admin/          admin Route Handlers (session: the reference handler)
   app/                    sitemap.ts, robots.ts, manifest.ts, global-error.tsx
   proxy.ts                locale routing (public) + Clerk and the admin gate (admin, Server Actions)
@@ -52,14 +53,18 @@ src/
                           cli/ (db:* scripts and their .env.local loader; never imported by the app), local.ts
   features/<domain>/      types.ts (domain types) · schema.ts (Zod inputs) · repository.ts (DB) ·
                           queries.ts (cached reads) · components/ (feature UI)
+                          admin-managed domains add: service.ts (editor loads + transactional saves) ·
+                          mutations.ts (Server Actions) · components/admin/ (editor islands)
       projects  skills  experience  profile  site  github  contact  admin (dashboard facts)
   integrations/           github/ (typed API client + Zod response schemas), resend/
   components/layout/      site chrome: SiteChrome (command bar + drawer + palette), Preferences, Footer, Pager, PageShell, Screen
   components/admin/       console UI: AdminShell, AdminNav, AdminTopBar (bar + drawer), AccountActions, AdminPageHeader, AdminLoading,
                           AdminUnavailable, clerk-appearance (Clerk themed with the tokens)
+  components/admin/form/  editor primitives: useEditor, EditorForm (+ save bar), EditorSection, fields, LocaleTabs, RepeatableList
   components/ui/          design-system primitives (Container, Section, SectionHeader, Eyebrow, Prose, Stat, Status,
                           Tag, Surface, SystemState, buttonStyles) + Icon, Reveal, CountUp, RelativeTime, LocalTime, JsonLd
-  lib/                    logger, errors, media resolution, cache tags/lifetimes, seo/, validation, client/
+  lib/                    logger, errors, media resolution, cache tags/lifetimes, seo/, validation, client/,
+                          cms/ (mutation result + runner, locale status, write conventions, form value helpers)
   styles/                 tokens.css (semantic roles per theme), globals.css (Tailwind theme), base.css, system.css
   test/                   PGlite test DB helper, server-only stub
 ```
@@ -69,8 +74,8 @@ src/
 - Repositories return **domain types** (`features/*/types.ts`), never Drizzle rows.
 - `integrations/*` know nothing about UI or the domain model; they validate and normalize upstream data.
 - Every server-only module imports `server-only`.
-- Client Components are limited to interactive islands: nav/drawer/palette, theme and locale toggles, the contact form, the experience tabs, the role cycler, and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. In the admin: the nav (active state), the mobile drawer, the account actions, and Clerk's own sign-in. Server children pass through client wrappers unchanged.
-- Nothing public imports Clerk or `server/auth`; the public site has no auth-aware components (enforced by `server/auth/boundaries.test.ts`).
+- Client Components are limited to interactive islands: nav/drawer/palette, theme and locale toggles, the contact form, the experience tabs, the role cycler, and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. In the admin: the nav (active state), the mobile drawer, the account actions, Clerk's own sign-in, and the editors (`features/*/components/admin`). Server children pass through client wrappers unchanged.
+- Nothing public imports Clerk or `server/auth`; the public site has no auth-aware components. The one feature file allowed the guard is `features/*/mutations.ts`. Public routes and chrome never import mutations, services, or admin UI, and client modules reach the server only through Server Actions (all enforced by `server/auth/boundaries.test.ts`).
 
 ## Domain model (Neon)
 
@@ -86,6 +91,8 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 | Media | `media_assets` (`storage` static/blob/external, src, dimensions) · `media_asset_translations` (alt text) |
 | System | `content_bootstrap` (single row: this database has received its initial content) |
 
+**Authorship.** Admin-managed tables carry nullable `created_by` / `updated_by` (the admin's Clerk user ID, from `requireAdmin()`; `authorship` in `db/schema/_shared.ts`). So far: `profile`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `site_settings`. Each later editor adds them to its own tables in the same change. Seeded rows have null.
+
 **Lifecycle.** Public reads return only `published` (or `visible`) rows ordered by `sort_order`. Archiving is a soft delete that keeps history and slug redirects intact.
 **Slugs.** `projects.slug` is the current public URL. When a slug changes, the old one goes into `project_slug_history`, and `/projects/<old>` answers with a permanent redirect.
 **Media.** Consumers only ever see a resolved `MediaAsset` (`lib/media.ts`), so assets can move from `/public` to Vercel Blob or an external URL without touching the UI.
@@ -94,7 +101,7 @@ All user-facing text lives in per-locale **translation tables** (`*_translations
 
 ## Data access
 
-- `db/client.ts`: `getDb()` returns a Drizzle instance over Neon's **HTTP driver** (stateless, so there's no pool to exhaust on serverless). Phase 4 admin writes that need interactive transactions should add a `neon-serverless` Pool client for those paths only.
+- `db/client.ts`: `getDb()` returns a Drizzle instance over Neon's **HTTP driver** (stateless, so there's no pool to exhaust on serverless). `withTransaction(run)` is for admin writes that must be atomic: on Neon it opens a `neon-serverless` WebSocket Pool for that one transaction and closes it; on PGlite it uses the shared instance. Reads never use it.
 - `db/types.ts`: `Database` is driver-agnostic (`PgDatabase`), so repositories run identically on Neon, on PGlite in tests, and on the optional local dev DB.
 - Caching: query functions use `'use cache'`, `cacheLife(CACHE_LIFE.content)`, and `cacheTag(CACHE_TAGS.x)` (`lib/cache-tags.ts`). **Admin mutations must call `updateTag(CACHE_TAGS.x)`** after a write.
 - Migrations: edit `db/schema/*`, run `npm run db:generate`, and commit the SQL. Deployments apply it; see **Database lifecycle** below.
@@ -189,7 +196,7 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
    - the admin → through
    - `/admin/sign-in` → always through
 2. **Console layout** (`app/admin/(console)/layout.tsx`). `requireAdmin()` runs inside `<Suspense>` (Cache Components); the shell and page render only after it succeeds, so nothing protected can flash first.
-3. **Every resource.** Each console page, Server Action, and Route Handler calls `requireAdmin()` / `adminRoute()` itself. `boundaries.test.ts` fails if a console page, an admin Route Handler, or a `'use server'` module in `app/admin` or a `mutations.ts` file doesn't.
+3. **Every resource.** Each console page, Server Action, and Route Handler calls `requireAdmin()` / `adminRoute()` itself. `boundaries.test.ts` fails if a console page, an admin Route Handler, or a `'use server'` module in `app/admin` or a `mutations.ts` file doesn't. `features/profile/admin.test.ts` checks that every Server Action rejects a signed-out or non-admin caller as a 404 before validating, writing, or invalidating anything.
 
 **Why layer 3 is not optional.** Server Action IDs are global: an action defined for `/admin` can be POSTed to *any* path, including public pages the admin layout never sees. So the proxy also runs Clerk for every Server Action request (`next-action` header). That lets an action's own `requireAdmin()` resolve the session and reject cleanly. Route Handlers can be called directly over HTTP by anyone.
 
@@ -197,20 +204,61 @@ Claiming the marker row is what makes concurrent runs safe. Because the marker o
 
 **Admin UI.** The admin is English-only: one user, so translated chrome would be duplication with no reader. The *content* it will manage stays bilingual, through the translation tables. It has its own root layout (`app/admin/layout.tsx`): shared fonts (`styles/fonts.ts`), theme script, tokens, and atmosphere, with `ClerkProvider` inside `<body>` and Clerk themed through token variables in a `clerk` CSS layer below the utilities. The shell is a floating glass sidebar on `lg+` and a top bar with the site's drawer below that. Its navigation lists only working destinations (`config/admin.ts`). Account management opens Clerk's own profile modal. Sign-out ends the session, then `location.replace('/admin/sign-in')`, so no admin UI survives in the router cache or history. Admin responses carry `X-Robots-Tag: noindex` and `robots.txt` disallows `/admin`.
 
-**Writing a Phase 4 admin operation:**
+**Writing an admin operation** (the shape every `mutations.ts` follows; see **Content management**):
 
 ```ts
-// features/projects/mutations.ts
+// features/profile/mutations.ts
 'use server';
-export async function updateProject(input: unknown) {
-  const admin = await requireAdmin();        // 1. authorize (always first)
-  const data = projectInputSchema.parse(input); // 2. validate
-  await repo.updateProject(db, data, { updatedBy: admin.userId }); // 3. write
-  updateTag(CACHE_TAGS.projects);            // 4. refresh public reads
+export async function saveProfileRoles(input: unknown) {
+  const admin = await requireAdmin();                         // 1. authorize (always first)
+  return runMutation(profileRolesInput, input, async (data) => { // 2. validate (errors → fieldErrors)
+    const saved = await service.saveProfileRoles(data, admin);   // 3. write (one transaction)
+    updateTag(CACHE_TAGS.profile);                               // 4. refresh public reads
+    return saved;                                                // → the editor's new baseline
+  });
 }
 ```
 
 Never call `getAuthorization()` inside a `'use cache'` scope; `connection()` makes that an error by design.
+
+## Content management
+
+The admin edits content through small, focused pieces rather than a generic CMS framework. Profile (`/admin/profile`, with Details · Roles · Highlights · Metrics tabs) and Configuration (`/admin/configuration`) are the reference implementations.
+
+**Layers** (per domain):
+
+| Layer | File | Knows about |
+|---|---|---|
+| Schema | `features/*/schema.ts` | Zod. Editor schemas reuse the content schemas the seed uses, adding row `id`s and blank→null handling |
+| Repository | `features/*/repository.ts` | SQL. Uncached editor reads (hidden rows, every locale's raw translation) and writes that take a `Database` (a transaction) and an actor |
+| Service | `features/*/service.ts` (server-only) | Domain operations: `load*` for editors, `save*` = one `withTransaction` + re-read. No React, forms, or HTTP, so a future API route or SDLC sync calls the same functions |
+| Server Actions | `features/*/mutations.ts` | The four steps above. Return `MutationResult<T>` (`lib/cms/result.ts`): `{ ok, data, savedAt }` or `{ ok: false, fieldErrors, formError }`. Unexpected errors are logged and reported generically |
+| Editor | `features/*/components/admin/*` (client) | Imports its Server Action directly; built from `components/admin/form` |
+| Page | `app/admin/(console)/…/page.tsx` | `requireAdmin()`, `service.load*()`, render the editor |
+
+**Write conventions** (`lib/cms/write.ts`):
+- `syncTranslations`: each locale present is upserted, each absent one deleted.
+- `reconcileList`: an ordered list replaces the stored one. Known ids update, anything else inserts (an id from the client is never trusted to exist), missing rows delete, list position is `sort_order`.
+- One logical save is one transaction. A single-row update (site settings) needs none.
+
+**Bilingual editing.** One language at a time behind `English | Español` tabs (`LocaleTabs`), each showing Complete / Incomplete / Not translated, or its error count after a failed save. The rule, enforced by the schema (`lib/validation.ts → localized`), not by the UI:
+- English is required.
+- A Spanish translation whose fields are all blank is *absent*: no row is stored, and public reads fall back to English as before.
+- A partly filled Spanish translation is validated in full ("complete it or clear it").
+- English is never copied into Spanish. The Spanish tab shows the English text as placeholders and explains the fallback once.
+
+Status comes from the same schema the server saves with (`lib/cms/locale.ts`), so the badge and the save always agree.
+
+**Editor primitives** (`components/admin/form`):
+- `useEditor(initial, action)`: values plus a saved baseline (dirty = deep inequality), path-keyed server errors (cleared as each field is edited), and a save that ignores duplicate submits while one is in flight. On success the baseline becomes what the server stored, so new rows get their ids.
+- `EditorForm`: disables fields while saving and has a sticky glass save bar (status, Discard, Save; Ctrl/⌘+S). The status is announced; a failure takes focus.
+- Unsaved changes: `beforeunload` plus a confirm on in-app link clicks. Browser back/forward inside the app can't be intercepted.
+- Fields (`TextField`, `SelectField`, `SwitchField`, `StringListField`) wire label, hint, and error with `aria-describedby` / `aria-invalid`.
+- `RepeatableList` reorders with move up/down buttons, so it works from the keyboard. Nothing is written until Save, so Discard undoes a removal.
+
+**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, and metrics; metrics are also tagged `projects`/`skills` for derived counts) and `site` (settings, page and section copy). Editor reads are uncached.
+
+**Configuration vs Profile.** Configuration owns `site_settings` only: brand mark, monogram, GitHub username and section switch, default theme. Personal content is Profile. Social links, contact, and page/section copy get their own editors.
 
 ## Localization
 
@@ -240,11 +288,9 @@ Never call `getAuthorization()` inside a `'use cache'` scope; `connection()` mak
 
 ## Future insertion points
 
-- **CMS (Phase 4):**
-  - Add `features/*/mutations.ts` next to each `repository.ts`. Each one starts with `requireAdmin()`, validates input with the existing `features/*/schema.ts` Zod schemas (the seed already uses them), writes, then calls `updateTag`. See **Authentication & admin**.
-  - Console pages go under `app/admin/(console)/…`. Each calls `requireAdmin()` and adds its entry to `ADMIN_NAV` in `config/admin.ts` (Content: Projects, Skills, Experience, Resume · Site: Profile, Social links, Contact, Page content, Configuration). `AdminPageHeader` and `Surface` are the building blocks.
-  - Authorship: `requireAdmin()` returns the Clerk `userId` for `created_by` / `updated_by` columns. No user table is needed for one admin.
-  - The Configuration page edits `profile`, `social_links`, `profile_roles`, `profile_highlights`, `snapshot_metrics`, `page_content`, `section_content`, and `site_settings`.
+- **CMS (rest of Phase 4):**
+  - Each new editor copies the Profile shape in **Content management**: schema → repository (editor reads + writes) → `service.ts` → `mutations.ts` → editor component → console page. Add `authorship` columns to its tables (migration in the same change) and its entry to `ADMIN_NAV` in `config/admin.ts` (Content: Projects, Skills, Experience, Resume · Site: Social links, Contact, Page content).
+  - Projects (4B): status/slug changes belong in the service (slug history insert, `published_at`/`archived_at`), inside one `withTransaction`. Media uploads go to Vercel Blob through an admin Route Handler (`adminRoute`), and `media_assets` rows stay behind `resolveMedia`. Profile headshot/resume media is not editable yet for that reason.
   - Resume management: PDF bytes in Vercel Blob (private, served through an admin Route Handler for old versions), metadata in a `resume_versions` table with an explicit `is_current` / published pointer rather than "latest upload". `/resume` reads only the current version.
 - **Public API:** `app/api/v1/*` route handlers calling the same `queries.ts` and mapping domain types to versioned DTOs. Nothing in the domain layer depends on HTTP.
 - **SDLC Manager (Phase 6):**

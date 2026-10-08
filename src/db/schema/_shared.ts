@@ -1,4 +1,4 @@
-import { integer, pgEnum, timestamp } from 'drizzle-orm/pg-core';
+import { integer, pgEnum, text, timestamp } from 'drizzle-orm/pg-core';
 import { LOCALES } from '../../i18n/config';
 
 /** Supported content locales. Adding one is an `ALTER TYPE ... ADD VALUE` migration. */
@@ -23,3 +23,12 @@ export const timestamps = {
 
 /** Explicit display order. Ties fall back to creation order in queries. */
 export const sortOrder = () => integer().notNull().default(0);
+
+/**
+ * Who created / last changed an admin-managed row: the admin's Clerk user ID
+ * (see `requireAdmin()`). Null for rows written by the seed or by hand.
+ */
+export const authorship = {
+  createdBy: text(),
+  updatedBy: text(),
+};

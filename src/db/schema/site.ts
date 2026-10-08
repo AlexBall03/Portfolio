@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { boolean, check, integer, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
-import { localeEnum, timestamps } from './_shared';
+import { authorship, localeEnum, timestamps } from './_shared';
 
 export const themeEnum = pgEnum('theme', ['dark', 'light']);
 
@@ -23,6 +23,7 @@ export const siteSettings = pgTable(
     /** Theme for first-time visitors (their own choice is remembered in the browser). */
     defaultTheme: themeEnum().notNull().default('dark'),
     ...timestamps,
+    ...authorship,
   },
   (t) => [check('site_settings_singleton', sql`${t.id} = 1`)],
 );

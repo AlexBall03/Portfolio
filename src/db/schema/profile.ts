@@ -10,7 +10,7 @@ import {
   text,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { accentEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { accentEnum, authorship, localeEnum, sortOrder, timestamps } from './_shared';
 import { mediaAssets } from './media';
 
 /**
@@ -35,6 +35,7 @@ export const profile = pgTable(
     addressRegion: text(),
     addressCountry: text(),
     ...timestamps,
+    ...authorship,
   },
   (t) => [check('profile_singleton', sql`${t.id} = 1`)],
 );
@@ -89,6 +90,7 @@ export const profileRoles = pgTable('profile_roles', {
   visible: boolean().notNull().default(true),
   sortOrder: sortOrder(),
   ...timestamps,
+  ...authorship,
 });
 
 export const profileRoleTranslations = pgTable(
@@ -113,6 +115,7 @@ export const profileHighlights = pgTable('profile_highlights', {
   visible: boolean().notNull().default(true),
   sortOrder: sortOrder(),
   ...timestamps,
+  ...authorship,
 });
 
 export const profileHighlightTranslations = pgTable(
@@ -151,6 +154,7 @@ export const snapshotMetrics = pgTable('snapshot_metrics', {
   visible: boolean().notNull().default(true),
   sortOrder: sortOrder(),
   ...timestamps,
+  ...authorship,
 });
 
 export const snapshotMetricTranslations = pgTable(

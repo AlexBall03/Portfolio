@@ -1,6 +1,7 @@
 import 'server-only';
 import { authEnv, contactEnv, githubEnv } from '@/config/env';
 import { getExperiences } from '@/features/experience/queries';
+import { getProfileTranslationCoverage } from '@/features/profile/service';
 import { getProjects } from '@/features/projects/queries';
 import { getSkills } from '@/features/skills/queries';
 import { DEFAULT_LOCALE } from '@/i18n/config';
@@ -68,4 +69,11 @@ export async function getContentOverview(): Promise<ContentOverview> {
     career: experiences.filter((e) => e.kind === 'career').length,
     education: experiences.filter((e) => e.kind === 'education').length,
   };
+}
+
+/** Spanish coverage of the profile's managed content (uncached: what the editors would show). */
+export async function getTranslationOverview() {
+  const coverage = await getProfileTranslationCoverage();
+  const { complete, partial, missing } = coverage.es;
+  return { profile: { complete, partial, missing, total: complete + partial + missing } };
 }
