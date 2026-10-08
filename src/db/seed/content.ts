@@ -242,12 +242,12 @@ export const content: z.input<typeof contentSeedSchema> = {
       es: { eyebrow: 'Resumen Técnico', title: 'En qué punto estoy', subtitle: 'Un resumen rápido de mi avance en la carrera, mi experiencia, mis proyectos y mi stack.' },
     },
     about: {
-      en: { eyebrow: 'About', title: 'A little more about me', subtitle: 'Software is what I do. These are some of the other things that shape how I work.' },
-      es: { eyebrow: 'Acerca', title: 'Un poco más sobre mí', subtitle: 'El software es a lo que me dedico. Esto es parte de lo demás que influye en cómo trabajo.' },
+      en: { eyebrow: 'About', title: 'A little more about me', subtitle: 'Software is what I do. These are some of the other things that shape how I work.', aside: 'Beyond the code' },
+      es: { eyebrow: 'Acerca', title: 'Un poco más sobre mí', subtitle: 'El software es a lo que me dedico. Esto es parte de lo demás que influye en cómo trabajo.', aside: 'Más allá del código' },
     },
     stack: {
-      en: { eyebrow: 'Technology Stack', title: 'Tools I reach for', subtitle: 'Languages, frameworks, and tools I currently work with.' },
-      es: { eyebrow: 'Stack Tecnológico', title: 'Herramientas que utilizo', subtitle: 'Lenguajes, frameworks y herramientas con los que trabajo actualmente.' },
+      en: { eyebrow: 'Technology Stack', title: 'Tools I reach for', subtitle: 'Languages, frameworks, and tools I currently work with.', aside: 'Looking Ahead' },
+      es: { eyebrow: 'Stack Tecnológico', title: 'Herramientas que utilizo', subtitle: 'Lenguajes, frameworks y herramientas con los que trabajo actualmente.', aside: 'Mirando Hacia Adelante' },
     },
     projects: {
       en: { eyebrow: 'Featured Projects', title: "Things I'm proud of", subtitle: "A few projects I've built and what I learned from them." },

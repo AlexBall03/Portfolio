@@ -22,8 +22,6 @@ export const es: Dictionary = {
     ctaProjects: 'Ver Proyectos',
     localTime: 'Hora local',
   },
-  about: { beyondCode: 'Más allá del código' },
-  stack: { lookingAhead: 'Mirando Hacia Adelante' },
   projects: {
     live: 'En vivo',
     liveDemo: 'Demo en Vivo',

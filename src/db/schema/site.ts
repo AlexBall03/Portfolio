@@ -48,6 +48,7 @@ export const pageContent = pgTable(
     seoTitle: text(),
     seoDescription: text().notNull(),
     ...timestamps,
+    ...authorship,
   },
   (t) => [primaryKey({ columns: [t.pageKey, t.locale] })],
 );
@@ -64,7 +65,7 @@ export const sectionKeyEnum = pgEnum('section_key', [
   'contact',
 ]);
 
-/** Per-section, per-locale heading copy (eyebrow, title, subtitle, optional lead). */
+/** Per-section, per-locale heading copy (eyebrow, title, subtitle, optional lead, optional secondary heading). */
 export const sectionContent = pgTable(
   'section_content',
   {
@@ -74,7 +75,10 @@ export const sectionContent = pgTable(
     title: text().notNull(),
     subtitle: text(),
     body: text(),
+    /** Secondary heading inside the section (About: differentiators; Stack: learning banner). */
+    aside: text(),
     ...timestamps,
+    ...authorship,
   },
   (t) => [primaryKey({ columns: [t.sectionKey, t.locale] })],
 );

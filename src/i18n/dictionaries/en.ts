@@ -27,8 +27,6 @@ export const en = {
     ctaProjects: 'View Projects',
     localTime: 'Local time',
   },
-  about: { beyondCode: 'Beyond the code' },
-  stack: { lookingAhead: 'Looking Ahead' },
   projects: {
     live: 'Live',
     liveDemo: 'Live Demo',

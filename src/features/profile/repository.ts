@@ -17,7 +17,13 @@ import { mapTranslated, pickTranslation } from '@/i18n/translations';
 import { localeRecord } from '@/lib/cms/locale';
 import { reconcileList, syncTranslations } from '@/lib/cms/write';
 import { resolveMedia } from '@/lib/media';
-import type { ProfileDetailsInput, ProfileHighlightsInput, ProfileRolesInput, SnapshotMetricsInput } from './schema';
+import type {
+  ProfileDetailsInput,
+  ProfileHighlightsInput,
+  ProfileRolesInput,
+  SnapshotMetricsInput,
+  SocialLinksInput,
+} from './schema';
 import type {
   Highlight,
   HighlightKind,
@@ -30,6 +36,7 @@ import type {
   RoleValues,
   SnapshotMetric,
   SocialLink,
+  SocialLinkValues,
 } from './types';
 
 export async function getProfile(db: Database, locale: Locale): Promise<Profile | null> {
@@ -217,6 +224,19 @@ export async function listMetricValues(db: Database): Promise<MetricValues[]> {
   }));
 }
 
+export async function listSocialLinkValues(db: Database): Promise<SocialLinkValues[]> {
+  const rows = await db.select().from(socialLinks).orderBy(asc(socialLinks.sortOrder), asc(socialLinks.createdAt));
+  return rows.map((row) => ({
+    key: row.id,
+    id: row.id,
+    platform: row.platform,
+    label: row.label,
+    url: row.url,
+    handle: row.handle ?? '',
+    visible: row.visible,
+  }));
+}
+
 /* ── Admin writes ───────────────────────────────────────────────────────────
  * Run inside one transaction by the service. `actor` is the admin's Clerk
  * user ID, recorded in created_by / updated_by.
@@ -400,3 +420,33 @@ const syncMetricTranslations = (db: Database, metricId: string, translations: Me
         .delete(snapshotMetricTranslations)
         .where(and(eq(snapshotMetricTranslations.metricId, metricId), eq(snapshotMetricTranslations.locale, locale))),
   });
+
+type SocialLinkItem = SocialLinksInput['items'][number];
+
+export async function replaceSocialLinks(db: Database, items: SocialLinkItem[], actor: Actor): Promise<void> {
+  const existing = await db.select({ id: socialLinks.id }).from(socialLinks);
+  const fields = ({ platform, label, url, handle, visible }: SocialLinkItem, sortOrder: number) => ({
+    platform,
+    label,
+    url,
+    handle: handle ?? null,
+    visible,
+    sortOrder,
+    updatedBy: actor.userId,
+  });
+  await reconcileList(
+    existing.map((r) => r.id),
+    items,
+    {
+      update: (id, item, sortOrder) => db.update(socialLinks).set(fields(item, sortOrder)).where(eq(socialLinks.id, id)),
+      insert: async (item, sortOrder) => {
+        const [row] = await db
+          .insert(socialLinks)
+          .values({ ...fields(item, sortOrder), createdBy: actor.userId })
+          .returning({ id: socialLinks.id });
+        return row!.id;
+      },
+      remove: (ids) => db.delete(socialLinks).where(inArray(socialLinks.id, ids)),
+    },
+  );
+}

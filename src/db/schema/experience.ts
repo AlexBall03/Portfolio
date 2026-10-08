@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { boolean, date, pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { authorship, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
 
 export const experienceKindEnum = pgEnum('experience_kind', ['career', 'education']);
 
@@ -24,6 +24,7 @@ export const experiences = pgTable('experiences', {
   status: contentStatusEnum().notNull().default('published'),
   sortOrder: sortOrder(),
   ...timestamps,
+  ...authorship,
 });
 
 export const experienceTranslations = pgTable(

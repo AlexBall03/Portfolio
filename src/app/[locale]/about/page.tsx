@@ -34,8 +34,8 @@ export default async function AboutPage({ params }: LocaleParams) {
   return (
     <PageShell page="about" locale={locale}>
       <Snapshot section={snapshotSection} metrics={metrics} />
-      <About section={aboutSection} profile={profile} roles={roles} differentiators={differentiators} t={dict.about} />
-      <Stack section={stackSection} skills={skills} t={dict.stack} />
+      <About section={aboutSection} profile={profile} roles={roles} differentiators={differentiators} />
+      <Stack section={stackSection} skills={skills} />
       <JsonLd
         data={buildPageNode({
           type: 'ProfilePage',

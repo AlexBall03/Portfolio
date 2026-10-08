@@ -81,6 +81,7 @@ export const socialLinks = pgTable('social_links', {
   visible: boolean().notNull().default(true),
   sortOrder: sortOrder(),
   ...timestamps,
+  ...authorship,
 });
 
 /** The rotating "Software Engineer · Music Director · …" list on the About page. */

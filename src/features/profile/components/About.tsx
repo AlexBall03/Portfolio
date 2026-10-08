@@ -4,7 +4,6 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import type { SectionContent } from '@/features/site/types';
-import type { Dictionary } from '@/i18n/get-dictionary';
 import type { Highlight, Profile, ProfileRole } from '../types';
 import { RoleCycler } from './RoleCycler';
 
@@ -13,10 +12,9 @@ interface AboutProps {
   profile: Profile;
   roles: ProfileRole[];
   differentiators: Highlight[];
-  t: Dictionary['about'];
 }
 
-export function About({ section, profile, roles, differentiators, t }: AboutProps) {
+export function About({ section, profile, roles, differentiators }: AboutProps) {
   return (
     <Section id="about" labelledBy="about-title">
       <SectionHeader content={section} id="about-title" />
@@ -36,9 +34,11 @@ export function About({ section, profile, roles, differentiators, t }: AboutProp
 
       {differentiators.length > 0 && (
         <div className="mt-20 lg:mt-28">
-          <Reveal>
-            <h3 className="font-mono text-label tracking-[0.16em] text-fg-faint uppercase">{t.beyondCode}</h3>
-          </Reveal>
+          {section.aside && (
+            <Reveal>
+              <h3 className="font-mono text-label tracking-[0.16em] text-fg-faint uppercase">{section.aside}</h3>
+            </Reveal>
+          )}
           <ol className="mt-6 grid gap-x-14 md:grid-cols-2">
             {differentiators.map((d, i) => (
               <li key={d.title}>

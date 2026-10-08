@@ -1,10 +1,15 @@
 import 'server-only';
 import { authEnv, blobEnv, contactEnv, githubEnv } from '@/config/env';
 import { getExperiences } from '@/features/experience/queries';
+import { getExperienceTranslationCoverage } from '@/features/experience/service';
+import { getSocialLinks } from '@/features/profile/queries';
 import { getProfileTranslationCoverage } from '@/features/profile/service';
 import { getProjects } from '@/features/projects/queries';
 import { getSkills } from '@/features/skills/queries';
+import { getSkillsTranslationCoverage } from '@/features/skills/service';
+import { getSiteCopyTranslationCoverage } from '@/features/site/service';
 import { DEFAULT_LOCALE } from '@/i18n/config';
+import type { TranslationCoverage } from '@/lib/cms/locale';
 
 /**
  * Facts for the admin dashboard. Everything is read from real configuration
@@ -55,26 +60,45 @@ export interface ContentOverview {
   skillCategories: number;
   career: number;
   education: number;
+  socialLinks: number;
 }
 
 /** Counts of what the public site currently shows (same cached reads as the pages). */
 export async function getContentOverview(): Promise<ContentOverview> {
-  const [projects, skills, experiences] = await Promise.all([
+  const [projects, skills, experiences, socials] = await Promise.all([
     getProjects(DEFAULT_LOCALE),
     getSkills(DEFAULT_LOCALE),
     getExperiences(DEFAULT_LOCALE),
+    getSocialLinks(),
   ]);
   return {
     publishedProjects: projects.length,
     skillCategories: skills.stack.length + skills.learning.length,
     career: experiences.filter((e) => e.kind === 'career').length,
     education: experiences.filter((e) => e.kind === 'education').length,
+    socialLinks: socials.length,
   };
 }
 
-/** Spanish coverage of the profile's managed content (uncached: what the editors would show). */
+export type SpanishCoverage = TranslationCoverage & { total: number };
+
+const spanish = ({ es }: { es: TranslationCoverage }): SpanishCoverage => ({
+  ...es,
+  total: es.complete + es.partial + es.missing,
+});
+
+/** Spanish coverage of each editor's bilingual content (uncached: what the editors would show). */
 export async function getTranslationOverview() {
-  const coverage = await getProfileTranslationCoverage();
-  const { complete, partial, missing } = coverage.es;
-  return { profile: { complete, partial, missing, total: complete + partial + missing } };
+  const [profile, skills, experience, pages] = await Promise.all([
+    getProfileTranslationCoverage(),
+    getSkillsTranslationCoverage(),
+    getExperienceTranslationCoverage(),
+    getSiteCopyTranslationCoverage(),
+  ]);
+  return {
+    profile: spanish(profile),
+    skills: spanish(skills),
+    experience: spanish(experience),
+    pages: spanish(pages),
+  };
 }

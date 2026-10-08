@@ -4,7 +4,13 @@ import { updateTag } from 'next/cache';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 import { runMutation } from '@/lib/cms/mutation';
 import { requireAdmin } from '@/server/auth/admin';
-import { profileDetailsInput, profileHighlightsInput, profileRolesInput, snapshotMetricsInput } from './schema';
+import {
+  profileDetailsInput,
+  profileHighlightsInput,
+  profileRolesInput,
+  snapshotMetricsInput,
+  socialLinksInput,
+} from './schema';
 import * as service from './service';
 
 /**
@@ -44,6 +50,16 @@ export async function saveSnapshotMetrics(input: unknown) {
   const admin = await requireAdmin();
   return runMutation(snapshotMetricsInput, input, async (data) => {
     const saved = await service.saveSnapshotMetrics(data, admin);
+    updateTag(CACHE_TAGS.profile);
+    return saved;
+  });
+}
+
+/** Social links editor. Socials are read under the `profile` tag (nav, footer, contact, palette, JSON-LD). */
+export async function saveSocialLinks(input: unknown) {
+  const admin = await requireAdmin();
+  return runMutation(socialLinksInput, input, async (data) => {
+    const saved = await service.saveSocialLinks(data, admin);
     updateTag(CACHE_TAGS.profile);
     return saved;
   });

@@ -125,3 +125,11 @@ export const snapshotMetricsInput = z.object({
     .max(8, 'At most 8 metrics'),
 });
 export type SnapshotMetricsInput = z.infer<typeof snapshotMetricsInput>;
+
+/** Public profile links. http(s) only, so no `javascript:` or other scheme reaches an href. */
+export const socialLinksInput = z.object({
+  items: z
+    .array(socialLinkInput.extend({ id: rowId, url: z.url({ protocol: /^https?$/, error: 'Enter a full http(s) URL' }), handle: nullableText(80) }))
+    .max(12, 'At most 12 links'),
+});
+export type SocialLinksInput = z.infer<typeof socialLinksInput>;

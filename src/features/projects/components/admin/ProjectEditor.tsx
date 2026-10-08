@@ -1,34 +1,24 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EditorForm, EditorSection } from '@/components/admin/form/EditorForm';
-import { CONTROL, FieldError, StringListField, SwitchField, TextField } from '@/components/admin/form/fields';
+import { FieldError, StringListField, SwitchField, TextField } from '@/components/admin/form/fields';
 import { LocaleTabs } from '@/components/admin/form/LocaleTabs';
 import { newKey, RepeatableList } from '@/components/admin/form/RepeatableList';
-import { SortableList } from '@/components/admin/form/SortableList';
+import { TechnologyPicker } from '@/components/admin/form/TechnologyPicker';
 import { useEditor } from '@/components/admin/form/use-editor';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { ADMIN_PROJECTS_PATH, adminProjectPath } from '@/config/admin';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
-import { cn } from '@/lib/cn';
 import { errorsByLocale, localeStatuses } from '@/lib/cms/locale';
+import { slugify } from '@/lib/cms/values';
 import { historySettled } from '@/lib/client/history-guard';
 import { createProject, deleteProject, saveProject } from '../../mutations';
 import { projectTranslationInput } from '../../schema';
 import type { ProjectValues, Technology } from '../../types';
 import { publicProjectPath } from './ProjectStatus';
-
-/** `"Next.js 16"` → `"next-js-16"`: the URL-safe form used for slugs. */
-const slugify = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
 
 interface ProjectEditorProps {
   initial: ProjectValues;
@@ -315,79 +305,5 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
         <p>It becomes a draft: its public page and card disappear until you publish it again. Nothing is deleted.</p>
       </ConfirmDialog>
     </>
-  );
-}
-
-interface TechnologyPickerProps {
-  options: Technology[];
-  chosen: ProjectValues['technologies'];
-  onChange: (next: ProjectValues['technologies']) => void;
-  error?: string;
-}
-
-/** Ordered technologies: pick an existing one (or type a new name), drag or move to reorder. */
-function TechnologyPicker({ options, chosen, onChange, error }: TechnologyPickerProps) {
-  const id = useId();
-  const [draft, setDraft] = useState('');
-  const available = options.filter((o) => !chosen.some((c) => c.slug === o.slug));
-
-  const add = () => {
-    const name = draft.trim();
-    if (!name) return;
-    const existing = options.find((o) => o.name.toLowerCase() === name.toLowerCase() || o.slug === slugify(name));
-    const tech = existing ?? { slug: slugify(name), name };
-    if (tech.slug && !chosen.some((c) => c.slug === tech.slug)) onChange([...chosen, { key: tech.slug, ...tech }]);
-    setDraft('');
-  };
-
-  return (
-    <div className="flex flex-col gap-3">
-      <SortableList
-        items={chosen}
-        onChange={onChange}
-        itemLabel={(t) => t.name}
-        onRemove={(i) => onChange(chosen.filter((_, j) => j !== i))}
-        emptyLabel="No technologies yet."
-      >
-        {(t) => (
-          <>
-            <span className="text-body-sm text-fg">{t.name}</span>
-            {!options.some((o) => o.slug === t.slug) && <span className="font-mono text-micro text-accent-fg uppercase">New</span>}
-          </>
-        )}
-      </SortableList>
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={id} className="text-body-sm font-medium text-fg">
-          Add a technology
-        </label>
-        <div className="flex gap-2">
-          <input
-            id={id}
-            list={`${id}-options`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                add();
-              }
-            }}
-            placeholder="Start typing, e.g. TypeScript"
-            autoComplete="off"
-            aria-invalid={Boolean(error) || undefined}
-            className={cn(CONTROL, 'max-w-sm')}
-          />
-          <datalist id={`${id}-options`}>
-            {available.map((o) => (
-              <option key={o.slug} value={o.name} />
-            ))}
-          </datalist>
-          <button type="button" onClick={add} disabled={!draft.trim()} className={buttonStyles({ variant: 'secondary', size: 'md' })}>
-            Add
-          </button>
-        </div>
-      </div>
-      {error && <FieldError>{error}</FieldError>}
-    </div>
   );
 }

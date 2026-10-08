@@ -43,6 +43,20 @@
       "when": 1791484322348,
       "tag": "0005_project_management",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791487603518,
+      "tag": "0006_content_editors",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791487609308,
+      "tag": "0007_section_asides",
+      "breakpoints": true
     }
   ]
 }

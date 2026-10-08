@@ -1,6 +1,9 @@
 import type { Technology } from '@/features/projects/types';
+import type { Locale } from '@/i18n/config';
 
 export type Accent = 'blue' | 'gold';
+
+export type SkillCategoryKind = 'stack' | 'learning';
 
 export interface SkillCategory {
   slug: string;
@@ -15,4 +18,30 @@ export interface SkillsOverview {
   stack: SkillCategory[];
   /** What I'm learning next (the "Looking Ahead" banner). */
   learning: SkillCategory[];
+}
+
+/* ── Admin editor values ──────────────────────────────────────────────────── */
+
+export interface SkillCategoryValues {
+  key: string;
+  id?: string;
+  slug: string;
+  icon: string;
+  accent: Accent;
+  visible: boolean;
+  /** In display order; `key` is the technology slug. */
+  technologies: (Technology & { key: string })[];
+  translations: Record<Locale, { name: string }>;
+}
+
+export type SkillCategoriesValues = Record<SkillCategoryKind, SkillCategoryValues[]>;
+
+export interface TechnologyValues {
+  key: string;
+  id: string;
+  slug: string;
+  name: string;
+  /** How many projects and skill categories list it (it can be removed only when both are 0). */
+  projects: number;
+  categories: number;
 }

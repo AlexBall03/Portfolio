@@ -23,7 +23,7 @@ export async function getPageContent(page: PageKey, locale: Locale) {
   return repo.getPageContent(await getDb(), page, locale);
 }
 
-const EMPTY_SECTION: SectionContent = { eyebrow: '', title: '', subtitle: null, body: null };
+const EMPTY_SECTION: SectionContent = { eyebrow: '', title: '', subtitle: null, body: null, aside: null };
 
 /** Heading copy for one section; renders empty rather than crashing if a row is missing. */
 export async function getSection(key: SectionKey, locale: Locale): Promise<SectionContent> {

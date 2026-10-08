@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { accentEnum, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { accentEnum, authorship, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
 
 /**
  * A technology is a language-neutral proper noun (React, C#, Neon…). It is the
@@ -11,6 +11,7 @@ export const technologies = pgTable('technologies', {
   slug: text().notNull().unique(),
   name: text().notNull(),
   ...timestamps,
+  ...authorship,
 });
 
 /** `stack` = what I work with today; `learning` = the "Looking Ahead" banner. */
@@ -25,6 +26,7 @@ export const skillCategories = pgTable('skill_categories', {
   status: contentStatusEnum().notNull().default('published'),
   sortOrder: sortOrder(),
   ...timestamps,
+  ...authorship,
 });
 
 export const skillCategoryTranslations = pgTable(

@@ -44,3 +44,13 @@ export function clearErrorsAt(errors: Record<string, string>, path: Path): Recor
   const kept = Object.entries(errors).filter(([k]) => k !== key && !k.startsWith(`${key}.`));
   return kept.length === Object.keys(errors).length ? errors : Object.fromEntries(kept);
 }
+
+/** `"Next.js 16"` → `"next-js-16"`: the URL-safe form used for slugs. */
+export const slugify = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);

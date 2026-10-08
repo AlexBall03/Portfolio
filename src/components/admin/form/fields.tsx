@@ -65,7 +65,7 @@ interface TextFieldProps extends Omit<FieldProps, 'children' | 'aside'> {
   onChange: (value: string) => void;
   placeholder?: string;
   maxLength?: number;
-  type?: 'text' | 'email' | 'number';
+  type?: 'text' | 'email' | 'number' | 'url' | 'date';
   multiline?: boolean;
   rows?: number;
   disabled?: boolean;

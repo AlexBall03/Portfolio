@@ -13,8 +13,9 @@ import {
   type ProfileHighlightsInput,
   type ProfileRolesInput,
   type SnapshotMetricsInput,
+  type SocialLinksInput,
 } from './schema';
-import type { HighlightsValues, MetricValues, ProfileDetailsValues, RoleValues } from './types';
+import type { HighlightsValues, MetricValues, ProfileDetailsValues, RoleValues, SocialLinkValues } from './types';
 
 /**
  * Profile administration: the domain operations behind the admin editors.
@@ -63,6 +64,15 @@ export async function saveProfileHighlights(data: ProfileHighlightsInput, actor:
 export async function saveSnapshotMetrics(data: SnapshotMetricsInput, actor: repo.Actor) {
   await withTransaction((tx) => repo.replaceSnapshotMetrics(tx, data.items, actor));
   return { items: await loadSnapshotMetrics() };
+}
+
+export async function loadSocialLinks(): Promise<SocialLinkValues[]> {
+  return repo.listSocialLinkValues(await getDb());
+}
+
+export async function saveSocialLinks(data: SocialLinksInput, actor: repo.Actor) {
+  await withTransaction((tx) => repo.replaceSocialLinks(tx, data.items, actor));
+  return { items: await loadSocialLinks() };
 }
 
 /** Translation coverage of every profile-owned entity, per non-default locale (dashboard). */

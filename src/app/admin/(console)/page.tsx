@@ -5,8 +5,22 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Stat, statDividers } from '@/components/ui/Stat';
 import { Status } from '@/components/ui/Status';
 import { Surface } from '@/components/ui/Surface';
-import { ADMIN_CONFIGURATION_PATH, ADMIN_PROFILE_PATH } from '@/config/admin';
-import { getContentOverview, getDeploymentOverview, getTranslationOverview } from '@/features/admin/overview';
+import {
+  ADMIN_CONFIGURATION_PATH,
+  ADMIN_CONTACT_PATH,
+  ADMIN_CONTENT_PATH,
+  ADMIN_EXPERIENCE_PATH,
+  ADMIN_PROFILE_PATH,
+  ADMIN_PROJECTS_PATH,
+  ADMIN_SKILLS_PATH,
+  ADMIN_SOCIAL_LINKS_PATH,
+} from '@/config/admin';
+import {
+  getContentOverview,
+  getDeploymentOverview,
+  getTranslationOverview,
+  type SpanishCoverage,
+} from '@/features/admin/overview';
 import { cn } from '@/lib/cn';
 import { getAdminProfile } from '@/server/auth/admin';
 
@@ -43,18 +57,54 @@ function Facts({ rows }: { rows: { label: string; value: ReactNode }[] }) {
 
 const mono = (value: string) => <code className="font-mono text-label break-all">{value}</code>;
 
+/** An editor link, with its Spanish translation status when the content is bilingual. */
+function EditorLink({ href, label, spanish }: { href: string; label: string; spanish?: SpanishCoverage }) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <Link href={href} className="text-brand-fg underline-offset-4 hover:underline">
+        {label}
+      </Link>
+      {spanish && (
+        <Status tone={spanish.complete === spanish.total ? 'success' : 'accent'}>
+          Spanish {spanish.complete}/{spanish.total}
+        </Status>
+      )}
+      {spanish && spanish.partial > 0 && <span className="text-fg-muted">{spanish.partial} incomplete</span>}
+    </span>
+  );
+}
+
 export default async function DashboardPage() {
   // Every console page authorizes itself too; this also returns the display identity.
   const profile = await getAdminProfile();
   const deployment = getDeploymentOverview();
   const [content, translations] = await Promise.all([getContentOverview(), getTranslationOverview()]);
-  const spanish = translations.profile;
 
   const counts = [
     { label: 'Published projects', value: content.publishedProjects },
     { label: 'Skill categories', value: content.skillCategories },
     { label: 'Career entries', value: content.career },
     { label: 'Education entries', value: content.education },
+  ];
+
+  const editors = [
+    { label: 'Projects', value: <EditorLink href={ADMIN_PROJECTS_PATH} label="Projects, order, images" /> },
+    { label: 'Skills', value: <EditorLink href={ADMIN_SKILLS_PATH} label="Categories, technologies" spanish={translations.skills} /> },
+    {
+      label: 'Experience',
+      value: <EditorLink href={ADMIN_EXPERIENCE_PATH} label="Career, education" spanish={translations.experience} />,
+    },
+    {
+      label: 'Profile',
+      value: <EditorLink href={ADMIN_PROFILE_PATH} label="Details, roles, highlights, metrics" spanish={translations.profile} />,
+    },
+    { label: 'Social links', value: <EditorLink href={ADMIN_SOCIAL_LINKS_PATH} label={`${content.socialLinks} visible`} /> },
+    { label: 'Contact', value: <EditorLink href={ADMIN_CONTACT_PATH} label="Heading and introduction" /> },
+    {
+      label: 'Page content',
+      value: <EditorLink href={ADMIN_CONTENT_PATH} label="SEO copy and section headings" spanish={translations.pages} />,
+    },
+    { label: 'Configuration', value: <EditorLink href={ADMIN_CONFIGURATION_PATH} label="Branding, GitHub, default theme" /> },
   ];
 
   return (
@@ -108,33 +158,8 @@ export default async function DashboardPage() {
           />
         </Panel>
 
-        <Panel title="Site" className="md:col-span-2">
-          <Facts
-            rows={[
-              {
-                label: 'Profile',
-                value: (
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <Link href={ADMIN_PROFILE_PATH} className="text-brand-fg underline-offset-4 hover:underline">
-                      Details, roles, highlights, metrics
-                    </Link>
-                    <Status tone={spanish.complete === spanish.total ? 'success' : 'accent'}>
-                      Spanish {spanish.complete}/{spanish.total}
-                    </Status>
-                    {spanish.partial > 0 && <span className="text-fg-muted">{spanish.partial} incomplete</span>}
-                  </span>
-                ),
-              },
-              {
-                label: 'Configuration',
-                value: (
-                  <Link href={ADMIN_CONFIGURATION_PATH} className="text-brand-fg underline-offset-4 hover:underline">
-                    Branding, GitHub, default theme
-                  </Link>
-                ),
-              },
-            ]}
-          />
+        <Panel title="Editors" className="md:col-span-2">
+          <Facts rows={editors} />
         </Panel>
 
         <Panel title="Published content" className="md:col-span-2">
@@ -144,8 +169,7 @@ export default async function DashboardPage() {
             ))}
           </dl>
           <p className="mt-4 border-t border-line pt-4 text-body-sm text-fg-muted">
-            What the public site shows right now. Editing for projects, skills, experience, the resume, and page copy is
-            coming to this console.
+            What the public site shows right now. Resume management is coming to this console.
           </p>
         </Panel>
       </div>

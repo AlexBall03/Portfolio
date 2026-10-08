@@ -109,3 +109,13 @@ export interface MetricValues extends ListItemValues {
   accent: Accent;
   translations: Record<Locale, { label: string; note: string }>;
 }
+
+export interface SocialLinkValues {
+  key: string;
+  id?: string;
+  platform: SocialPlatform;
+  label: string;
+  url: string;
+  handle: string;
+  visible: boolean;
+}

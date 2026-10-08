@@ -10,6 +10,11 @@ export const ADMIN_API_PATH = '/api/admin';
 export const ADMIN_PROFILE_PATH = '/admin/profile';
 export const ADMIN_CONFIGURATION_PATH = '/admin/configuration';
 export const ADMIN_PROJECTS_PATH = '/admin/projects';
+export const ADMIN_SKILLS_PATH = '/admin/skills';
+export const ADMIN_EXPERIENCE_PATH = '/admin/experience';
+export const ADMIN_SOCIAL_LINKS_PATH = '/admin/social-links';
+export const ADMIN_CONTACT_PATH = '/admin/contact';
+export const ADMIN_CONTENT_PATH = '/admin/content';
 
 /** A project's admin pages: the Details editor, or one of its tabs. */
 export const adminProjectPath = (id: string, tab?: 'media' | 'preview') =>
@@ -35,17 +40,26 @@ export interface AdminNavGroup {
 }
 
 /**
- * Console navigation. Only working destinations are listed; later Phase 4
- * steps add theirs (Content: Skills, Experience, Resume · Site: Social links,
- * Contact, Page content).
+ * Console navigation. Only working destinations are listed (Phase 4D adds
+ * Resume under Content).
  */
 export const ADMIN_NAV: readonly AdminNavGroup[] = [
   { items: [{ label: 'Dashboard', href: ADMIN_PATH, icon: 'layout' }] },
-  { label: 'Content', items: [{ label: 'Projects', href: ADMIN_PROJECTS_PATH, icon: 'layers' }] },
+  {
+    label: 'Content',
+    items: [
+      { label: 'Projects', href: ADMIN_PROJECTS_PATH, icon: 'layers' },
+      { label: 'Skills', href: ADMIN_SKILLS_PATH, icon: 'code' },
+      { label: 'Experience', href: ADMIN_EXPERIENCE_PATH, icon: 'briefcase' },
+    ],
+  },
   {
     label: 'Site',
     items: [
       { label: 'Profile', href: ADMIN_PROFILE_PATH, icon: 'user' },
+      { label: 'Social links', href: ADMIN_SOCIAL_LINKS_PATH, icon: 'globe' },
+      { label: 'Contact', href: ADMIN_CONTACT_PATH, icon: 'mail' },
+      { label: 'Page content', href: ADMIN_CONTENT_PATH, icon: 'file' },
       { label: 'Configuration', href: ADMIN_CONFIGURATION_PATH, icon: 'gauge' },
     ],
   },
