@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { buttonStyles } from '@/components/ui/button-styles';
+import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { CONTROL, FieldError } from './form/fields';
 
 interface ConfirmDialogProps {
@@ -21,8 +22,10 @@ interface ConfirmDialogProps {
 
 /**
  * A modal confirmation on the native <dialog> (focus trap, Escape, inert
- * page). Cancel is focused first, so Enter never confirms by accident;
- * destructive actions can require typing a name.
+ * page). Pinned to the viewport's center (`fixed`: `.glass-strong` would
+ * otherwise make it `relative` and leave it at the document's top) with the
+ * page scroll-locked behind it. Cancel is focused first, so Enter never
+ * confirms by accident; destructive actions can require typing a name.
  */
 export function ConfirmDialog({
   open,
@@ -47,6 +50,12 @@ export function ConfirmDialog({
     else if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    lockScroll();
+    return unlockScroll;
+  }, [open]);
+
   const blocked = pending || (requireText !== undefined && typed.trim() !== requireText);
   const cancel = () => {
     setTyped('');
@@ -62,7 +71,7 @@ export function ConfirmDialog({
         event.preventDefault();
         if (!pending) cancel();
       }}
-      className="glass-strong m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg p-0 text-fg backdrop:bg-canvas/70 backdrop:backdrop-blur-sm"
+      className="glass-strong fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-lg p-0 text-fg backdrop:bg-canvas/70 backdrop:backdrop-blur-sm open:animate-overlay-in"
     >
       <form
         className="flex flex-col gap-5 p-6"

@@ -11,7 +11,7 @@ import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { BrandMark } from './BrandMark';
 import { CommandPalette } from './CommandPalette';
 import { controlStyles, LocaleSwitch, ThemeSwitch, ThemeToggle } from './Preferences';
-import type { ChromeData } from './types';
+import { PLATFORM_ICONS, type ChromeData } from './types';
 
 const noop = () => () => {};
 /** Cosmetic only: the shortcut handler accepts both modifiers. */
@@ -48,6 +48,10 @@ const stagger = (i: number) => ({ '--i': i }) as CSSProperties;
 
 const iconButton =
   'inline-flex size-10 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.06] hover:text-fg [&_svg]:size-[18px]';
+
+/** The drawer's quick actions (resume, email). */
+const drawerAction =
+  'inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-md border border-line bg-surface-inset/60 px-3 text-body-sm font-medium text-fg-muted transition-colors hover:border-line-strong hover:text-fg [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-brand-fg';
 
 /** Command bar, mobile drawer, and command palette (they share open/close state). */
 export function SiteChrome({ data }: { data: ChromeData }) {
@@ -195,7 +199,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
         aria-label={T.nav.menu}
         inert={!menuOpen}
         data-open={menuOpen || undefined}
-        className="drawer fixed inset-y-0 right-0 z-[61] flex w-full flex-col overflow-y-auto sm:w-[26rem] lg:hidden"
+        className="drawer fixed inset-y-0 right-0 z-[61] flex w-full flex-col overflow-hidden sm:w-[26rem] lg:hidden"
       >
         {/* Same height and gutter as the command bar, so ✕ lands exactly where ☰ was. */}
         <div className="flex h-16 shrink-0 items-center border-b border-line px-gutter">
@@ -208,7 +212,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
         </div>
 
         {/* Wrapped, so the button's own `transition-colors` doesn't override the stagger. */}
-        <div style={stagger(1)} className="drawer-item px-gutter pt-5 pb-3">
+        <div style={stagger(1)} className="drawer-item shrink-0 px-gutter pt-5 pb-3">
           <button
             type="button"
             onClick={(e) => {
@@ -222,37 +226,77 @@ export function SiteChrome({ data }: { data: ChromeData }) {
           </button>
         </div>
 
-        {/* Full-bleed rows split by hairlines; the active page gets the bar's brand rule, turned vertical. */}
-        <ul className="flex flex-col border-t border-line">
-          {data.pages.map((p, i) => {
-            const active = current === p.key;
-            return (
-              <li key={p.key} style={stagger(2 + i)} className="drawer-item border-b border-line">
-                <Link
-                  href={p.href}
-                  aria-current={active ? 'page' : undefined}
-                  onClick={closeMenu}
-                  className={cn(
-                    'relative flex items-center gap-4 px-gutter py-4 transition-colors',
-                    'before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-full before:bg-brand before:transition-opacity',
-                    active ? 'text-fg before:opacity-100' : 'text-fg-muted before:opacity-0 hover:bg-fg/[0.04] hover:text-fg',
-                  )}
-                >
-                  <span className="w-5 font-mono text-micro text-accent-fg">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="font-display text-h3 font-medium">{p.label}</span>
-                  <Icon name="arrowRight" className={cn('ml-auto size-4 transition-opacity', active ? 'text-brand-fg opacity-100' : 'opacity-0')} />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {/* Only the page list scrolls; the header, search, and footer stay put. Icon-led rows with
+            each page's one-line description; the active page is a brand-tinted card. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+          <ul className="flex flex-col gap-1 px-gutter pb-4">
+            {data.pages.map((p, i) => {
+              const active = current === p.key;
+              return (
+                <li key={p.key} style={stagger(2 + i)} className="drawer-item -mx-2.5">
+                  <Link
+                    href={p.href}
+                    aria-current={active ? 'page' : undefined}
+                    onClick={closeMenu}
+                    className={cn(
+                      'relative flex items-center gap-3.5 rounded-lg px-2.5 py-2.5 transition-colors',
+                      'before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:rounded-full before:bg-brand before:transition-opacity',
+                      active ? 'bg-brand-soft/60 before:opacity-100' : 'before:opacity-0 hover:bg-fg/[0.04]',
+                    )}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'inline-flex size-10 shrink-0 items-center justify-center rounded-md border transition-colors [&_svg]:size-[18px]',
+                        active ? 'border-accent/35 bg-brand-soft text-accent-fg' : 'border-line bg-surface-inset/60 text-fg-muted',
+                      )}
+                    >
+                      <Icon name={p.icon} />
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className={cn('font-display text-body-lg font-medium', active ? 'text-fg' : 'text-fg-muted')}>{p.label}</span>
+                      {p.description && <span className="truncate text-body-sm text-fg-faint">{p.description}</span>}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
         <div
           style={stagger(2 + data.pages.length)}
-          className="drawer-item mt-auto flex items-center justify-between gap-3 border-t border-line px-gutter pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+          className="drawer-item flex shrink-0 flex-col gap-4 border-t border-line px-gutter pt-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
         >
-          <ThemeSwitch t={T.toggles} />
-          <LocaleSwitch locale={data.locale} t={T.toggles} />
+          <div className="grid grid-cols-2 gap-2">
+            {data.resume && (
+              <a href={data.resume.href} download={data.resume.fileName} className={drawerAction}>
+                <Icon name="download" />
+                <span className="truncate">{T.footer.resume}</span>
+              </a>
+            )}
+            <a href={`mailto:${data.email}`} className={cn(drawerAction, !data.resume && 'col-span-2')}>
+              <Icon name="mail" />
+              <span className="truncate">{T.footer.email}</span>
+            </a>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ThemeSwitch t={T.toggles} />
+              <LocaleSwitch locale={data.locale} t={T.toggles} />
+            </div>
+            {data.socials.length > 0 && (
+              <ul aria-label={T.footer.connect} className="-mr-2 flex items-center">
+                {data.socials.map((s) => (
+                  <li key={s.platform}>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label} className={iconButton}>
+                      <Icon name={PLATFORM_ICONS[s.platform]} />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ import type { AdminProfile } from '@/server/auth/admin';
 import { AccountButton, SignOutButton } from './AccountActions';
 import { AdminNav } from './AdminNav';
 import { AdminTopBar } from './AdminTopBar';
-import { adminGroupTitle, adminInset, type AdminPlacement, adminUtilityRow, stagger } from './styles';
+import { adminIconButton, adminInset, type AdminPlacement, adminRow, stagger } from './styles';
 
 /** The admin is English-only, so the shared theme control uses the English labels. */
 const toggles = getDictionary('en').toggles;
@@ -29,40 +29,47 @@ export function AdminIdentity({ brandMark }: { brandMark: string }) {
 
 /**
  * Everything below the brand row, shared by the rail and the drawer: the
- * navigation, then the utilities pinned to the bottom (as in the public
- * drawer): view site, theme, and the account.
+ * navigation (the only part that scrolls, on very short screens), then a
+ * pinned footer: view site beside the theme switch, and the account card.
  */
 function Panel({ profile, placement }: { profile: AdminProfile; placement: AdminPlacement }) {
   const drawer = placement === 'drawer';
-  const inset = adminInset[placement];
-  const row = cn(adminUtilityRow, inset);
   const item = (i: number) => (drawer ? { style: stagger(1 + NAV_COUNT + i), className: 'drawer-item' } : {});
 
   return (
     <>
-      <AdminNav placement={placement} />
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+        <AdminNav placement={placement} />
+      </div>
 
-      <div className="mt-auto flex flex-col border-t border-line">
+      <div
+        className={cn(
+          'flex shrink-0 flex-col gap-3 border-t border-line pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]',
+          adminInset[placement],
+        )}
+      >
         <div {...item(0)}>
-          <a href="/" target="_blank" rel="noopener" className={row}>
-            <Icon name="globe" />
-            <span>View site</span>
-            <span className="sr-only">(opens in a new tab)</span>
-            <Icon name="arrowUpRight" className="ml-auto text-fg-faint" />
-          </a>
-        </div>
-
-        <div {...item(1)} className={cn(item(1).className, 'border-t border-line')}>
-          <div className={cn('flex items-center justify-between gap-3 py-3', inset)}>
-            <span className={adminGroupTitle} aria-hidden="true">
-              {toggles.theme}
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener"
+              className={cn(
+                'flex min-w-0 items-center rounded-md text-fg-muted transition-colors hover:bg-fg/[0.05] hover:text-fg [&_svg]:size-4 [&_svg]:shrink-0',
+                adminRow(placement),
+              )}
+            >
+              <Icon name="globe" className="text-fg-faint" />
+              <span className="truncate">View site</span>
+              <span className="sr-only">(opens in a new tab)</span>
+              <Icon name="arrowUpRight" className="text-fg-faint" />
+            </a>
             <ThemeSwitch t={toggles} />
           </div>
         </div>
 
-        <div {...item(2)} className={cn(item(2).className, 'border-t border-line')}>
-          <div className={cn('flex items-center gap-3 pt-4 pb-2', inset)}>
+        <div {...item(1)}>
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-surface-inset/50 p-2.5">
             {profile.imageUrl ? (
               // Clerk-hosted avatar; a plain <img> avoids configuring remote image domains for one 32px picture.
               // eslint-disable-next-line @next/next/no-img-element
@@ -72,14 +79,18 @@ function Panel({ profile, placement }: { profile: AdminProfile; placement: Admin
                 {profile.name.slice(0, 1).toUpperCase()}
               </span>
             )}
-            <div className="flex min-w-0 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-body-sm font-medium text-fg">{profile.name}</span>
-              {profile.email && <span className="truncate font-mono text-micro text-fg-faint">{profile.email}</span>}
+              {profile.email && (
+                <span title={profile.email} className="truncate text-micro tracking-normal text-fg-faint">
+                  {profile.email}
+                </span>
+              )}
             </div>
-          </div>
-          <div className="flex flex-col pb-[env(safe-area-inset-bottom,0px)]">
-            <AccountButton className={row} />
-            <SignOutButton className={row} />
+            <div className="flex shrink-0 items-center">
+              <AccountButton iconOnly className={adminIconButton} />
+              <SignOutButton iconOnly className={adminIconButton} />
+            </div>
           </div>
         </div>
       </div>
@@ -102,8 +113,8 @@ export function AdminShell({ profile, brandMark, children }: { profile: AdminPro
         Skip to content
       </a>
 
-      <aside aria-label="Admin sidebar" className="admin-rail sticky top-0 hidden h-svh w-64 shrink-0 flex-col overflow-y-auto lg:flex">
-        <div className="flex h-16 shrink-0 items-center border-b border-line px-2.5">
+      <aside aria-label="Admin sidebar" className="admin-rail sticky top-0 hidden h-svh w-64 shrink-0 flex-col lg:flex">
+        <div className="flex h-16 shrink-0 items-center border-b border-line px-3.5">
           <AdminIdentity brandMark={brandMark} />
         </div>
         <Panel profile={profile} placement="rail" />

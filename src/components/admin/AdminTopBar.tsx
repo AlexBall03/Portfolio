@@ -103,7 +103,7 @@ export function AdminTopBar({ brand, children }: { brand: ReactNode; children: R
         inert={!open}
         data-open={open || undefined}
         onClick={onDrawerClick}
-        className="drawer fixed inset-y-0 right-0 z-[61] flex w-full flex-col overflow-y-auto sm:w-[26rem] lg:hidden"
+        className="drawer fixed inset-y-0 right-0 z-[61] flex w-full flex-col overflow-hidden sm:w-[26rem] lg:hidden"
       >
         {/* Same height and gutter as the bar, so ✕ lands exactly where ☰ was. */}
         <div className="flex h-16 shrink-0 items-center border-b border-line px-gutter">
@@ -114,7 +114,7 @@ export function AdminTopBar({ brand, children }: { brand: ReactNode; children: R
             </button>
           </div>
         </div>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
     </>
   );

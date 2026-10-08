@@ -1,6 +1,6 @@
 /**
- * Counted body scroll lock shared by every overlay (mobile drawer, command
- * palette). Both can be open in the same frame — the drawer hands off to the
+ * Counted body scroll lock shared by every overlay (mobile drawers, command
+ * palette, confirm dialogs). Both can be open in the same frame — the drawer hands off to the
  * palette — so locks are counted and the page unlocks only when the last one
  * closes. `position: fixed` (not just `overflow: hidden`) is what holds the
  * page on iOS Safari; the saved offset restores the scroll position.
