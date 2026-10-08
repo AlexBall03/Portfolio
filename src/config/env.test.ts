@@ -7,9 +7,14 @@ afterEach(() => vi.unstubAllEnvs());
 describe('authEnv', () => {
   it('reads the admin ID and the Clerk instance type', () => {
     stubAuthEnv();
-    expect(authEnv()).toEqual({ adminUserId: ADMIN_ID, instance: 'development' });
+    expect(authEnv()).toEqual({ adminUserId: ADMIN_ID, publishableKey: fakeKey('pk'), instance: 'development' });
     stubAuthEnv({ pk: fakeKey('pk', 'live'), sk: fakeKey('sk', 'live') });
     expect(authEnv().instance).toBe('production');
+  });
+
+  it('returns the publishable key trimmed, as Clerk needs it', () => {
+    stubAuthEnv({ pk: ` ${fakeKey('pk')}\n` });
+    expect(authEnv().publishableKey).toBe(fakeKey('pk'));
   });
 
   it('names every missing variable', () => {

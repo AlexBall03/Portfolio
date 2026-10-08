@@ -56,6 +56,7 @@ export default async function AdminRootLayout({ children }: { children: ReactNod
         {auth.configured ? (
           // Inside <body>, as Clerk requires with Cache Components.
           <ClerkProvider
+            publishableKey={auth.env.publishableKey}
             appearance={clerkAppearance}
             signInUrl={ADMIN_SIGN_IN_PATH}
             // There is no sign-up page; any stray sign-up link lands on sign-in.

@@ -22,7 +22,7 @@ Clerk handles identity: it signs you in and says *who* you are. The site handles
 | Vercel **Preview** (and Vercel "Development") | Development | Vercel project → Settings → Environment Variables, scoped to Preview |
 | Vercel **Production** | Production | the same screen, scoped to Production |
 
-`NEXT_PUBLIC_*` values are inlined at build time, so after changing any of them, **redeploy** (Vercel) or **rebuild** (`npm run build` locally; `npm run dev` picks changes up on restart).
+`NEXT_PUBLIC_*` values are inlined at build time, so after changing any of them, **redeploy** (Vercel, with "Use existing Build Cache" unchecked) or **rebuild** (`npm run build` locally; `npm run dev` picks changes up on restart). The proxy and `ClerkProvider` pass Clerk the runtime-validated, trimmed key explicitly, so Clerk never uses a stale or untrimmed build-time copy; still, paste keys without surrounding quotes or whitespace.
 
 ---
 

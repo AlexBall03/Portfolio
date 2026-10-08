@@ -54,7 +54,13 @@ const withClerk = clerkMiddleware(
       }),
     );
   },
-  { signInUrl: ADMIN_SIGN_IN_PATH },
+  // Hand Clerk the key the proxy just validated, read at runtime. Clerk's own
+  // default is `process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, which Next
+  // inlines at build time, so it can differ from (and fail where) ours passes.
+  () => {
+    const config = authStatus();
+    return { signInUrl: ADMIN_SIGN_IN_PATH, publishableKey: config.configured ? config.env.publishableKey : undefined };
+  },
 );
 
 function applyGate(request: NextRequest, decision: GateDecision) {

@@ -4,9 +4,10 @@ import { z } from 'zod';
 /**
  * Server environment, validated lazily per concern so that a missing optional
  * integration (e.g. GitHub) degrades that feature instead of crashing the app.
- * Nothing here is ever exposed to the client. The one NEXT_PUBLIC_ variable,
- * Clerk's publishable key, is public by design; it is validated here only so
- * that auth configuration fails as a whole.
+ * Nothing here is ever exposed to the client except Clerk's publishable key,
+ * which is public by design. It is validated here so that auth configuration
+ * fails as a whole, and read here (at runtime) so that Clerk gets the same
+ * value the proxy checked instead of the copy Next inlines at build time.
  */
 
 const nonEmpty = z.string().trim().min(1);
@@ -68,6 +69,8 @@ export const contactEnv = () => read(contactSchema, 'contact');
 
 export interface AuthEnv {
   adminUserId: string;
+  /** Pass explicitly to Clerk: its own `process.env` read is frozen at build time. */
+  publishableKey: string;
   /** Which Clerk instance the keys belong to. */
   instance: 'development' | 'production';
 }
@@ -79,7 +82,11 @@ export interface AuthEnv {
  */
 export function authEnv(): AuthEnv {
   const env = read(authSchema, 'admin authentication');
-  return { adminUserId: env.ADMIN_CLERK_USER_ID, instance: instanceOf(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) };
+  return {
+    adminUserId: env.ADMIN_CLERK_USER_ID,
+    publishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    instance: instanceOf(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY),
+  };
 }
 
 export type AuthStatus = { configured: true; env: AuthEnv } | { configured: false; error: string };
