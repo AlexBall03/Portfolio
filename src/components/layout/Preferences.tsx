@@ -1,20 +1,18 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
-import { LOCALES, LOCALE_TAGS, type Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import { copy } from '@/config/copy';
 import { cn } from '@/lib/cn';
-import { useSwitchLocale } from '@/lib/client/locale';
 import { useTheme } from '@/lib/client/theme';
 
-type Toggles = Dictionary['toggles'];
+const t = copy.toggles;
 
-/** Shared shell of the bordered utility controls (search, theme, language). */
+/** Shared shell of the bordered utility controls (search, theme). */
 export const controlStyles =
   'inline-flex h-9 items-center rounded-md border border-line text-fg-muted transition-colors hover:border-line-strong hover:text-fg';
 
 /** Icon-only theme toggle for the command bar; the drawer and footer use ThemeSwitch. */
-export function ThemeToggle({ t, className }: { t: Toggles; className?: string }) {
+export function ThemeToggle({ className }: { className?: string }) {
   const [theme, setTheme] = useTheme();
   const current = theme === 'dark' ? t.dark : t.light;
   return (
@@ -29,15 +27,15 @@ export function ThemeToggle({ t, className }: { t: Toggles; className?: string }
   );
 }
 
-/** One option of a segmented control (theme, language): equal-width, inner pill when selected. */
+/** One option of a segmented control: equal-width, inner pill when selected. */
 const segment = (selected: boolean) =>
   cn(
     'inline-flex h-full min-w-9 items-center justify-center rounded-[calc(var(--radius-md)-3px)] px-2 font-mono text-micro uppercase transition-colors [&_svg]:size-4',
     selected ? 'bg-brand-soft text-fg' : 'text-fg-faint hover:text-fg',
   );
 
-/** Dark/light segmented control, the twin of LocaleSwitch. */
-export function ThemeSwitch({ t, className }: { t: Toggles; className?: string }) {
+/** Dark/light segmented control. */
+export function ThemeSwitch({ className }: { className?: string }) {
   const [theme, setTheme] = useTheme();
   const options = [
     { value: 'dark', label: t.dark, icon: 'moon' },
@@ -62,24 +60,3 @@ export function ThemeSwitch({ t, className }: { t: Toggles; className?: string }
   );
 }
 
-/** EN/ES segmented control. */
-export function LocaleSwitch({ locale, t, className }: { locale: Locale; t: Toggles; className?: string }) {
-  const switchLocale = useSwitchLocale();
-  return (
-    <div role="group" aria-label={t.language} className={cn(controlStyles, 'p-0.5', className)}>
-      {LOCALES.map((l) => (
-        <button
-          key={l}
-          type="button"
-          lang={l}
-          aria-pressed={locale === l}
-          aria-label={LOCALE_TAGS[l].label}
-          onClick={() => locale !== l && switchLocale(l)}
-          className={segment(locale === l)}
-        >
-          {l}
-        </button>
-      ))}
-    </div>
-  );
-}

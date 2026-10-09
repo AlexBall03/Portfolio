@@ -1,19 +1,17 @@
 import { z } from 'zod';
 import { isIconName } from '@/components/ui/icons';
 import { technologyInput } from '@/features/projects/schema';
-import { accent, contentStatus, icon, localized, slug, text } from '@/lib/validation';
-
-export const skillCategoryTranslationInput = z.object({ name: text(80) });
+import { accent, contentStatus, icon, slug, text } from '@/lib/validation';
 
 export const skillCategoryInput = z.object({
   slug,
+  name: text(80),
   kind: z.enum(['stack', 'learning']).default('stack'),
   icon,
   accent: accent.default('blue'),
   status: contentStatus.default('published'),
   /** Technology slugs, in display order. */
   technologies: z.array(slug).min(1),
-  translations: localized(skillCategoryTranslationInput),
 });
 export type SkillCategoryInput = z.infer<typeof skillCategoryInput>;
 
@@ -26,6 +24,7 @@ export type SkillCategoryInput = z.infer<typeof skillCategoryInput>;
 const categoryItem = z.object({
   id: z.uuid().optional(),
   slug,
+  name: text(80),
   icon: z.string().trim().refine(isIconName, 'Choose an icon from the set'),
   accent: accent.default('blue'),
   visible: z.boolean().default(true),
@@ -34,7 +33,6 @@ const categoryItem = z.object({
     .min(1, 'Add at least one technology')
     .max(30, 'At most 30 technologies')
     .refine((list) => new Set(list.map((t) => t.slug)).size === list.length, 'Each technology can be listed once'),
-  translations: localized(skillCategoryTranslationInput),
 });
 
 export const skillCategoriesInput = z

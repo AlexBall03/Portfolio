@@ -1,6 +1,5 @@
-import { relations } from 'drizzle-orm';
-import { integer, pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { authorship, localeEnum, timestamps } from './_shared';
+import { integer, pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { authorship, timestamps } from './_shared';
 
 /**
  * Where an asset's bytes live. `static` = a path under /public, `blob` = an
@@ -17,28 +16,9 @@ export const mediaAssets = pgTable('media_assets', {
   mimeType: text(),
   width: integer(),
   height: integer(),
+  alt: text().notNull(),
+  /** Optional caption, shown with the image where the layout has room for one. */
+  caption: text(),
   ...timestamps,
   ...authorship,
 });
-
-export const mediaAssetTranslations = pgTable(
-  'media_asset_translations',
-  {
-    assetId: uuid()
-      .notNull()
-      .references(() => mediaAssets.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    alt: text().notNull(),
-    /** Optional caption, shown with the image where the layout has room for one. */
-    caption: text(),
-  },
-  (t) => [primaryKey({ columns: [t.assetId, t.locale] })],
-);
-
-export const mediaAssetsRelations = relations(mediaAssets, ({ many }) => ({
-  translations: many(mediaAssetTranslations),
-}));
-
-export const mediaAssetTranslationsRelations = relations(mediaAssetTranslations, ({ one }) => ({
-  asset: one(mediaAssets, { fields: [mediaAssetTranslations.assetId], references: [mediaAssets.id] }),
-}));

@@ -1,7 +1,6 @@
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
-import { notFound } from 'next/navigation';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { BackToTop } from '@/components/layout/BackToTop';
@@ -13,27 +12,17 @@ import { PointerGlow } from '@/components/layout/PointerGlow';
 import { SiteChrome } from '@/components/layout/SiteChrome';
 import { Splash } from '@/components/layout/Splash';
 import { JsonLd } from '@/components/ui/JsonLd';
-import { GOOGLE_ANALYTICS_ID, SITE_URL } from '@/config/site';
+import { copy } from '@/config/copy';
+import { GOOGLE_ANALYTICS_ID, SITE_LANG, SITE_URL } from '@/config/site';
 import { getExperiences } from '@/features/experience/queries';
 import { getProfile, getSocialLinks } from '@/features/profile/queries';
 import { getSiteSettings } from '@/features/site/queries';
 import { getSkills } from '@/features/skills/queries';
-import { isLocale, LOCALES } from '@/i18n/config';
-import { getDictionary } from '@/i18n/get-dictionary';
 import { buildSiteGraph } from '@/lib/seo/structured-data';
 import { splashInitScript } from '@/lib/splash-script';
 import { themeInitScript } from '@/lib/theme-script';
 import { fontVariables } from '@/styles/fonts';
 import '@/styles/globals.css';
-
-interface LayoutProps {
-  children: ReactNode;
-  params: Promise<{ locale: string }>;
-}
-
-export function generateStaticParams() {
-  return LOCALES.map((locale) => ({ locale }));
-}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -42,10 +31,8 @@ export const viewport: Viewport = {
   ],
 };
 
-export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
-  const { locale } = await params;
-  if (!isLocale(locale)) return {};
-  const profile = await getProfile(locale);
+export async function generateMetadata(): Promise<Metadata> {
+  const profile = await getProfile();
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: `${profile.fullName} — ${profile.title}`, template: `%s — ${profile.fullName}` },
@@ -65,23 +52,19 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   };
 }
 
-export default async function LocaleLayout({ children, params }: LayoutProps) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
-
-  const dict = getDictionary(locale);
+export default async function SiteLayout({ children }: { children: ReactNode }) {
   const [settings, chrome, profile, socials, experiences, skills] = await Promise.all([
     getSiteSettings(),
-    getChromeData(locale),
-    getProfile(locale),
+    getChromeData(),
+    getProfile(),
     getSocialLinks(),
-    getExperiences(locale),
-    getSkills(locale),
+    getExperiences(),
+    getSkills(),
   ]);
 
   return (
     <html
-      lang={locale}
+      lang={SITE_LANG}
       data-theme={settings.defaultTheme}
       className={fontVariables}
       // The inline script below may change data-theme before hydration.
@@ -96,9 +79,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:text-on-brand"
         >
-          {dict.nav.skipToContent}
+          {copy.nav.skipToContent}
         </a>
-        <Splash text={settings.brandMark} label={dict.loading.label} />
+        <Splash text={settings.brandMark} label={copy.loading.label} />
         <Background />
         <PointerGlow />
         <NavigationProgress />
@@ -107,7 +90,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           {children}
         </main>
         <Footer data={chrome} ownerName={profile.fullName} statement={profile.statement} />
-        <BackToTop label={dict.nav.backToTop} shortLabel={dict.nav.backToTopShort} />
+        <BackToTop label={copy.nav.backToTop} shortLabel={copy.nav.backToTopShort} />
         <JsonLd data={buildSiteGraph({ profile, socials, experiences, skills })} />
         <Analytics />
         <SpeedInsights />

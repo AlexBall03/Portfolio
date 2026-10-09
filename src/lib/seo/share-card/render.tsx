@@ -2,7 +2,6 @@ import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 import { ImageResponse } from 'next/og';
 import { SHARE_CARD_SIZE } from '@/config/site';
-import type { Locale } from '@/i18n/config';
 import { CACHE_LIFE } from '@/lib/cache-tags';
 import { loadFonts, loadImage } from './assets';
 import type { ShareCard } from './card';
@@ -15,12 +14,12 @@ import { cardInputs, SHARE_CARD_TAGS } from './inputs';
  * refreshes the cards exactly as it refreshes the pages. Content comes from
  * `cardInputs`, the same source as the page's `?v=` version.
  */
-export async function renderShareCard(locale: Locale, card: ShareCard): Promise<Uint8Array | null> {
+export async function renderShareCard(card: ShareCard): Promise<Uint8Array | null> {
   'use cache';
   cacheLife(CACHE_LIFE.content);
   cacheTag(...SHARE_CARD_TAGS);
 
-  const spec = await cardInputs(locale, card);
+  const spec = await cardInputs(card);
   if (!spec) return null;
   const image = await loadImage(spec.image);
   const element =

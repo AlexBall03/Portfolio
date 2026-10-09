@@ -6,16 +6,15 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EditorForm, EditorSection } from '@/components/admin/form/EditorForm';
 import { FieldError, TextField } from '@/components/admin/form/fields';
 import { ImageUploadField, sendUpload } from '@/components/admin/form/ImageUploadField';
-import { LocaleTabs } from '@/components/admin/form/LocaleTabs';
+
 import { useEditor } from '@/components/admin/form/use-editor';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { Icon } from '@/components/ui/Icon';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
-import { errorsByLocale, localeStatuses } from '@/lib/cms/locale';
+
 import type { MutationResult } from '@/lib/cms/result';
 import type { ImageMimeType } from '@/lib/image-file';
 import { removeHeadshot, saveHeadshotText } from '../../mutations';
-import { headshotTranslationInput } from '../../schema';
+
 import type { HeadshotValues } from '../../types';
 
 const UPLOAD_URL = '/api/admin/profile/headshot';
@@ -33,10 +32,10 @@ async function save({ file, ...values }: Values): Promise<MutationResult<Values>
   if (file) {
     const body = new FormData();
     body.set('file', file);
-    for (const l of LOCALES) body.set(`alt.${l}`, values.translations[l].alt);
+    body.set('alt', values.alt);
     result = await sendUpload<HeadshotValues>(UPLOAD_URL, body);
   } else if (values.photo) {
-    result = await saveHeadshotText({ translations: values.translations });
+    result = await saveHeadshotText({ alt: values.alt });
   } else {
     return { ok: false, fieldErrors: { file: 'Choose a photo to upload' }, formError: 'There is no photo yet: choose one first.' };
   }
@@ -56,12 +55,10 @@ interface ProfileHeadshotEditorProps {
  */
 export function ProfileHeadshotEditor({ initial, storageConfigured }: ProfileHeadshotEditorProps) {
   const editor = useEditor<Values>(withFile(initial), save);
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removeError, setRemoveError] = useState<string>();
   const [removing, startRemove] = useTransition();
   const { values } = editor;
-  const english = values.translations[DEFAULT_LOCALE];
 
   const remove = () =>
     startRemove(async () => {
@@ -93,7 +90,7 @@ export function ProfileHeadshotEditor({ initial, storageConfigured }: ProfileHea
                 {values.photo ? (
                   <Image
                     src={values.photo.src}
-                    alt={english.alt}
+                    alt={values.alt}
                     fill
                     sizes="208px"
                     className="object-cover object-[50%_18%]"
@@ -136,20 +133,13 @@ export function ProfileHeadshotEditor({ initial, storageConfigured }: ProfileHea
           </div>
         </EditorSection>
 
-        <EditorSection title="Alt text" description="What the photo shows, for people who can't see it. Per language.">
-          <LocaleTabs
-            active={locale}
-            onChange={setLocale}
-            status={localeStatuses(headshotTranslationInput, [values.translations])}
-            errorCount={errorsByLocale(editor.errors)}
-          >
-            <TextField
-              label="Alt text"
-              maxLength={300}
-              placeholder={locale === DEFAULT_LOCALE ? 'e.g. Portrait of Alexander D. Ball' : english.alt}
-              {...editor.text(['translations', locale, 'alt'])}
-            />
-          </LocaleTabs>
+        <EditorSection title="Alt text" description="What the photo shows, for people who can't see it.">
+          <TextField
+            label="Alt text"
+            maxLength={300}
+            placeholder="e.g. Portrait of Alexander D. Ball"
+            {...editor.text(['alt'])}
+          />
         </EditorSection>
       </EditorForm>
 

@@ -5,17 +5,16 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EditorForm, EditorSection } from '@/components/admin/form/EditorForm';
 import { StringListField, SwitchField, TextField } from '@/components/admin/form/fields';
-import { LocaleTabs } from '@/components/admin/form/LocaleTabs';
+
 import { TechnologyPicker } from '@/components/admin/form/TechnologyPicker';
 import { useEditor } from '@/components/admin/form/use-editor';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { ADMIN_PROJECTS_PATH, adminProjectPath } from '@/config/admin';
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
-import { errorsByLocale, localeStatuses } from '@/lib/cms/locale';
+
 import { slugify } from '@/lib/cms/values';
 import { historySettled } from '@/lib/client/history-guard';
 import { createProject, deleteProject, saveProject } from '../../mutations';
-import { projectTranslationInput } from '../../schema';
+
 import type { ProjectValues, Technology } from '../../types';
 import { publicProjectPath } from './ProjectStatus';
 
@@ -34,7 +33,6 @@ interface ProjectEditorProps {
 export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
   const router = useRouter();
   const editor = useEditor(initial, (values) => (values.id ? saveProject(values) : createProject(values)));
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [confirm, setConfirm] = useState<'delete' | 'unpublish' | null>(null);
   const [deleteError, setDeleteError] = useState<string>();
   const [deleting, startDelete] = useTransition();
@@ -42,9 +40,6 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
   const { values, baseline } = editor;
   const isNew = baseline.id === null;
   const live = baseline.status === 'published';
-  const t = values.translations[locale];
-  const en = values.translations.en;
-  const path = (...rest: (string | number)[]) => ['translations', locale, ...rest];
 
   // A new project's first save created it: continue on its own page.
   useEffect(() => {
@@ -54,7 +49,7 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
   }, [baseline.id, initial.id, router]);
 
   // Status, name, or URL changed: refresh the server-rendered header around the form.
-  const shown = `${baseline.status}|${baseline.slug}|${baseline.translations.en.name}`;
+  const shown = `${baseline.status}|${baseline.slug}|${baseline.name}`;
   const lastShown = useRef(shown);
   useEffect(() => {
     if (lastShown.current === shown || isNew) return;
@@ -63,8 +58,8 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
   }, [shown, isNew, router]);
 
   const onName = (name: string) => {
-    editor.set(['translations', locale, 'name'], name);
-    if (isNew && locale === DEFAULT_LOCALE && !slugEdited.current) editor.set(['slug'], slugify(name));
+    editor.set(['name'], name);
+    if (isNew && !slugEdited.current) editor.set(['slug'], slugify(name));
   };
 
   const onDelete = () =>
@@ -142,58 +137,35 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
           </div>
         </EditorSection>
 
-        <EditorSection title="Content" description="Name and copy, in each language.">
-          <LocaleTabs
-            active={locale}
-            onChange={setLocale}
-            status={localeStatuses(projectTranslationInput, [values.translations])}
-            errorCount={errorsByLocale(editor.errors)}
-          >
-            {(() => {
-              const placeholder = (v: string) => (locale === DEFAULT_LOCALE ? undefined : v);
-              return (
-                <>
-                  <TextField
-                    label="Name"
-                    maxLength={120}
-                    placeholder={placeholder(en.name)}
-                    {...editor.text(path('name'))}
-                    onChange={onName}
-                  />
-                  <TextField
-                    label="Tagline"
-                    hint="One line under the name, on cards and the project page."
-                    maxLength={200}
-                    placeholder={placeholder(en.tagline)}
-                    {...editor.text(path('tagline'))}
-                  />
-                  <TextField
-                    label="Summary"
-                    hint="The lead paragraph: what it is, and why it matters."
-                    maxLength={2000}
-                    multiline
-                    rows={4}
-                    placeholder={placeholder(en.summary)}
-                    {...editor.text(path('summary'))}
-                  />
-                  <StringListField
-                    label="Description"
-                    hint="Optional paragraphs after the summary on the project page: approach, decisions, outcomes."
-                    values={t.body}
-                    onChange={(next) => editor.update((v) => ({ ...v, translations: { ...v.translations, [locale]: { ...v.translations[locale], body: next } } }), path('body'))}
-                    errorAt={(i) => editor.errorFor(path('body', i))}
-                    error={editor.errorFor(path('body'))}
-                    placeholderAt={(i) => placeholder(en.body[i] ?? '')}
-                    itemLabel={(i) => `Paragraph ${i + 1}`}
-                    addLabel="Add paragraph"
-                    max={12}
-                    multiline
-                    maxLength={2000}
-                  />
-                </>
-              );
-            })()}
-          </LocaleTabs>
+        <EditorSection title="Content" description="Name and copy.">
+          <TextField label="Name" maxLength={120} {...editor.text(['name'])} onChange={onName} />
+          <TextField
+            label="Tagline"
+            hint="One line under the name, on cards and the project page."
+            maxLength={200}
+            {...editor.text(['tagline'])}
+          />
+          <TextField
+            label="Summary"
+            hint="The lead paragraph: what it is, and why it matters."
+            maxLength={2000}
+            multiline
+            rows={4}
+            {...editor.text(['summary'])}
+          />
+          <StringListField
+            label="Description"
+            hint="Optional paragraphs after the summary on the project page: approach, decisions, outcomes."
+            values={values.body}
+            onChange={(next) => editor.set(['body'], next)}
+            errorAt={(i) => editor.errorFor(['body', i])}
+            error={editor.errorFor(['body'])}
+            itemLabel={(i) => `Paragraph ${i + 1}`}
+            addLabel="Add paragraph"
+            max={12}
+            multiline
+            maxLength={2000}
+          />
         </EditorSection>
 
         <EditorSection title="Links" description="Optional. Each one appears on the project page when set.">
@@ -227,7 +199,7 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
               Delete this project
             </h2>
             <p className="text-body-sm text-fg-muted">
-              Removes it, its translations, and its images for good. To hide it instead, unpublish it.
+              Removes it, its case study, and its images for good. To hide it instead, unpublish it.
             </p>
           </div>
           <button type="button" onClick={() => setConfirm('delete')} className={buttonStyles({ variant: 'danger', size: 'sm' })}>
@@ -250,8 +222,8 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
         onConfirm={onDelete}
       >
         <p>
-          <strong className="text-fg">{baseline.translations.en.name}</strong> will be removed permanently, with its
-          translations and uploaded images. {live && 'Its public page will stop working immediately.'} This can’t be undone.
+          <strong className="text-fg">{baseline.name}</strong> will be removed permanently, with its
+          case study and uploaded images. {live && 'Its public page will stop working immediately.'} This can’t be undone.
         </p>
       </ConfirmDialog>
 

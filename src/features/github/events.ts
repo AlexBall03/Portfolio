@@ -1,5 +1,4 @@
-import { fill } from '@/i18n/paths';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import { copy, fill, type Copy } from '@/config/copy';
 import type { GithubCommit, GithubEvent } from '@/integrations/github/schemas';
 import type { Activity, ActivityEvent } from './types';
 
@@ -14,7 +13,7 @@ function subject(title: string | undefined, number: number | undefined): string 
 /**
  * Normalizes a raw GitHub event into a language-neutral activity record, or
  * null for event types the portfolio doesn't show. Wording happens at render
- * time (`describeActivity`) so it can be localized.
+ * time (`describeActivity`).
  */
 export function normalizeEvent(event: GithubEvent): Activity | null {
   const p = event.payload;
@@ -89,7 +88,7 @@ export function mergeActivity(
   return [...kept, ...commits].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
-type EventStrings = Dictionary['github']['events'];
+type EventStrings = Copy['github']['events'];
 
 const PULL_REQUEST_KEYS = {
   opened: 'pullRequestOpened',
@@ -104,8 +103,9 @@ const ISSUE_KEYS = {
   reopened: 'issueReopened',
 } as const satisfies Record<string, keyof EventStrings>;
 
-/** Localized one-line description of an activity. */
-export function describeActivity(a: ActivityEvent, t: EventStrings): string {
+/** One-line description of an activity. */
+export function describeActivity(a: ActivityEvent): string {
+  const t = copy.github.events;
   switch (a.type) {
     case 'push':
       return a.ref ? fill(t.push, { ref: a.ref }) : t.pushNoRef;

@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { Icon } from '@/components/ui/Icon';
 import { RelativeTime } from '@/components/ui/RelativeTime';
-import { LOCALE_TAGS, type Locale } from '@/i18n/config';
-import { fill, localizedPath } from '@/i18n/paths';
+import { copy, fill } from '@/config/copy';
+import { INTL_LOCALE } from '@/config/site';
 import { createLogger } from '@/lib/logger';
 import { getGithubOverview } from '../overview';
 import type { GithubOverview } from '../types';
@@ -12,17 +12,10 @@ const log = createLogger('github');
 
 interface GithubPulseProps {
   username: string;
-  locale: Locale;
-  t: {
-    title: string;
-    repos: string;
-    lastActivity: string;
-    link: string;
-    /** "{count} contributions in the last 6 months" and its singular. */
-    contributions: string;
-    contributionsOne: string;
-  };
 }
+
+const home = copy.home;
+const github = copy.github;
 
 const CARD = 'glass flex flex-col gap-6 rounded-xl p-6';
 
@@ -31,7 +24,7 @@ const CARD = 'glass flex flex-col gap-6 rounded-xl p-6';
  * overview as the Projects page's GitHub section (no extra requests), and
  * renders nothing when GitHub is unavailable, so it can never break the page.
  */
-export async function GithubPulse({ username, locale, t }: GithubPulseProps) {
+export async function GithubPulse({ username }: GithubPulseProps) {
   let overview: GithubOverview | null = null;
   try {
     overview = await getGithubOverview(username);
@@ -42,12 +35,12 @@ export async function GithubPulse({ username, locale, t }: GithubPulseProps) {
   const total = overview?.calendar?.total;
   const last = overview?.lastActivityAt;
   if (repos == null && total == null && !last) return null;
-  const fmt = (n: number) => n.toLocaleString(LOCALE_TAGS[locale].intl);
+  const fmt = (n: number) => n.toLocaleString(INTL_LOCALE);
 
   return (
     <aside aria-labelledby="pulse-title" className={CARD}>
       <h3 id="pulse-title" className="flex items-center gap-2.5 font-mono text-label tracking-[0.14em] text-fg uppercase">
-        <Icon name="github" className="size-4" /> {t.title}
+        <Icon name="github" className="size-4" /> {home.pulseTitle}
       </h3>
       {total != null && (
         <p className="flex flex-col gap-1.5">
@@ -55,28 +48,28 @@ export async function GithubPulse({ username, locale, t }: GithubPulseProps) {
             {fmt(total)}
           </span>
           <span className="text-body-sm text-fg-muted">
-            {total === 1 ? t.contributionsOne : fill(t.contributions, { count: fmt(total) })}
+            {total === 1 ? github.contributionsCaptionOne : fill(github.contributionsCaption, { count: fmt(total) })}
           </span>
         </p>
       )}
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-5">
         {repos != null && (
           <div className="flex flex-col gap-1">
-            <dt className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{t.repos}</dt>
+            <dt className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{home.pulseRepos}</dt>
             <dd className="font-display text-h3 text-fg tabular-nums">{repos}</dd>
           </div>
         )}
         {last && (
           <div className="flex flex-col gap-1">
-            <dt className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{t.lastActivity}</dt>
+            <dt className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">{home.pulseLastActivity}</dt>
             <dd className="text-body-sm font-medium text-fg">
-              <RelativeTime iso={last} locale={LOCALE_TAGS[locale].intl} />
+              <RelativeTime iso={last} />
             </dd>
           </div>
         )}
       </dl>
-      <Link href={`${localizedPath(locale, '/projects')}#github`} className={buttonStyles({ variant: 'quiet', className: 'self-start' })}>
-        {t.link} <Icon name="arrowRight" />
+      <Link href="/projects#github" className={buttonStyles({ variant: 'quiet', className: 'self-start' })}>
+        {home.pulseLink} <Icon name="arrowRight" />
       </Link>
     </aside>
   );

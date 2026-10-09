@@ -3,8 +3,7 @@
 import { useActionState, useState, type FormEvent } from 'react';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { Icon } from '@/components/ui/Icon';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { fill } from '@/i18n/paths';
+import { copy, fill } from '@/config/copy';
 import { cn } from '@/lib/cn';
 import { sendContactMessage } from '../actions';
 import {
@@ -18,8 +17,9 @@ import {
 
 interface ContactFormProps {
   email: string;
-  t: Dictionary['contact'];
 }
+
+const t = copy.contact;
 
 /** Remounting via `key` is how "Send another" resets the action state. */
 export function ContactForm(props: ContactFormProps) {
@@ -43,7 +43,7 @@ const CONTROL =
   'hover:border-fg/25 focus:border-brand focus:bg-surface-inset focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--focus)_18%,transparent)] focus:outline-none ' +
   'aria-[invalid=true]:border-danger aria-[invalid=true]:focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--danger)_18%,transparent)]';
 
-function ContactFormRound({ email, t, onReset }: ContactFormProps & { onReset: () => void }) {
+function ContactFormRound({ email, onReset }: ContactFormProps & { onReset: () => void }) {
   const [state, formAction, pending] = useActionState<ContactState, FormData>(sendContactMessage, { status: 'idle' });
   const [clientErrors, setClientErrors] = useState<FieldErrors | null>(null);
   const values = state.status === 'invalid' || state.status === 'error' ? state.values : null;

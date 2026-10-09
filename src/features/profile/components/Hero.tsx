@@ -7,17 +7,13 @@ import { Icon } from '@/components/ui/Icon';
 import { LocalTime } from '@/components/ui/LocalTime';
 import { Reveal } from '@/components/ui/Reveal';
 import { Status } from '@/components/ui/Status';
-import { LOCALE_TAGS, type Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { localizedPath } from '@/i18n/paths';
 import { displayName, initials } from '../display-name';
 import type { Profile } from '../types';
+import { copy } from '@/config/copy';
 
 interface HeroProps {
   profile: Profile;
   monogram: string;
-  locale: Locale;
-  t: Dictionary['hero'];
 }
 
 /** Small L-shaped registration marks on the portrait frame. */
@@ -25,7 +21,8 @@ function Corner({ className }: { className: string }) {
   return <span aria-hidden="true" className={`absolute size-4 ${className}`} />;
 }
 
-export function Hero({ profile, monogram, locale, t }: HeroProps) {
+export function Hero({ profile, monogram }: HeroProps) {
+  const t = copy.hero;
   const [first, rest] = displayName(profile.fullName);
   const meta = [
     { label: t.focusLabel, value: profile.hero.focus },
@@ -69,10 +66,10 @@ export function Hero({ profile, monogram, locale, t }: HeroProps) {
 
           <Reveal delay={240}>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ size: 'lg' })}>
+              <Link href={'/projects'} className={buttonStyles({ size: 'lg' })}>
                 {t.ctaProjects} <Icon name="arrowRight" />
               </Link>
-              <Link href={localizedPath(locale, '/about')} className={buttonStyles({ variant: 'secondary', size: 'lg' })}>
+              <Link href={'/about'} className={buttonStyles({ variant: 'secondary', size: 'lg' })}>
                 {t.ctaAbout}
               </Link>
             </div>
@@ -92,7 +89,7 @@ export function Hero({ profile, monogram, locale, t }: HeroProps) {
                   {profile.locationLabel}
                   <span className="block font-mono text-micro font-normal text-fg-muted tabular-nums">
                     <span className="sr-only">{t.localTime}: </span>
-                    <LocalTime locale={LOCALE_TAGS[locale].intl} timeZone={profile.timeZone} />
+                    <LocalTime timeZone={profile.timeZone} />
                   </span>
                 </dd>
               </div>

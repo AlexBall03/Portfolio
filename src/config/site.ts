@@ -2,20 +2,23 @@
  * Structural, code-owned site constants. Editable content (name, bio, socials,
  * page copy, …) lives in the database — see src/features/profile and src/features/site.
  */
-import type { Locale } from '@/i18n/config';
-
 export const SITE_URL = 'https://alexball.dev';
 
-/** Generated share cards (Open Graph / Twitter), served by app/og/[locale]/[...card]. */
+/** The site's language: `<html lang>`, `Intl` formatting, and Open Graph. */
+export const SITE_LANG = 'en';
+export const INTL_LOCALE = 'en-US';
+export const OG_LOCALE = 'en_US';
+
+/** Generated share cards (Open Graph / Twitter), served by app/og/[...card]. */
 export const SHARE_CARD_SIZE = { width: 1200, height: 630 } as const;
 
 /**
- * Site path of a page's share card: "/" → /og/en/home.png, "/about" → /og/en/about.png,
- * "/projects/x" → /og/en/projects/x.png. The extension keeps it out of the locale proxy.
+ * Site path of a page's share card: "/" → /og/home.png, "/about" → /og/about.png,
+ * "/projects/x" → /og/projects/x.png.
  */
-export function shareCardPath(locale: Locale, path: string): string {
+export function shareCardPath(path: string): string {
   const trimmed = path.replace(/^\/+|\/+$/g, '');
-  return `/og/${locale}/${trimmed || 'home'}.png`;
+  return `/og/${trimmed || 'home'}.png`;
 }
 
 /** JSON-LD node identifiers. Fragment @ids, not fetchable URLs. */
@@ -41,8 +44,8 @@ export function absoluteMediaUrl(src: string): string {
  * a scraped image per URL, so a new `v` (a hash of everything the card shows)
  * makes them fetch the updated card; the route itself ignores the query.
  */
-export function shareCardUrl(locale: Locale, path: string, version?: string | null): string {
-  const url = absoluteUrl(shareCardPath(locale, path));
+export function shareCardUrl(path: string, version?: string | null): string {
+  const url = absoluteUrl(shareCardPath(path));
   return version ? `${url}?v=${version}` : url;
 }
 

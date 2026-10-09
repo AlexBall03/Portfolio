@@ -1,6 +1,3 @@
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
-import { pickTranslation } from '@/i18n/translations';
-
 export type MediaStorage = 'static' | 'blob' | 'external';
 
 /** A media asset resolved for rendering. Storage details never leak past here. */
@@ -19,7 +16,8 @@ interface MediaRow {
   width: number | null;
   height: number | null;
   mimeType: string | null;
-  translations: readonly { locale: Locale; alt: string; caption?: string | null }[];
+  alt: string;
+  caption?: string | null;
 }
 
 /**
@@ -27,16 +25,13 @@ interface MediaRow {
  * paths under /public; blob and external assets are stored as absolute URLs.
  * A future storage backend that needs signing or a CDN prefix plugs in here.
  */
-export function resolveMedia(row: MediaRow | null | undefined, locale: Locale): MediaAsset | null {
+export function resolveMedia(row: MediaRow | null | undefined): MediaAsset | null {
   if (!row) return null;
   const src = row.storage === 'static' ? `/${row.src.replace(/^\/+/, '')}` : row.src;
-  const t = pickTranslation(row.translations, locale);
-  // Captions are optional per locale: a translation without one keeps the English caption.
-  const caption = t?.caption || pickTranslation(row.translations, DEFAULT_LOCALE)?.caption || null;
   return {
     src,
-    alt: t?.alt ?? '',
-    caption,
+    alt: row.alt,
+    caption: row.caption || null,
     width: row.width,
     height: row.height,
     mimeType: row.mimeType,

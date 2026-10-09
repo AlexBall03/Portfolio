@@ -6,17 +6,17 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EditorForm, EditorSection } from '@/components/admin/form/EditorForm';
 import { FieldError, TextField } from '@/components/admin/form/fields';
 import { checkImageFile, ImageUploadField, sendUpload } from '@/components/admin/form/ImageUploadField';
-import { LocaleTabs, TranslationBadge } from '@/components/admin/form/LocaleTabs';
+
 import { SortableList } from '@/components/admin/form/SortableList';
 import { useEditor } from '@/components/admin/form/use-editor';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { Surface } from '@/components/ui/Surface';
-import { DEFAULT_LOCALE, LOCALE_TAGS, LOCALES, type Locale } from '@/i18n/config';
+
 import { cn } from '@/lib/cn';
-import { errorsByLocale, localeStatuses, translationStatus } from '@/lib/cms/locale';
+
 import type { FieldErrors } from '@/lib/cms/result';
 import { saveProjectMedia } from '../../mutations';
-import { mediaTranslationInput } from '../../schema';
+
 import type { ProjectMediaItemValues, ProjectMediaValues } from '../../types';
 
 const mediaUrl = (projectId: string, assetId?: string) =>
@@ -36,7 +36,6 @@ interface ProjectMediaEditorProps {
  */
 export function ProjectMediaEditor({ projectId, initial, storageConfigured }: ProjectMediaEditorProps) {
   const editor = useEditor(initial, (values) => saveProjectMedia({ projectId, ...values }));
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [removing, setRemoving] = useState<number | null>(null);
   const [replaceError, setReplaceError] = useState<{ key: string; message: string } | null>(null);
   const [replacing, startReplace] = useTransition();
@@ -79,67 +78,53 @@ export function ProjectMediaEditor({ projectId, initial, storageConfigured }: Pr
           title="Images"
           description="The hero image fronts the project's card and page; the others form its gallery, in this order."
         >
-          <LocaleTabs
-            active={locale}
-            onChange={setLocale}
-            status={localeStatuses(mediaTranslationInput, items.map((i) => i.translations))}
-            errorCount={errorsByLocale(editor.errors)}
+          <SortableList
+            items={items}
+            onChange={setItems}
+            itemLabel={(item, i) => item.alt || `image ${i + 1}`}
+            onRemove={setRemoving}
+            disabled={editor.pending}
+            emptyLabel="No images yet. Upload one above; the first becomes the hero."
           >
-            <SortableList
-              items={items}
-              onChange={setItems}
-              itemLabel={(item, i) => item.translations.en.alt || `image ${i + 1}`}
-              onRemove={setRemoving}
-              disabled={editor.pending}
-              emptyLabel="No images yet. Upload one above; the first becomes the hero."
-            >
-              {(item, i) => (
-                <div className="grid w-full gap-4 py-2 sm:grid-cols-[11rem_minmax(0,1fr)]">
-                  <div className="flex flex-col gap-2">
-                    <div className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line bg-surface-inset">
-                      <Image src={item.src} alt="" fill sizes="176px" className="object-cover object-top" />
-                    </div>
-                    <span className="font-mono text-micro text-fg-faint">
-                      {item.width && item.height ? `${item.width} × ${item.height}` : 'Size unknown'}
-                    </span>
-                    <label className="flex cursor-pointer items-center gap-2 text-body-sm text-fg">
-                      <input
-                        type="radio"
-                        name={`${projectId}-hero`}
-                        checked={item.isCover}
-                        onChange={() => setItems(items.map((x, j) => ({ ...x, isCover: j === i })))}
-                        className="accent-[var(--brand)]"
-                      />
-                      Hero image
-                    </label>
-                    <ReplaceButton
-                      label={item.translations.en.alt || `image ${i + 1}`}
-                      disabled={!fileOps || replacing}
-                      onFile={(file) => replace(item, file)}
-                    />
-                    {replaceError?.key === item.key && <FieldError>{replaceError.message}</FieldError>}
+            {(item, i) => (
+              <div className="grid w-full gap-4 py-2 sm:grid-cols-[11rem_minmax(0,1fr)]">
+                <div className="flex flex-col gap-2">
+                  <div className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line bg-surface-inset">
+                    <Image src={item.src} alt="" fill sizes="176px" className="object-cover object-top" />
                   </div>
-                  <div className="flex min-w-0 flex-col gap-4">
-                    <TranslationBadge locale={locale} status={translationStatus(mediaTranslationInput, item.translations[locale])} />
-                    <TextField
-                      label="Alt text"
-                      hint="What the image shows, for people who can't see it."
-                      maxLength={300}
-                      placeholder={locale === DEFAULT_LOCALE ? undefined : item.translations.en.alt}
-                      {...editor.text(['items', i, 'translations', locale, 'alt'])}
+                  <span className="font-mono text-micro text-fg-faint">
+                    {item.width && item.height ? `${item.width} × ${item.height}` : 'Size unknown'}
+                  </span>
+                  <label className="flex cursor-pointer items-center gap-2 text-body-sm text-fg">
+                    <input
+                      type="radio"
+                      name={`${projectId}-hero`}
+                      checked={item.isCover}
+                      onChange={() => setItems(items.map((x, j) => ({ ...x, isCover: j === i })))}
+                      className="accent-[var(--brand)]"
                     />
-                    <TextField
-                      label="Caption (optional)"
-                      maxLength={300}
-                      placeholder={locale === DEFAULT_LOCALE ? undefined : item.translations.en.caption}
-                      {...editor.text(['items', i, 'translations', locale, 'caption'])}
-                    />
-                  </div>
+                    Hero image
+                  </label>
+                  <ReplaceButton
+                    label={item.alt || `image ${i + 1}`}
+                    disabled={!fileOps || replacing}
+                    onFile={(file) => replace(item, file)}
+                  />
+                  {replaceError?.key === item.key && <FieldError>{replaceError.message}</FieldError>}
                 </div>
-              )}
-            </SortableList>
-            {editor.errorFor(['items']) && <FieldError>{editor.errorFor(['items'])}</FieldError>}
-          </LocaleTabs>
+                <div className="flex min-w-0 flex-col gap-4">
+                  <TextField
+                    label="Alt text"
+                    hint="What the image shows, for people who can't see it."
+                    maxLength={300}
+                    {...editor.text(['items', i, 'alt'])}
+                  />
+                  <TextField label="Caption (optional)" maxLength={300} {...editor.text(['items', i, 'caption'])} />
+                </div>
+              </div>
+            )}
+          </SortableList>
+          {editor.errorFor(['items']) && <FieldError>{editor.errorFor(['items'])}</FieldError>}
         </EditorSection>
       </EditorForm>
 
@@ -189,7 +174,7 @@ function ReplaceButton({ label, disabled, onFile }: { label: string; disabled: b
   );
 }
 
-const blankMeta = () => Object.fromEntries(LOCALES.map((l) => [l, { alt: '', caption: '' }])) as Record<Locale, { alt: string; caption: string }>;
+const blankMeta = () => ({ alt: '', caption: '' });
 
 interface UploadPanelProps {
   projectId: string;
@@ -212,10 +197,8 @@ function UploadPanel({ projectId, disabled, reason, onUploaded }: UploadPanelPro
       if (!file) return setErrors({ file: 'Choose an image to upload' });
       const body = new FormData();
       body.set('file', file);
-      for (const l of LOCALES) {
-        body.set(`alt.${l}`, meta[l].alt);
-        body.set(`caption.${l}`, meta[l].caption);
-      }
+      body.set('alt', meta.alt);
+      body.set('caption', meta.caption);
       const result = await sendUpload<ProjectMediaValues>(mediaUrl(projectId), body);
       if (result.ok) {
         onUploaded(result.data);
@@ -230,13 +213,13 @@ function UploadPanel({ projectId, disabled, reason, onUploaded }: UploadPanelPro
       }
     });
 
-  const field = (l: Locale, key: 'alt' | 'caption') => ({
-    value: meta[l][key],
+  const field = (key: 'alt' | 'caption') => ({
+    value: meta[key],
     onChange: (v: string) => {
       setDone(false);
-      setMeta((m) => ({ ...m, [l]: { ...m[l], [key]: v } }));
+      setMeta((m) => ({ ...m, [key]: v }));
     },
-    error: errors[`translations.${l}.${key}`],
+    error: errors[key],
     disabled: disabled || pending,
   });
 
@@ -265,16 +248,8 @@ function UploadPanel({ projectId, disabled, reason, onUploaded }: UploadPanelPro
           disabled={disabled || pending}
         />
         <div className="grid gap-5 md:grid-cols-2">
-          {LOCALES.map((l) => (
-            <div key={l} className="flex flex-col gap-4">
-              <TextField
-                label={`Alt text · ${LOCALE_TAGS[l].label}${l === DEFAULT_LOCALE ? '' : ' (optional)'}`}
-                maxLength={300}
-                {...field(l, 'alt')}
-              />
-              <TextField label={`Caption · ${LOCALE_TAGS[l].label} (optional)`} maxLength={300} {...field(l, 'caption')} />
-            </div>
-          ))}
+          <TextField label="Alt text" maxLength={300} {...field('alt')} />
+          <TextField label="Caption (optional)" maxLength={300} {...field('caption')} />
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button

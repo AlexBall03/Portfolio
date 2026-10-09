@@ -83,7 +83,7 @@ async function createProject(slug: string, status: 'draft' | 'published' = 'publ
   const values = service.blankProject();
   values.slug = slug;
   values.status = status;
-  values.translations.en = { name: `Project ${slug}`, tagline: 'Tagline', summary: 'Summary.', body: [] };
+  Object.assign(values, { name: `Project ${slug}`, tagline: 'Tagline', summary: 'Summary.', body: [] });
   const result = await actions.createProject(values);
   if (!result.ok) throw new Error(JSON.stringify(result));
   return result.data.id!;
@@ -107,7 +107,7 @@ const stored = (projectId: string) =>
   db.select().from(projectRepositories).where(eq(projectRepositories.projectId, projectId)).orderBy(projectRepositories.sortOrder);
 
 async function publicProject(slug: string) {
-  const lookup = await findProjectBySlug(db, slug, 'en');
+  const lookup = await findProjectBySlug(db, slug);
   return lookup.kind === 'found' ? lookup.project : null;
 }
 

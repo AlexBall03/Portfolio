@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import type { Copy } from '@/config/copy';
 
 /**
  * Contact form contract, shared by the browser (instant feedback) and the
- * Server Action (the actual trust boundary). Error messages are dictionary
- * keys, so both sides render the visitor's language.
+ * Server Action (the actual trust boundary). Errors are keys into the UI
+ * copy, so the action returns codes and the form owns the wording.
  */
-export type ContactErrorKey = keyof Dictionary['contact']['errors'];
+export type ContactErrorKey = keyof Copy['contact']['errors'];
 
 const err = (key: ContactErrorKey) => ({ error: key });
 

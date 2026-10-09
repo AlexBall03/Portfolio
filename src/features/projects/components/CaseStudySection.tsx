@@ -2,20 +2,20 @@ import type { ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { InlineText, RichText } from '@/components/ui/RichText';
 import { Status } from '@/components/ui/Status';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import { copy } from '@/config/copy';
 import { cn } from '@/lib/cn';
 import { videoEmbed } from '../case-study';
 import type { CaseStudySection as Section } from '../types';
 import { GalleryLightbox } from './GalleryLightbox';
 
-type T = Dictionary['projects'];
+const t = copy.projects;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export const sectionAnchor = (id: string) => `section-${id}`;
 
-/** Labels the lightbox needs, from the projects dictionary. */
-export const lightboxLabels = (t: T) => ({
+/** Labels the lightbox needs, from the projects copy. */
+export const lightboxLabels = () => ({
   view: t.viewImage,
   close: t.closeImage,
   previous: t.previousImage,
@@ -32,14 +32,12 @@ export function CaseStudyBlock({
   index,
   heading,
   hidden,
-  t,
   children,
 }: {
   anchor: string;
   index: number;
   heading: string;
   hidden?: boolean;
-  t: T;
   children: ReactNode;
 }) {
   const headingId = `${anchor}-title`;
@@ -60,7 +58,7 @@ export function CaseStudyBlock({
 }
 
 /** A case-study section's content, by kind. Parts a section leaves empty simply don't render. */
-export function CaseStudyContent({ section: s, title, t }: { section: Section; title: string; t: T }) {
+export function CaseStudyContent({ section: s, title }: { section: Section; title: string }) {
   const intro = s.body.length > 0 && <RichText paragraphs={s.body} lead={s.kind === 'narrative'} />;
 
   switch (s.kind) {
@@ -71,7 +69,7 @@ export function CaseStudyContent({ section: s, title, t }: { section: Section; t
       return (
         <>
           {intro}
-          {s.media.length > 0 && <GalleryLightbox images={s.media} layout="stack" labels={lightboxLabels(t)} />}
+          {s.media.length > 0 && <GalleryLightbox images={s.media} layout="stack" labels={lightboxLabels()} />}
         </>
       );
 
@@ -79,7 +77,7 @@ export function CaseStudyContent({ section: s, title, t }: { section: Section; t
       return (
         <>
           {intro}
-          <GalleryLightbox images={s.media} labels={lightboxLabels(t)} />
+          <GalleryLightbox images={s.media} labels={lightboxLabels()} />
         </>
       );
 

@@ -2,22 +2,20 @@ import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
 import { ADMIN_SIGN_IN_PATH, isAdminApiPath, isAdminPath } from '@/config/admin';
 import { authStatus } from '@/config/env';
-import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/i18n/config';
-import { localizedPath, splitLocale } from '@/i18n/paths';
+import { legacyLocaleRedirect } from '@/lib/legacy-locale';
 import { adminGate, type GateDecision } from '@/server/auth/gate';
 
 /**
  * Request routing that runs before rendering.
  *
- * Locale URL policy (public site):
- *   /about        → rendered as /en/about (rewrite; English stays unprefixed)
- *   /en/about     → 308 to /about (one canonical URL per page)
- *   /es/about     → rendered as-is
- *   /about + cookie locale=es → 307 to /es/about (remembers an explicit choice)
+ * Public site: pages render at their own URL. The retired language prefixes
+ * answer with a permanent redirect to the English page (query string kept):
+ *   /es/projects/x?tech=react → 308 to /projects/x?tech=react
+ *   /en/about                 → 308 to /about
  *
- * Admin (/admin, /api/admin): no locale handling; Clerk resolves the session
- * and `adminGate` makes the first authorization decision. Clerk runs only
- * there and on Server Action requests, so public pages never touch it.
+ * Admin (/admin, /api/admin): Clerk resolves the session and `adminGate` makes
+ * the first authorization decision. Clerk runs only there and on Server Action
+ * requests, so public pages never touch it.
  */
 export function proxy(request: NextRequest, event: NextFetchEvent) {
   // The retired api.alexball.dev subdomain: send any traffic to the main site.
@@ -36,12 +34,12 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   } else if (admin) {
     return applyGate(request, adminGate({ pathname: request.nextUrl.pathname, userId: null, adminUserId: null }));
   }
-  return localeRouting(request);
+  return publicRouting(request);
 }
 
 const withClerk = clerkMiddleware(
   async (auth, request) => {
-    if (!isAdminPath(request.nextUrl.pathname)) return localeRouting(request);
+    if (!isAdminPath(request.nextUrl.pathname)) return publicRouting(request);
     const config = authStatus();
     const { userId } = await auth();
     return applyGate(
@@ -73,38 +71,26 @@ function applyGate(request: NextRequest, decision: GateDecision) {
       if (isAdminApiPath(request.nextUrl.pathname)) {
         return NextResponse.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
       }
-      // Render the public site's 404 (real 404 status), exactly what any unknown URL gets.
+      // Render the public site's 404 (real 404 status), exactly what any unknown URL gets:
+      // a path no route claims reaches the site's catch-all.
       const url = request.nextUrl.clone();
-      url.pathname = `/${DEFAULT_LOCALE}${request.nextUrl.pathname}`;
+      url.pathname = NOT_FOUND_PATH;
       url.search = '';
       return NextResponse.rewrite(url);
     }
   }
 }
 
-function localeRouting(request: NextRequest) {
-  const { nextUrl } = request;
-  const { locale, path, prefixed } = splitLocale(nextUrl.pathname);
+/** Matched by no route, so it renders the site's not-found page (`app/(site)/[...rest]`). */
+const NOT_FOUND_PATH = '/not-found';
 
-  if (prefixed) {
-    if (locale !== DEFAULT_LOCALE) return NextResponse.next();
-    return redirect(request, localizedPath(DEFAULT_LOCALE, path), 308);
-  }
-
-  const preferred = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (isLocale(preferred) && preferred !== DEFAULT_LOCALE) {
-    return redirect(request, localizedPath(preferred, path), 307);
-  }
-
-  const url = nextUrl.clone();
-  url.pathname = `/${DEFAULT_LOCALE}${path === '/' ? '' : path}`;
-  return NextResponse.rewrite(url);
-}
-
-function redirect(request: NextRequest, pathname: string, status: 307 | 308) {
+function publicRouting(request: NextRequest) {
+  const target = legacyLocaleRedirect(request.nextUrl.pathname);
+  if (!target) return NextResponse.next();
+  // Same origin by construction: only the path of a clone of the request URL changes.
   const url = request.nextUrl.clone();
-  url.pathname = pathname;
-  return NextResponse.redirect(url, status);
+  url.pathname = target;
+  return NextResponse.redirect(url, 308);
 }
 
 export const config = {

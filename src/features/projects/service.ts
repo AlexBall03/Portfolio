@@ -1,8 +1,8 @@
 import 'server-only';
 import { getDb, withTransaction } from '@/db/client';
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
+
 import { blobStore, type MediaStore } from '@/integrations/blob/store';
-import { blankLocales } from '@/lib/cms/locale';
+
 import { removeStoredFiles } from '@/lib/cms/media-files';
 import { FieldValidationError, NotFoundError } from '@/lib/errors';
 import { MAX_IMAGE_BYTES, sniffImage } from '@/lib/image-file';
@@ -57,7 +57,10 @@ export function blankProject(): ProjectValues {
     sourceUrl: '',
     detailsUrl: '',
     technologies: [],
-    translations: blankLocales(() => ({ name: '', tagline: '', summary: '', body: [] })),
+    name: '',
+    tagline: '',
+    summary: '',
+    body: [],
     publishedAt: null,
   };
 }
@@ -75,13 +78,13 @@ export async function loadTechnologies() {
 }
 
 /** A project as its public page would render it, whatever its status, with hidden content flagged. */
-export async function loadProjectPreview(id: string, locale: Locale = DEFAULT_LOCALE): Promise<ProjectCaseStudy | null> {
-  return repo.findProjectForPreview(await getDb(), id, locale);
+export async function loadProjectPreview(id: string): Promise<ProjectCaseStudy | null> {
+  return repo.findProjectForPreview(await getDb(), id);
 }
 
 /** Published projects, for the preview's related-projects section (the same set public pages use). */
-export async function loadPublishedProjects(locale: Locale = DEFAULT_LOCALE) {
-  return repo.listPublishedProjects(await getDb(), locale);
+export async function loadPublishedProjects() {
+  return repo.listPublishedProjects(await getDb());
 }
 
 export async function loadProjectOrder() {
@@ -315,7 +318,7 @@ export async function uploadProjectImage(
 ): Promise<ProjectMediaValues> {
   if (!(await repo.projectExists(await getDb(), data.projectId))) throw new NotFoundError('The project');
   await storeThen(store, data.projectId, data.bytes, (image) =>
-    withTransaction((tx) => repo.insertProjectImage(tx, data.projectId, image, data.translations, actor)),
+    withTransaction((tx) => repo.insertProjectImage(tx, data.projectId, image, { alt: data.alt, caption: data.caption }, actor)),
   );
   return (await loadProjectMedia(data.projectId)) ?? { items: [] };
 }

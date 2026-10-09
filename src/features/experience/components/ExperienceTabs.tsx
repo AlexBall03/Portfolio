@@ -3,15 +3,14 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { copy } from '@/config/copy';
 import type { SectionContent } from '@/features/site/types';
-import type { Dictionary } from '@/i18n/get-dictionary';
 import { cn } from '@/lib/cn';
 
 type Tab = 'career' | 'education';
 
 interface ExperienceTabsProps {
   section: SectionContent;
-  t: Dictionary['experience'];
   /** Server-rendered timelines; only the active one is shown. */
   panels: Record<Tab, ReactNode>;
 }
@@ -21,7 +20,8 @@ interface ExperienceTabsProps {
  * timelines. A single pill glides to the selected tab, and the incoming
  * timeline slides in from the direction of travel.
  */
-export function ExperienceTabs({ section, t, panels }: ExperienceTabsProps) {
+export function ExperienceTabs({ section, panels }: ExperienceTabsProps) {
+  const t = copy.experience;
   const [tab, setTab] = useState<Tab>('career');
   // Unset until the first switch, so the initial render keeps the scroll reveal.
   const [dir, setDir] = useState<'next' | 'prev'>();

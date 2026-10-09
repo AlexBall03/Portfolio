@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { INTL_LOCALE } from '@/config/site';
 
-function format(locale: string, timeZone: string) {
-  return new Intl.DateTimeFormat(locale, {
+function format(timeZone: string) {
+  return new Intl.DateTimeFormat(INTL_LOCALE, {
     timeZone,
     hour: 'numeric',
     minute: '2-digit',
@@ -12,7 +13,6 @@ function format(locale: string, timeZone: string) {
 }
 
 interface LocalTimeProps {
-  locale: string;
   timeZone: string;
   className?: string;
 }
@@ -21,12 +21,12 @@ interface LocalTimeProps {
  * Live wall-clock time in the owner's time zone. Empty in server HTML (a
  * prerendered time would be stale), then ticks on the minute in the browser.
  */
-export function LocalTime({ locale, timeZone, className }: LocalTimeProps) {
+export function LocalTime({ timeZone, className }: LocalTimeProps) {
   const [time, setTime] = useState<string | null>(null);
 
   useEffect(() => {
     let interval = 0;
-    const tick = () => setTime(format(locale, timeZone));
+    const tick = () => setTime(format(timeZone));
     const first = window.setTimeout(tick, 0);
     // Align updates with the wall-clock minute instead of page-load time.
     const aligned = window.setTimeout(() => {
@@ -44,7 +44,7 @@ export function LocalTime({ locale, timeZone, className }: LocalTimeProps) {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [locale, timeZone]);
+  }, [timeZone]);
 
   return <span className={className}>{time}</span>;
 }

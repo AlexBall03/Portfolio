@@ -4,9 +4,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import type { SectionContent } from '@/features/site/types';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { localizedPath } from '@/i18n/paths';
 import { cn } from '@/lib/cn';
 import type { Project } from '../types';
 import { ProjectCard } from './ProjectCard';
@@ -18,8 +15,6 @@ interface FeaturedWorkProps {
   section: SectionContent;
   /** Published projects in CMS order; the first featured ones are shown. */
   projects: Project[];
-  locale: Locale;
-  t: Dictionary['projects'];
   labels: { viewAll: string; readCaseStudy: string };
 }
 
@@ -28,12 +23,12 @@ interface FeaturedWorkProps {
  * study. Not a second index: no filters, no GitHub data. Renders nothing when
  * no project is featured.
  */
-export function FeaturedWork({ section, projects, locale, t, labels }: FeaturedWorkProps) {
+export function FeaturedWork({ section, projects, labels }: FeaturedWorkProps) {
   const featured = projects.filter((p) => p.featured).slice(0, FEATURED_ON_HOME);
   if (!featured.length) return null;
 
   const viewAll = (
-    <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ variant: 'quiet' })}>
+    <Link href={'/projects'} className={buttonStyles({ variant: 'quiet' })}>
       {labels.viewAll} <Icon name="arrowRight" />
     </Link>
   );
@@ -50,7 +45,7 @@ export function FeaturedWork({ section, projects, locale, t, labels }: FeaturedW
         {featured.map((p, i) => (
           // Three cards in two columns: the lead project takes the full-width row.
           <li key={p.id} className={cn(featured.length === 3 && i === 0 && 'md:col-span-2 lg:col-span-1')}>
-            <ProjectCard project={p} index={i} locale={locale} t={t} layout="tile" headingLevel="h3" cta={labels.readCaseStudy} />
+            <ProjectCard project={p} index={i} layout="tile" headingLevel="h3" cta={labels.readCaseStudy} />
           </li>
         ))}
       </ul>

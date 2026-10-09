@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { PageShell } from '@/components/layout/PageShell';
 import { JsonLd } from '@/components/ui/JsonLd';
+import { copy } from '@/config/copy';
 import { GithubPulse, GithubPulseSkeleton } from '@/features/github/components/GithubPulse';
 import { Hero } from '@/features/profile/components/Hero';
 import { getProfile } from '@/features/profile/queries';
@@ -12,13 +13,11 @@ import { getSection, getSiteSettings } from '@/features/site/queries';
 import { sectionOr } from '@/features/site/types';
 import { Toolkit } from '@/features/skills/components/Toolkit';
 import { getSkills } from '@/features/skills/queries';
-import { getDictionary } from '@/i18n/get-dictionary';
-import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
 import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
-export async function generateMetadata({ params }: LocaleParams) {
-  return topLevelPageMetadata('home', await resolveLocale(params), '/');
+export async function generateMetadata() {
+  return topLevelPageMetadata('home', '/');
 }
 
 /**
@@ -26,61 +25,43 @@ export async function generateMetadata({ params }: LocaleParams) {
  * GitHub pulse, next steps). Everything comes from cached reads the other pages
  * share; GitHub streams in its own boundary and can only remove its card.
  */
-export default async function HomePage({ params }: LocaleParams) {
-  const locale = await resolveLocale(params);
-  const dict = getDictionary(locale);
+export default async function HomePage() {
   const [profile, settings, seo, projects, skills, featured, toolkit, cta] = await Promise.all([
-    getProfile(locale),
+    getProfile(),
     getSiteSettings(),
-    resolvePageSeo('home', locale),
-    getProjects(locale),
-    getSkills(locale),
-    getSection('featured', locale),
-    getSection('toolkit', locale),
-    getSection('cta', locale),
+    resolvePageSeo('home'),
+    getProjects(),
+    getSkills(),
+    getSection('featured'),
+    getSection('toolkit'),
+    getSection('cta'),
   ]);
   const github = settings.showGithubSection ? settings.githubUsername : null;
 
   return (
-    <PageShell page="home" locale={locale}>
-      <Hero profile={profile} monogram={settings.monogram} locale={locale} t={dict.hero} />
+    <PageShell page="home">
+      <Hero profile={profile} monogram={settings.monogram} />
       <FeaturedWork
-        section={sectionOr(featured, dict.home.featured)}
+        section={sectionOr(featured, copy.home.featured)}
         projects={projects}
-        locale={locale}
-        t={dict.projects}
-        labels={{ viewAll: dict.home.viewAll, readCaseStudy: dict.home.readCaseStudy }}
+        labels={{ viewAll: copy.home.viewAll, readCaseStudy: copy.home.readCaseStudy }}
       />
       <Toolkit
-        section={sectionOr(toolkit, dict.home.toolkit)}
+        section={sectionOr(toolkit, copy.home.toolkit)}
         skills={skills}
         usage={usageCounts(projects)}
-        locale={locale}
-        t={dict.skills}
         aside={
           github && (
             <Suspense fallback={<GithubPulseSkeleton />}>
-              <GithubPulse
-                username={github}
-                locale={locale}
-                t={{
-                  title: dict.home.pulseTitle,
-                  repos: dict.home.pulseRepos,
-                  lastActivity: dict.home.pulseLastActivity,
-                  link: dict.home.pulseLink,
-                  contributions: dict.github.contributionsCaption,
-                  contributionsOne: dict.github.contributionsCaptionOne,
-                }}
-              />
+              <GithubPulse username={github} />
             </Suspense>
           )
         }
       />
-      <ClosingBand section={sectionOr(cta, dict.home.cta)} locale={locale} nav={dict.nav} />
+      <ClosingBand section={sectionOr(cta, copy.home.cta)} />
       <JsonLd
         data={buildPageNode({
           type: 'WebPage',
-          locale,
           path: '/',
           name: seo.title,
           description: seo.description,

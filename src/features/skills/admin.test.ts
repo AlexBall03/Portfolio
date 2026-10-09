@@ -85,8 +85,6 @@ describe('skill categories', () => {
     const [a, b] = [first!.slug, second!.slug];
     const reordered = [{ ...second!, slug: a }, { ...first!, slug: b, visible: false }, ...rest];
     reordered[0]!.technologies = [...reordered[0]!.technologies, { key: 'zig', slug: 'zig', name: 'Zig' }];
-    reordered[0]!.translations.es = { name: '' };
-
     const result = await actions.saveSkillCategories({ ...values, stack: reordered });
     expect(result.ok).toBe(true);
     expect(tags).toEqual(['skills']);
@@ -96,10 +94,9 @@ describe('skill categories', () => {
     expect(saved.stack[0]).toMatchObject({ slug: a });
     expect(saved.stack[0]!.technologies.at(-1)).toMatchObject({ slug: 'zig', name: 'Zig' });
 
-    const en = await getSkillsOverview(db, 'en');
-    const es = await getSkillsOverview(db, 'es');
-    expect(en.stack.map((c) => c.slug)).not.toContain(b); // hidden
-    expect(es.stack[0]!.name).toBe(en.stack[0]!.name); // Spanish cleared → English fallback
+    const overview = await getSkillsOverview(db);
+    expect(overview.stack.map((c) => c.slug)).not.toContain(b); // hidden
+    expect(overview.stack[0]!.name).toBe(reordered[0]!.name);
 
     const [row] = await db.select().from(skillCategories).where(eq(skillCategories.id, reordered[0]!.id!));
     expect(row).toMatchObject({ updatedBy: ADMIN_ID, status: 'published', sortOrder: 0 });
@@ -120,14 +117,14 @@ describe('skill categories', () => {
           accent: 'gold',
           visible: true,
           technologies: [{ key: 'zig', slug: 'zig', name: 'Zig' }],
-          translations: { en: { name: 'Systems' }, es: { name: 'Sistemas' } },
+          name: 'Systems',
         },
       ],
     });
     expect(result.ok).toBe(true);
     const saved = await service.loadSkillCategories();
     expect(saved.stack).toHaveLength(values.stack.length - 1);
-    expect(saved.learning.at(-1)).toMatchObject({ slug: 'systems', translations: { es: { name: 'Sistemas' } } });
+    expect(saved.learning.at(-1)).toMatchObject({ slug: 'systems', name: 'Systems' });
   });
 });
 

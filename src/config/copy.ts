@@ -1,11 +1,9 @@
 /**
  * Interface chrome: labels, buttons, form errors, aria text, palette hints.
- * Editable portfolio copy (headings, bio, SEO descriptions, …) is NOT here —
- * it lives in the database so it can be managed from the future Admin.
- *
- * `es.ts` is typed against this file, so a missing translation fails `tsc`.
+ * Editable portfolio copy (headings, bio, SEO descriptions, …) is NOT here:
+ * it lives in the database and is managed in /admin.
  */
-export const en = {
+export const copy = {
   nav: {
     home: 'Home',
     about: 'About',
@@ -250,7 +248,6 @@ export const en = {
     theme: 'Theme',
     light: 'Light',
     dark: 'Dark',
-    language: 'Language',
   },
   palette: {
     open: 'Search commands',
@@ -269,8 +266,6 @@ export const en = {
     copyFailed: 'Copy failed — the address is',
     themeLight: 'Switch to light theme',
     themeDark: 'Switch to dark theme',
-    // Written in the language being switched *to*.
-    language: 'Cambiar a español',
     openProfile: 'Open {platform} profile',
     keywords: {
       home: ['home', 'start', 'landing', 'intro', 'top'],
@@ -282,7 +277,6 @@ export const en = {
       downloadResume: ['resume', 'cv', 'pdf', 'download', 'save'],
       copyEmail: ['email', 'copy', 'address', 'mail', 'contact'],
       theme: ['theme', 'dark', 'light', 'mode', 'appearance', 'colour', 'color'],
-      language: ['language', 'spanish', 'espanol', 'locale', 'translate', 'idioma'],
       profiles: ['profile', 'social', 'network', 'code', 'source'],
     },
   },
@@ -304,4 +298,11 @@ export const en = {
   loading: { label: 'Loading' },
 };
 
-export type Dictionary = typeof en;
+export type Copy = typeof copy;
+
+/** Fills `{name}` placeholders in a copy template. */
+export function fill(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
+    key in values ? String(values[key]) : match,
+  );
+}

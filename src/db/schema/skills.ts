@@ -1,10 +1,10 @@
 import { relations } from 'drizzle-orm';
 import { pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { accentEnum, authorship, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { accentEnum, authorship, contentStatusEnum, sortOrder, timestamps } from './_shared';
 
 /**
- * A technology is a language-neutral proper noun (React, C#, Neon…). It is the
- * shared vocabulary for both project stacks and the skills section.
+ * A technology is a proper noun (React, C#, Neon…). It is the shared
+ * vocabulary for both project stacks and the skills section.
  */
 export const technologies = pgTable('technologies', {
   id: uuid().primaryKey().defaultRandom(),
@@ -20,6 +20,7 @@ export const skillCategoryKindEnum = pgEnum('skill_category_kind', ['stack', 'le
 export const skillCategories = pgTable('skill_categories', {
   id: uuid().primaryKey().defaultRandom(),
   slug: text().notNull().unique(),
+  name: text().notNull(),
   kind: skillCategoryKindEnum().notNull().default('stack'),
   icon: text().notNull(),
   accent: accentEnum().notNull().default('blue'),
@@ -28,18 +29,6 @@ export const skillCategories = pgTable('skill_categories', {
   ...timestamps,
   ...authorship,
 });
-
-export const skillCategoryTranslations = pgTable(
-  'skill_category_translations',
-  {
-    categoryId: uuid()
-      .notNull()
-      .references(() => skillCategories.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    name: text().notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.categoryId, t.locale] })],
-);
 
 export const skillCategoryTechnologies = pgTable(
   'skill_category_technologies',
@@ -56,15 +45,7 @@ export const skillCategoryTechnologies = pgTable(
 );
 
 export const skillCategoriesRelations = relations(skillCategories, ({ many }) => ({
-  translations: many(skillCategoryTranslations),
   technologies: many(skillCategoryTechnologies),
-}));
-
-export const skillCategoryTranslationsRelations = relations(skillCategoryTranslations, ({ one }) => ({
-  category: one(skillCategories, {
-    fields: [skillCategoryTranslations.categoryId],
-    references: [skillCategories.id],
-  }),
 }));
 
 export const skillCategoryTechnologiesRelations = relations(skillCategoryTechnologies, ({ one }) => ({

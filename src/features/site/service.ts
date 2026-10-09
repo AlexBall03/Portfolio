@@ -1,23 +1,15 @@
 import 'server-only';
 import { getDb, withTransaction } from '@/db/client';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
-import { translationCoverage, type TranslationCoverage } from '@/lib/cms/locale';
 import { ContentMissingError } from '@/lib/errors';
 import * as repo from './repository';
-import {
-  sectionTranslationInput,
-  seoTranslationInput,
-  type ContactCopyInput,
-  type PageCopyInput,
-  type SiteSettingsInput,
-} from './schema';
+import type { ContactCopyInput, PageCopyInput, SiteSettingsInput } from './schema';
 import {
   editableSections,
   PAGE_KEYS,
   PAGES,
   type PageCopyValues,
   type PageKey,
-  type SectionCopyEditorValues,
+  type SectionCopyValues,
   type SiteSettings,
   type SiteSettingsValues,
 } from './types';
@@ -52,27 +44,27 @@ export async function loadPageCopy(page: PageKey): Promise<PageCopyValues> {
     repo.getSeoValues(db, page),
     repo.getSectionCopyValues(db, editableSections(page)),
   ]);
-  return { page, seo: { translations: seo }, sections };
+  return { page, seo, sections };
 }
 
 export async function savePageCopy(data: PageCopyInput, actor: { userId: string }): Promise<PageCopyValues> {
   await withTransaction(async (tx) => {
-    await repo.writeSeo(tx, data.page, data.seo.translations, actor.userId);
+    await repo.writeSeo(tx, data.page, data.seo, actor.userId);
     for (const key of editableSections(data.page)) {
       const section = data.sections[key];
-      if (section) await repo.writeSectionCopy(tx, key, section.translations, actor.userId);
+      if (section) await repo.writeSectionCopy(tx, key, section, actor.userId);
     }
   });
   return loadPageCopy(data.page);
 }
 
-export async function loadContactCopy(): Promise<SectionCopyEditorValues> {
+export async function loadContactCopy(): Promise<SectionCopyValues> {
   const { contact } = await repo.getSectionCopyValues(await getDb(), ['contact']);
   return contact!;
 }
 
-export async function saveContactCopy(data: ContactCopyInput, actor: { userId: string }): Promise<SectionCopyEditorValues> {
-  await withTransaction((tx) => repo.writeSectionCopy(tx, 'contact', data.translations, actor.userId));
+export async function saveContactCopy(data: ContactCopyInput, actor: { userId: string }): Promise<SectionCopyValues> {
+  await withTransaction((tx) => repo.writeSectionCopy(tx, 'contact', data, actor.userId));
   return loadContactCopy();
 }
 
@@ -80,48 +72,18 @@ export interface PageCopyOverview {
   page: PageKey;
   label: string;
   path: string;
-  /** Translation status of every entity this page's editor owns, per non-default locale. */
-  coverage: Record<Exclude<Locale, 'en'>, TranslationCoverage>;
+  /** The page's SEO description is filled in (it is required on save). */
+  complete: boolean;
 }
 
-const sum = (a: TranslationCoverage, b: TranslationCoverage): TranslationCoverage => ({
-  complete: a.complete + b.complete,
-  partial: a.partial + b.partial,
-  missing: a.missing + b.missing,
-});
-
-function copyCoverage(values: { seo: PageCopyValues['seo']; sections: PageCopyValues['sections'] }, locale: Locale) {
-  return [
-    translationCoverage(seoTranslationInput, [values.seo.translations], locale),
-    translationCoverage(
-      sectionTranslationInput,
-      Object.values(values.sections).map((s) => s.translations),
-      locale,
-    ),
-  ].reduce(sum);
-}
-
-const perLocale = (f: (locale: Locale) => TranslationCoverage) =>
-  Object.fromEntries(LOCALES.filter((l) => l !== DEFAULT_LOCALE).map((l) => [l, f(l)])) as Record<
-    Exclude<Locale, 'en'>,
-    TranslationCoverage
-  >;
-
-/** Every page with its editor's translation coverage (the Page content index). */
+/** Every page with a note on whether its SEO copy exists yet (the Page content index). */
 export async function listPageCopy(): Promise<PageCopyOverview[]> {
-  const pages = await Promise.all(PAGE_KEYS.map(loadPageCopy));
-  return pages.map((p) => ({
-    page: p.page,
-    label: PAGES[p.page].label,
-    path: PAGES[p.page].path,
-    coverage: perLocale((l) => copyCoverage(p, l)),
+  const db = await getDb();
+  const seo = await Promise.all(PAGE_KEYS.map((page) => repo.getSeoValues(db, page)));
+  return PAGE_KEYS.map((page, i) => ({
+    page,
+    label: PAGES[page].label,
+    path: PAGES[page].path,
+    complete: Boolean(seo[i]!.seoDescription),
   }));
-}
-
-/** Coverage of all page and section copy, including the contact section (dashboard). */
-export async function getSiteCopyTranslationCoverage(): Promise<Record<Exclude<Locale, 'en'>, TranslationCoverage>> {
-  const [pages, contact] = await Promise.all([Promise.all(PAGE_KEYS.map(loadPageCopy)), loadContactCopy()]);
-  return perLocale((l) =>
-    [...pages.map((p) => copyCoverage(p, l)), translationCoverage(sectionTranslationInput, [contact.translations], l)].reduce(sum),
-  );
 }

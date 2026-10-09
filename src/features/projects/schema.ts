@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { REPOSITORY_LABELS } from '@/features/github/labels';
 import { parseRepositoryRef } from '@/lib/github-repository';
-import { blankToNull, contentStatus, isoDate, localized, mediaInput, nullableText, slug, text, url } from '@/lib/validation';
+import { blankToNull, contentStatus, isoDate, mediaInput, nullableText, slug, text, url } from '@/lib/validation';
 import {
   MAX_MILESTONES,
   MAX_RELATED,
@@ -12,14 +12,13 @@ import {
   MILESTONE_PRECISIONS,
   SECTION_KINDS,
   SECTION_SPECS,
-  type SectionKind,
 } from './case-study';
 
 export const technologyInput = z.object({ slug, name: text(60) });
 export type TechnologyInput = z.infer<typeof technologyInput>;
 
-/** One locale's project copy. `body` paragraphs are optional; blank ones are dropped. */
-export const projectTranslationInput = z.object({
+/** A project's copy. `body` paragraphs are optional; blank ones are dropped. */
+export const projectTextInput = z.object({
   name: text(120),
   tagline: text(200),
   summary: text(2000),
@@ -51,7 +50,7 @@ export const projectInput = z.object({
     )
     .default([]),
   cover: mediaInput.nullish(),
-  translations: localized(projectTranslationInput),
+  ...projectTextInput.shape,
 });
 export type ProjectInput = z.infer<typeof projectInput>;
 
@@ -71,7 +70,7 @@ export const projectEditorInput = z.object({
     .array(technologyInput)
     .max(20, 'At most 20 technologies')
     .refine((list) => new Set(list.map((t) => t.slug)).size === list.length, 'Each technology can be listed once'),
-  translations: localized(projectTranslationInput),
+  ...projectTextInput.shape,
 });
 export type ProjectEditorInput = z.infer<typeof projectEditorInput>;
 
@@ -88,27 +87,25 @@ export const projectOrderInput = z
   }, 'Each project can appear once');
 export type ProjectOrderInput = z.infer<typeof projectOrderInput>;
 
-/** One locale's image text: alt is required once the locale is filled in, captions are optional. */
-export const mediaTranslationInput = z.object({ alt: text(300), caption: nullableText(300) });
+/** An image's text: alt is required, captions are optional. */
+export const mediaTextInput = z.object({ alt: text(300), caption: nullableText(300) });
 
 export const projectMediaInput = z.object({
   projectId: z.uuid(),
   items: z
-    .array(z.object({ assetId: z.uuid(), isCover: z.boolean(), translations: localized(mediaTranslationInput) }))
+    .array(z.object({ assetId: z.uuid(), isCover: z.boolean(), ...mediaTextInput.shape }))
     .max(24, 'At most 24 images')
     .refine((items) => items.filter((i) => i.isCover).length <= 1, 'Choose one hero image'),
 });
 export type ProjectMediaInput = z.infer<typeof projectMediaInput>;
 
-/** Text sent with an upload (multipart fields `alt.en`, `alt.es`). */
-export const uploadMetaInput = z.object({ translations: localized(mediaTranslationInput) });
+/** Text sent with an upload (multipart fields `alt`, `caption`). */
+export const uploadMetaInput = mediaTextInput;
 export type UploadMetaInput = z.infer<typeof uploadMetaInput>;
 
 /* ── Case study, milestones, related projects ───────────────────────────────
- * Structure is shared by every locale; text is per locale (`localized`).
  * Which fields a section uses depends on its kind (`SECTION_SPECS`): fields a
- * kind doesn't use must be empty, and required ones must be present in every
- * locale that is filled in.
+ * kind doesn't use must be empty, and required ones must be present.
  */
 
 const paragraphs = z
@@ -116,17 +113,6 @@ const paragraphs = z
   .max(20, 'At most 20 paragraphs')
   .default([])
   .transform((list) => list.filter(Boolean));
-
-/** One locale's section text. */
-export const sectionTranslationInput = z.object({ heading: text(120), body: paragraphs });
-
-/** The same, with the kind's rule on paragraphs (editor status uses it, so badge and save agree). */
-export const sectionTranslationFor = (kind: SectionKind) =>
-  SECTION_SPECS[kind].body === 'required'
-    ? sectionTranslationInput.refine((t) => t.body.length > 0, { message: 'Add at least one paragraph', path: ['body'] })
-    : sectionTranslationInput;
-
-export const sectionItemTranslationInput = z.object({ title: text(200), body: nullableText(2000) });
 
 const uniqueIds = (list: readonly string[]) => new Set(list).size === list.length;
 
@@ -136,9 +122,10 @@ const projectSectionInput = z
     kind: z.enum(SECTION_KINDS),
     visible: z.boolean(),
     videoUrl: optionalUrl,
-    translations: localized(sectionTranslationInput),
+    heading: text(120),
+    body: paragraphs,
     items: z
-      .array(z.object({ id: z.string().optional(), translations: localized(sectionItemTranslationInput) }))
+      .array(z.object({ id: z.string().optional(), title: text(200), body: nullableText(2000) }))
       .max(MAX_SECTION_ITEMS, `At most ${MAX_SECTION_ITEMS} entries`)
       .default([]),
     media: z
@@ -150,11 +137,8 @@ const projectSectionInput = z
   .superRefine((s, ctx) => {
     const spec = SECTION_SPECS[s.kind];
     const issue = (path: (string | number)[], message: string) => ctx.addIssue({ code: 'custom', path, message });
-    for (const [locale, t] of Object.entries(s.translations)) {
-      if (!t) continue;
-      if (spec.body === false && t.body.length) issue(['translations', locale, 'body'], 'This section type has no paragraphs');
-      if (spec.body === 'required' && !t.body.length) issue(['translations', locale, 'body'], 'Add at least one paragraph');
-    }
+    if (spec.body === false && s.body.length) issue(['body'], 'This section type has no paragraphs');
+    if (spec.body === 'required' && !s.body.length) issue(['body'], 'Add at least one paragraph');
     if (spec.items === false && s.items.length) issue(['items'], 'This section type has no entries');
     if (spec.items && !s.items.length) issue(['items'], `Add at least one ${spec.items.noun}`);
     if (spec.media === false && s.media.length) issue(['media'], 'This section type has no images');
@@ -169,8 +153,6 @@ export const projectSectionsInput = z.object({
 });
 export type ProjectSectionsInput = z.infer<typeof projectSectionsInput>;
 
-export const milestoneTranslationInput = z.object({ title: text(160), description: nullableText(1000) });
-
 export const projectMilestonesInput = z.object({
   projectId: z.uuid(),
   milestones: z
@@ -183,7 +165,8 @@ export const projectMilestonesInput = z.object({
         url: optionalUrl,
         assetId: blankToNull(z.uuid().nullable()),
         visible: z.boolean(),
-        translations: localized(milestoneTranslationInput),
+        title: text(160),
+        description: nullableText(1000),
       }),
     )
     .max(MAX_MILESTONES, `At most ${MAX_MILESTONES} milestones`),

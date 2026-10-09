@@ -1,6 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { cacheLife, cacheTag } from 'next/cache';
+import { copy } from '@/config/copy';
 import { PAGES } from '@/config/navigation';
 import { SITE_URL } from '@/config/site';
 import { displayName } from '@/features/profile/display-name';
@@ -10,8 +11,6 @@ import { hueFor } from '@/features/projects/identity';
 import { getProjectBySlug } from '@/features/projects/queries';
 import { getPageContent, getSection, getSiteSettings } from '@/features/site/queries';
 import type { PageKey, SectionKey } from '@/features/site/types';
-import type { Locale } from '@/i18n/config';
-import { getDictionary } from '@/i18n/get-dictionary';
 import { CACHE_LIFE, CACHE_TAGS } from '@/lib/cache-tags';
 import type { MediaAsset } from '@/lib/media';
 import { clip, type ShareCard } from './card';
@@ -49,25 +48,24 @@ export type CardSpec =
 const availability = (profile: Profile) => (profile.openToWork ? clip(profile.availabilityText, 64) : null);
 
 /** A card's content, or null when the card names nothing (unknown or unpublished project). */
-export async function cardInputs(locale: Locale, card: ShareCard): Promise<CardSpec | null> {
-  const dict = getDictionary(locale);
-  const [profile, settings] = await Promise.all([getProfile(locale), getSiteSettings()]);
+export async function cardInputs(card: ShareCard): Promise<CardSpec | null> {
+  const [profile, settings] = await Promise.all([getProfile(), getSiteSettings()]);
 
   if (card.kind === 'project') {
-    let lookup = await getProjectBySlug(card.slug, locale);
-    if (lookup.kind === 'redirect') lookup = await getProjectBySlug(lookup.slug, locale);
+    let lookup = await getProjectBySlug(card.slug);
+    if (lookup.kind === 'redirect') lookup = await getProjectBySlug(lookup.slug);
     if (lookup.kind !== 'found') return null;
     const project = lookup.project;
     return {
       kind: 'project',
       image: project.cover,
       props: {
-        label: dict.projects.project,
+        label: copy.projects.project,
         name: clip(project.name, 60),
         tagline: clip(project.tagline, 200),
         technologies: project.technologies.slice(0, 6).map((t) => clip(t.name, 28)),
         hue: hueFor(project.slug),
-        live: project.isLive ? dict.projects.live : null,
+        live: project.isLive ? copy.projects.live : null,
         brandMark: settings.brandMark,
         domain: DOMAIN,
       },
@@ -87,9 +85,9 @@ export async function cardInputs(locale: Locale, card: ShareCard): Promise<CardS
         statement: clip(profile.statement, 220),
         availability: availability(profile),
         meta: [
-          { label: dict.hero.focusLabel, value: clip(profile.hero.focus, 44) },
-          { label: dict.hero.stackLabel, value: clip(profile.hero.stackLine, 52) },
-          { label: dict.hero.basedLabel, value: clip(profile.locationLabel, 36) },
+          { label: copy.hero.focusLabel, value: clip(profile.hero.focus, 44) },
+          { label: copy.hero.stackLabel, value: clip(profile.hero.stackLine, 52) },
+          { label: copy.hero.basedLabel, value: clip(profile.locationLabel, 36) },
         ],
         chips: clip(profile.hero.chips.join(' · '), 80),
         monogram: settings.monogram,
@@ -98,10 +96,10 @@ export async function cardInputs(locale: Locale, card: ShareCard): Promise<CardS
   }
 
   const [content, section] = await Promise.all([
-    getPageContent(card.page, locale),
-    getSection(PAGE_SECTION[card.page], locale),
+    getPageContent(card.page),
+    getSection(PAGE_SECTION[card.page]),
   ]);
-  const label = dict.nav[card.page];
+  const label = copy.nav[card.page];
   const index = String(PAGES.findIndex((p) => p.key === card.page)).padStart(2, '0');
   return {
     kind: 'page',
@@ -137,10 +135,10 @@ export function cardFingerprint(spec: CardSpec): string {
  * tags as the card, so editing anything the card shows changes the URL in the
  * page's regenerated metadata and social platforms re-scrape the image.
  */
-export async function shareCardVersion(locale: Locale, card: ShareCard): Promise<string | null> {
+export async function shareCardVersion(card: ShareCard): Promise<string | null> {
   'use cache';
   cacheLife(CACHE_LIFE.content);
   cacheTag(...SHARE_CARD_TAGS);
-  const spec = await cardInputs(locale, card);
+  const spec = await cardInputs(card);
   return spec ? cardFingerprint(spec) : null;
 }

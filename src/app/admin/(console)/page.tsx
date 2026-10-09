@@ -16,12 +16,7 @@ import {
   ADMIN_SKILLS_PATH,
   ADMIN_SOCIAL_LINKS_PATH,
 } from '@/config/admin';
-import {
-  getContentOverview,
-  getDeploymentOverview,
-  getTranslationOverview,
-  type SpanishCoverage,
-} from '@/features/admin/overview';
+import { getContentOverview, getDeploymentOverview } from '@/features/admin/overview';
 import { cn } from '@/lib/cn';
 import { getAdminProfile } from '@/server/auth/admin';
 
@@ -58,20 +53,11 @@ function Facts({ rows }: { rows: { label: string; value: ReactNode }[] }) {
 
 const mono = (value: string) => <code className="font-mono text-label break-all">{value}</code>;
 
-/** An editor link, with its Spanish translation status when the content is bilingual. */
-function EditorLink({ href, label, spanish }: { href: string; label: string; spanish?: SpanishCoverage }) {
+function EditorLink({ href, label }: { href: string; label: string }) {
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <Link href={href} className="text-brand-fg underline-offset-4 hover:underline">
-        {label}
-      </Link>
-      {spanish && (
-        <Status tone={spanish.complete === spanish.total ? 'success' : 'accent'}>
-          Spanish {spanish.complete}/{spanish.total}
-        </Status>
-      )}
-      {spanish && spanish.partial > 0 && <span className="text-fg-muted">{spanish.partial} incomplete</span>}
-    </span>
+    <Link href={href} className="text-brand-fg underline-offset-4 hover:underline">
+      {label}
+    </Link>
   );
 }
 
@@ -79,7 +65,7 @@ export default async function DashboardPage() {
   // Every console page authorizes itself too; this also returns the display identity.
   const profile = await getAdminProfile();
   const deployment = getDeploymentOverview();
-  const [content, translations] = await Promise.all([getContentOverview(), getTranslationOverview()]);
+  const content = await getContentOverview();
 
   const counts = [
     { label: 'Published projects', value: content.publishedProjects },
@@ -90,25 +76,16 @@ export default async function DashboardPage() {
 
   const editors = [
     { label: 'Projects', value: <EditorLink href={ADMIN_PROJECTS_PATH} label="Projects, order, images" /> },
-    { label: 'Skills', value: <EditorLink href={ADMIN_SKILLS_PATH} label="Categories, technologies" spanish={translations.skills} /> },
-    {
-      label: 'Experience',
-      value: <EditorLink href={ADMIN_EXPERIENCE_PATH} label="Career, education" spanish={translations.experience} />,
-    },
+    { label: 'Skills', value: <EditorLink href={ADMIN_SKILLS_PATH} label="Categories, technologies" /> },
+    { label: 'Experience', value: <EditorLink href={ADMIN_EXPERIENCE_PATH} label="Career, education" /> },
     {
       label: 'Resume',
       value: <EditorLink href={ADMIN_RESUME_PATH} label={content.resume ? `Published: ${content.resume}` : 'None published'} />,
     },
-    {
-      label: 'Profile',
-      value: <EditorLink href={ADMIN_PROFILE_PATH} label="Details, roles, highlights, metrics" spanish={translations.profile} />,
-    },
+    { label: 'Profile', value: <EditorLink href={ADMIN_PROFILE_PATH} label="Details, roles, highlights, metrics" /> },
     { label: 'Social links', value: <EditorLink href={ADMIN_SOCIAL_LINKS_PATH} label={`${content.socialLinks} visible`} /> },
     { label: 'Contact', value: <EditorLink href={ADMIN_CONTACT_PATH} label="Heading and introduction" /> },
-    {
-      label: 'Page content',
-      value: <EditorLink href={ADMIN_CONTENT_PATH} label="SEO copy and section headings" spanish={translations.pages} />,
-    },
+    { label: 'Page content', value: <EditorLink href={ADMIN_CONTENT_PATH} label="SEO copy and section headings" /> },
     { label: 'Configuration', value: <EditorLink href={ADMIN_CONFIGURATION_PATH} label="Branding, GitHub, default theme" /> },
   ];
 

@@ -3,14 +3,12 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { Screen } from '@/components/layout/Screen';
 import { PagerLink, PagerNav } from '@/components/layout/Pager';
 import { JsonLd } from '@/components/ui/JsonLd';
+import { copy } from '@/config/copy';
 import { ProjectGithubSection } from '@/features/github/components/ProjectGithubSection';
 import { getProfile } from '@/features/profile/queries';
 import { pickRelated } from '@/features/projects/case-study';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
 import { getProjectBySlug, getProjects, getProjectSlugs } from '@/features/projects/queries';
-import { isLocale } from '@/i18n/config';
-import { getDictionary } from '@/i18n/get-dictionary';
-import { localizedPath } from '@/i18n/paths';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { shareCardVersion } from '@/lib/seo/share-card/inputs';
 import { buildPageNode, buildProject } from '@/lib/seo/structured-data';
@@ -24,7 +22,7 @@ import { buildPageNode, buildProject } from '@/lib/seo/structured-data';
 export const instant = false;
 
 interface ProjectPageProps {
-  params: Promise<{ locale: string; slug: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
@@ -33,22 +31,17 @@ export async function generateStaticParams() {
 }
 
 async function resolve(params: ProjectPageProps['params']) {
-  const { locale, slug } = await params;
-  if (!isLocale(locale)) notFound();
-  const lookup = await getProjectBySlug(slug, locale);
-  if (lookup.kind === 'redirect') permanentRedirect(localizedPath(locale, `/projects/${lookup.slug}`));
+  const { slug } = await params;
+  const lookup = await getProjectBySlug(slug);
+  if (lookup.kind === 'redirect') permanentRedirect(`/projects/${lookup.slug}`);
   if (lookup.kind === 'not-found') notFound();
-  return { locale, project: lookup.project };
+  return lookup.project;
 }
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
-  const { locale, project } = await resolve(params);
-  const [profile, shareVersion] = await Promise.all([
-    getProfile(locale),
-    shareCardVersion(locale, { kind: 'project', slug: project.slug }),
-  ]);
+  const project = await resolve(params);
+  const [profile, shareVersion] = await Promise.all([getProfile(), shareCardVersion({ kind: 'project', slug: project.slug })]);
   return pageMetadata({
-    locale,
     path: `/projects/${project.slug}`,
     title: project.name,
     description: project.tagline,
@@ -58,15 +51,14 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  const { locale, project: p } = await resolve(params);
-  const dict = getDictionary(locale);
-  const t = dict.projects;
-  const all = await getProjects(locale);
+  const p = await resolve(params);
+  const t = copy.projects;
+  const all = await getProjects();
   const index = Math.max(0, all.findIndex((x) => x.id === p.id));
   const prev = all[index - 1];
   const next = all[index + 1];
   const pad = (n: number) => String(n + 1).padStart(2, '0');
-  const href = (slug: string) => localizedPath(locale, `/projects/${slug}`);
+  const href = (slug: string) => `/projects/${slug}`;
 
   return (
     <Screen>
@@ -74,14 +66,12 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <ProjectDetail
           project={p}
           related={pickRelated(p.id, p.relatedIds, all)}
-          locale={locale}
-          t={t}
           github={
             p.githubAnalytics && p.repositories.length > 0
               ? {
-                  heading: dict.projectGithub.heading,
-                  lead: dict.projectGithub.lead,
-                  content: <ProjectGithubSection repositories={p.repositories} locale={locale} t={dict.projectGithub} />,
+                  heading: copy.projectGithub.heading,
+                  lead: copy.projectGithub.lead,
+                  content: <ProjectGithubSection repositories={p.repositories} />,
                 }
               : null
           }
@@ -99,8 +89,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       )}
       <JsonLd
         data={{
-          ...buildPageNode({ type: 'WebPage', locale, path: `/projects/${p.slug}`, name: p.name, description: p.tagline }),
-          mainEntity: buildProject(p, locale),
+          ...buildPageNode({ type: 'WebPage', path: `/projects/${p.slug}`, name: p.name, description: p.tagline }),
+          mainEntity: buildProject(p),
         }}
       />
     </Screen>

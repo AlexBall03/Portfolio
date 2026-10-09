@@ -3,8 +3,7 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { Icon } from '@/components/ui/Icon';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { fill } from '@/i18n/paths';
+import { copy, fill } from '@/config/copy';
 import { cn } from '@/lib/cn';
 import {
   filterProjects,
@@ -23,7 +22,6 @@ interface ProjectExplorerProps {
   /** Each project's server-rendered card, by id. */
   cards: Record<string, ReactNode>;
   technologies: TechnologyUsage[];
-  t: Dictionary['projects'];
 }
 
 /**
@@ -33,7 +31,8 @@ interface ProjectExplorerProps {
  * URL (`?q=&tech=&live=1`) for sharing and for links from skills, read after
  * mount so the page itself stays prerendered.
  */
-export function ProjectExplorer({ entries, cards, technologies, t }: ProjectExplorerProps) {
+export function ProjectExplorer({ entries, cards, technologies }: ProjectExplorerProps) {
+  const t = copy.projects;
   const [filters, setFilters] = useState<ProjectFilters>(NO_FILTERS);
   const known = useMemo(() => new Set(technologies.map((x) => x.slug)), [technologies]);
   const searchId = useId();

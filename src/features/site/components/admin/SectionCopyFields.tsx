@@ -2,9 +2,8 @@
 
 import { TextField } from '@/components/admin/form/fields';
 import type { Editor } from '@/components/admin/form/use-editor';
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import type { Path } from '@/lib/cms/values';
-import { SECTIONS, type SectionCopyEditorValues, type SectionField, type SectionKey } from '../../types';
+import { SECTIONS, type SectionField, type SectionKey } from '../../types';
 
 const FIELDS: readonly { field: SectionField; label: string; max: number; multiline?: boolean }[] = [
   { field: 'eyebrow', label: 'Eyebrow', max: 60 },
@@ -18,17 +17,14 @@ const OPTIONAL: ReadonlySet<SectionField> = new Set(['subtitle', 'body', 'aside'
 
 interface SectionCopyFieldsProps<V> {
   editor: Editor<V>;
-  /** Path of the section's `{ translations }` value inside the editor values. */
+  /** Path of the section's copy inside the editor values. */
   base: Path;
   section: SectionKey;
-  value: SectionCopyEditorValues;
-  locale: Locale;
 }
 
-/** The heading fields one public section renders, in one language. Plain text only. */
-export function SectionCopyFields<V>({ editor, base, section, value, locale }: SectionCopyFieldsProps<V>) {
+/** The heading fields one public section renders. Plain text only. */
+export function SectionCopyFields<V>({ editor, base, section }: SectionCopyFieldsProps<V>) {
   const shown = SECTIONS[section].fields;
-  const english = locale === DEFAULT_LOCALE ? undefined : value.translations.en;
   return (
     <div className="flex flex-col gap-5">
       {FIELDS.filter((f) => shown[f.field]).map((f) => (
@@ -39,8 +35,7 @@ export function SectionCopyFields<V>({ editor, base, section, value, locale }: S
           maxLength={f.max}
           multiline={f.multiline}
           rows={f.field === 'body' ? 4 : 2}
-          placeholder={english?.[f.field] || undefined}
-          {...editor.text([...base, 'translations', locale, f.field])}
+          {...editor.text([...base, f.field])}
         />
       ))}
     </div>

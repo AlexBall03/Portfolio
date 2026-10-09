@@ -3,32 +3,27 @@ import { JsonLd } from '@/components/ui/JsonLd';
 import { ContactSection } from '@/features/contact/components/ContactSection';
 import { getProfile, getSocialLinks } from '@/features/profile/queries';
 import { getSection } from '@/features/site/queries';
-import { getDictionary } from '@/i18n/get-dictionary';
-import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
 import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
-export async function generateMetadata({ params }: LocaleParams) {
-  return topLevelPageMetadata('contact', await resolveLocale(params), '/contact');
+export async function generateMetadata() {
+  return topLevelPageMetadata('contact', '/contact');
 }
 
-export default async function ContactPage({ params }: LocaleParams) {
-  const locale = await resolveLocale(params);
-  const dict = getDictionary(locale);
+export default async function ContactPage() {
   const [profile, socials, section, content] = await Promise.all([
-    getProfile(locale),
+    getProfile(),
     getSocialLinks(),
-    getSection('contact', locale),
-    resolvePageSeo('contact', locale),
+    getSection('contact'),
+    resolvePageSeo('contact'),
   ]);
 
   return (
-    <PageShell page="contact" locale={locale}>
-      <ContactSection section={section} email={profile.email} socials={socials} t={dict.contact} />
+    <PageShell page="contact">
+      <ContactSection section={section} email={profile.email} socials={socials} />
       <JsonLd
         data={buildPageNode({
           type: 'ContactPage',
-          locale,
           path: '/contact',
           name: content.title,
           description: content.description,

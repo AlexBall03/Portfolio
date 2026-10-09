@@ -4,9 +4,9 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Surface } from '@/components/ui/Surface';
+import { copy } from '@/config/copy';
 import type { Highlight } from '@/features/profile/types';
 import type { SectionContent } from '@/features/site/types';
-import type { Dictionary } from '@/i18n/get-dictionary';
 import type { PublishedResume } from '../types';
 import { ResumeViewer } from './ResumeViewer';
 
@@ -15,11 +15,11 @@ interface ResumeProps {
   /** The published version; null while none is published. */
   resume: PublishedResume | null;
   highlights: Highlight[];
-  t: Dictionary['resume'];
 }
 
 /** Highlights and actions in one restrained header; the PDF itself is the centerpiece. */
-export function Resume({ section, resume, highlights, t }: ResumeProps) {
+export function Resume({ section, resume, highlights }: ResumeProps) {
+  const t = copy.resume;
   return (
     <Section id="resume" labelledBy="resume-title">
       <SectionHeader content={section} as="h1" id="resume-title" />
@@ -70,7 +70,7 @@ export function Resume({ section, resume, highlights, t }: ResumeProps) {
               <span className="text-fg-faint">PDF</span>
             </div>
             <div className="bg-surface-inset p-3 sm:p-6 lg:p-10">
-              <ResumeViewer src={resume.href} t={t} />
+              <ResumeViewer src={resume.href} />
             </div>
           </Surface>
         ) : (

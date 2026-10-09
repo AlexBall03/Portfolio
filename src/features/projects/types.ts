@@ -1,6 +1,4 @@
 import type { RepositoryLabel } from '@/features/github/types';
-import type { Locale } from '@/i18n/config';
-import type { TranslationStatus } from '@/lib/cms/locale';
 import type { MediaAsset } from '@/lib/media';
 import type { MilestoneKind, MilestonePrecision, SectionKind } from './case-study';
 
@@ -45,7 +43,7 @@ export interface CaseStudyItem {
   body: string | null;
 }
 
-/** One case-study section, resolved for a locale. Fields a kind doesn't use are empty. */
+/** One case-study section. Fields a kind doesn't use are empty. */
 export interface CaseStudySection {
   id: string;
   kind: SectionKind;
@@ -92,13 +90,6 @@ export type ProjectLookup =
 
 export type ProjectStatus = 'draft' | 'published' | 'archived';
 
-export interface ProjectTranslationValues {
-  name: string;
-  tagline: string;
-  summary: string;
-  body: string[];
-}
-
 export interface ProjectTechnologyValues {
   key: string;
   slug: string;
@@ -116,7 +107,10 @@ export interface ProjectValues {
   sourceUrl: string;
   detailsUrl: string;
   technologies: ProjectTechnologyValues[];
-  translations: Record<Locale, ProjectTranslationValues>;
+  name: string;
+  tagline: string;
+  summary: string;
+  body: string[];
   /** Read-only (ignored on save): when the project last went live. */
   publishedAt: string | null;
 }
@@ -129,15 +123,9 @@ export interface ProjectListItem {
   status: ProjectStatus;
   featured: boolean;
   sortOrder: number;
-  translation: Record<Locale, TranslationStatus>;
   cover: { src: string; alt: string } | null;
   publishedAt: string | null;
   updatedAt: string;
-}
-
-export interface ProjectMediaTranslationValues {
-  alt: string;
-  caption: string;
 }
 
 /** One image in a project's media editor. Order is gallery order; one may be the hero. */
@@ -148,7 +136,8 @@ export interface ProjectMediaItemValues {
   width: number | null;
   height: number | null;
   isCover: boolean;
-  translations: Record<Locale, ProjectMediaTranslationValues>;
+  alt: string;
+  caption: string;
 }
 
 export interface ProjectMediaValues {
@@ -179,7 +168,8 @@ export interface ProjectImageChoice {
 export interface SectionItemValues {
   key: string;
   id?: string;
-  translations: Record<Locale, { title: string; body: string }>;
+  title: string;
+  body: string;
 }
 
 export interface SectionValues {
@@ -188,7 +178,8 @@ export interface SectionValues {
   kind: SectionKind;
   visible: boolean;
   videoUrl: string;
-  translations: Record<Locale, { heading: string; body: string[] }>;
+  heading: string;
+  body: string[];
   items: SectionItemValues[];
   /** Asset ids of the project's images, in display order. */
   media: string[];
@@ -208,7 +199,8 @@ export interface MilestoneValues {
   /** '' = no image. */
   assetId: string;
   visible: boolean;
-  translations: Record<Locale, { title: string; description: string }>;
+  title: string;
+  description: string;
 }
 
 export interface MilestonesValues {

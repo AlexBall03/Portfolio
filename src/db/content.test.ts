@@ -13,7 +13,7 @@ import { findProjectBySlug, listPublishedProjects, listPublishedProjectSlugs } f
 import { getPageContent, getSectionContent, getSiteSettings } from '@/features/site/repository';
 import { getSkillsOverview } from '@/features/skills/repository';
 import { createTestDb } from '@/test/db';
-import { projects, projectSlugHistory, projectTranslations } from './schema';
+import { projects, projectSlugHistory } from './schema';
 import { content } from './seed/content';
 import { seedContent } from './seed/seed';
 import type { Database } from './types';
@@ -44,22 +44,21 @@ describe('seed', () => {
 });
 
 describe('content repositories', () => {
-  it('returns settings and profile in each locale', async () => {
+  it('returns settings and the profile', async () => {
     expect((await getSiteSettings(db))?.githubUsername).toBe('AlexBall03');
 
-    const en = await getProfile(db, 'en');
-    const es = await getProfile(db, 'es');
-    expect(en?.title).toBe('Software Engineer');
-    expect(es?.title).toBe('Ingeniero de Software');
-    expect(es?.about).toHaveLength(en!.about.length);
+    const profile = await getProfile(db);
+    expect(profile?.title).toBe('Software Engineer');
+    expect(profile?.about).toHaveLength(6);
+    expect(profile?.headshot?.alt).toBe('Alexander D. Ball');
   });
 
   it('lists ordered profile collections', async () => {
     expect((await listSocialLinks(db)).map((l) => l.platform)).toEqual(['github', 'linkedin']);
-    expect((await listProfileRoles(db, 'es'))[0]?.label).toBe('Ingeniero de Software');
-    expect(await listHighlights(db, 'en', 'resume')).toHaveLength(3);
-    expect(await listHighlights(db, 'en', 'differentiator')).toHaveLength(6);
-    expect((await listSnapshotMetrics(db, 'en')).map((m) => m.source)).toEqual([
+    expect((await listProfileRoles(db))[0]?.label).toBe('Software Engineer');
+    expect(await listHighlights(db, 'resume')).toHaveLength(3);
+    expect(await listHighlights(db, 'differentiator')).toHaveLength(6);
+    expect((await listSnapshotMetrics(db)).map((m) => m.source)).toEqual([
       'static',
       'static',
       'published_projects',
@@ -69,9 +68,9 @@ describe('content repositories', () => {
 
   it('derives snapshot metrics from published content instead of stored numbers', async () => {
     const [metrics, published, skills] = await Promise.all([
-      listSnapshotMetrics(db, 'en'),
-      listPublishedProjects(db, 'en'),
-      getSkillsOverview(db, 'en'),
+      listSnapshotMetrics(db),
+      listPublishedProjects(db),
+      getSkillsOverview(db),
     ]);
     const resolved = resolveSnapshotMetrics(metrics, {
       publishedProjects: published.length,
@@ -82,36 +81,33 @@ describe('content repositories', () => {
   });
 
   it('returns page and section copy', async () => {
-    expect((await getPageContent(db, 'contact', 'es'))?.seoDescription).toMatch(/^Escríbeme/);
-    const sections = await getSectionContent(db, 'en');
+    expect((await getPageContent(db, 'contact'))?.seoDescription).toMatch(/^Get in touch/);
+    const sections = await getSectionContent(db);
     expect(sections.contact?.title).toBe("Let's talk.");
     expect(Object.keys(sections)).toHaveLength(11);
   });
 
-  it('groups skills by kind and shares technologies across locales', async () => {
-    const en = await getSkillsOverview(db, 'en');
-    const es = await getSkillsOverview(db, 'es');
-    expect(en.stack.map((c) => c.slug)).toEqual(['frontend', 'backend', 'data']);
-    expect(en.learning.map((c) => c.slug)).toEqual(['cloud-infrastructure']);
-    expect(es.stack[2]?.name).toBe('Datos');
-    // The old site's Spanish stack had silently drifted; now both read the same rows.
-    expect(es.stack.flatMap((c) => c.technologies)).toEqual(en.stack.flatMap((c) => c.technologies));
+  it('groups skills by kind', async () => {
+    const skills = await getSkillsOverview(db);
+    expect(skills.stack.map((c) => c.slug)).toEqual(['frontend', 'backend', 'data']);
+    expect(skills.learning.map((c) => c.slug)).toEqual(['cloud-infrastructure']);
+    expect(skills.stack[2]?.name).toBe('Data');
   });
 
   it('lists experience with organization labels and real dates', async () => {
-    const es = await listExperiences(db, 'es');
-    expect(es).toHaveLength(8);
-    expect(es.find((e) => e.organization === 'Pausa profesional')?.endDate).toBe('2023-05-01');
-    expect(es.filter((e) => e.kind === 'education').map((e) => e.organization)).toEqual([
+    const list = await listExperiences(db);
+    expect(list).toHaveLength(8);
+    expect(list.find((e) => e.organization === 'Career break')?.endDate).toBe('2023-05-01');
+    expect(list.filter((e) => e.kind === 'education').map((e) => e.organization)).toEqual([
       'Western Governors University',
-      'Educación en Casa',
+      'Homeschool',
     ]);
   });
 });
 
 describe('projects', () => {
   it('lists published projects with technologies and repositories', async () => {
-    const list = await listPublishedProjects(db, 'en');
+    const list = await listPublishedProjects(db);
     expect(list.map((p) => p.slug)).toEqual(['weather', 'portfolio']);
     expect(list[0]?.technologies[0]).toEqual({ slug: 'nextjs', name: 'Next.js' });
     expect(list[0]?.repositories[0]?.url).toBe('https://github.com/AlexBall03/Weather');
@@ -120,28 +116,14 @@ describe('projects', () => {
   it('hides drafts and archived projects', async () => {
     await db.update(projects).set({ status: 'draft' }).where(eq(projects.slug, 'portfolio'));
     expect(await listPublishedProjectSlugs(db)).toEqual(['weather']);
-    expect((await findProjectBySlug(db, 'portfolio', 'en')).kind).toBe('not-found');
+    expect((await findProjectBySlug(db, 'portfolio')).kind).toBe('not-found');
     await db.update(projects).set({ status: 'published' }).where(eq(projects.slug, 'portfolio'));
   });
 
   it('redirects retired slugs to the current slug', async () => {
     const [weather] = await db.select().from(projects).where(eq(projects.slug, 'weather'));
     await db.insert(projectSlugHistory).values({ slug: 'nws-weather', projectId: weather!.id });
-    expect(await findProjectBySlug(db, 'nws-weather', 'en')).toEqual({ kind: 'redirect', slug: 'weather' });
-    expect((await findProjectBySlug(db, 'unknown', 'en')).kind).toBe('not-found');
-  });
-
-  it('falls back to English when a translation is missing', async () => {
-    const [weather] = await db.select().from(projects).where(eq(projects.slug, 'weather'));
-    await db.delete(projectTranslations).where(eq(projectTranslations.projectId, weather!.id));
-    await db.insert(projectTranslations).values({
-      projectId: weather!.id,
-      locale: 'en',
-      name: 'Weather EN',
-      tagline: 't',
-      summary: 's',
-    });
-    const lookup = await findProjectBySlug(db, 'weather', 'es');
-    expect(lookup.kind === 'found' && lookup.project.name).toBe('Weather EN');
+    expect(await findProjectBySlug(db, 'nws-weather')).toEqual({ kind: 'redirect', slug: 'weather' });
+    expect((await findProjectBySlug(db, 'unknown')).kind).toBe('not-found');
   });
 });

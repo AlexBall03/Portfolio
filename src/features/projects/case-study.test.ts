@@ -69,8 +69,7 @@ async function createProject(slug: string, status: ProjectValues['status'] = 'pu
   const values = service.blankProject();
   values.slug = slug;
   values.status = status;
-  values.translations.en = { name: `Project ${slug}`, tagline: 'Tagline', summary: 'Summary.', body: [] };
-  values.translations.es = { name: `Proyecto ${slug}`, tagline: 'Lema', summary: 'Resumen.', body: [] };
+  Object.assign(values, { name: `Project ${slug}`, tagline: 'Tagline', summary: 'Summary.', body: [] });
   const result = await actions.createProject(values);
   if (!result.ok) throw new Error(JSON.stringify(result));
   tags.length = 0; // setup isn't under test
@@ -79,16 +78,13 @@ async function createProject(slug: string, status: ProjectValues['status'] = 'pu
 
 async function addImage(projectId: string, alt = 'Screenshot') {
   const media = await service.uploadProjectImage(
-    { projectId, bytes: pngBytes(1600, 900), ...uploadMetaInput.parse({ translations: { en: { alt, caption: '' } } }) },
+    { projectId, bytes: pngBytes(1600, 900), ...uploadMetaInput.parse({ alt, caption: '' }) },
     admin,
   );
   return media.items.at(-1)!.assetId;
 }
 
-const text = (en: { heading: string; body?: string[] }, es?: { heading: string; body?: string[] }) => ({
-  en: { heading: en.heading, body: en.body ?? [] },
-  es: es ? { heading: es.heading, body: es.body ?? [] } : { heading: '', body: [] },
-});
+const text = ({ heading, body = [] }: { heading: string; body?: string[] }) => ({ heading, body });
 
 function section(kind: SectionValues['kind'], patch: Partial<SectionValues> = {}): SectionValues {
   return {
@@ -96,17 +92,14 @@ function section(kind: SectionValues['kind'], patch: Partial<SectionValues> = {}
     kind,
     visible: true,
     videoUrl: '',
-    translations: text({ heading: `${kind} heading`, body: ['A paragraph.'] }),
+    ...text({ heading: `${kind} heading`, body: ['A paragraph.'] }),
     items: [],
     media: [],
     ...patch,
   };
 }
 
-const item = (title: string, body = '', es?: { title: string; body: string }) => ({
-  key: `i-${Math.random()}`,
-  translations: { en: { title, body }, es: es ?? { title: '', body: '' } },
-});
+const item = (title: string, body = '') => ({ key: `i-${Math.random()}`, title, body });
 
 function milestone(occurredOn: string, title: string, patch: Partial<MilestoneValues> = {}): MilestoneValues {
   return {
@@ -117,7 +110,8 @@ function milestone(occurredOn: string, title: string, patch: Partial<MilestoneVa
     url: '',
     assetId: '',
     visible: true,
-    translations: { en: { title, description: '' }, es: { title: '', description: '' } },
+    title,
+    description: '',
     ...patch,
   };
 }
@@ -126,8 +120,8 @@ async function saveSections(projectId: string, sections: SectionValues[]) {
   return actions.saveProjectSections({ projectId, sections } satisfies { projectId: string } & CaseStudyValues);
 }
 
-async function publicCaseStudy(slug: string, locale: 'en' | 'es' = 'en') {
-  const lookup = await findProjectBySlug(db, slug, locale);
+async function publicCaseStudy(slug: string) {
+  const lookup = await findProjectBySlug(db, slug);
   if (lookup.kind !== 'found') throw new Error(`not found: ${slug}`);
   return lookup.project;
 }
@@ -157,9 +151,9 @@ describe('case-study sections', () => {
   it('saves ordered sections, shows only visible ones publicly, and flags hidden ones in preview', async () => {
     const id = await createProject('sections-order');
     const result = await saveSections(id, [
-      section('narrative', { translations: text({ heading: 'Why', body: ['Because **reasons**.'] }) }),
-      section('highlights', { visible: false, translations: text({ heading: 'Draft highlights' }), items: [item('Fast')] }),
-      section('challenges', { translations: text({ heading: 'Hard parts' }), items: [item('Caching', 'Tags'), item('Auth', 'Layers')] }),
+      section('narrative', { ...text({ heading: 'Why', body: ['Because **reasons**.'] }) }),
+      section('highlights', { visible: false, ...text({ heading: 'Draft highlights' }), items: [item('Fast')] }),
+      section('challenges', { ...text({ heading: 'Hard parts' }), items: [item('Caching', 'Tags'), item('Auth', 'Layers')] }),
     ]);
     expect(result.ok).toBe(true);
     expect(tags).toEqual(['projects']);
@@ -196,7 +190,7 @@ describe('case-study sections', () => {
   it('never exposes a draft project’s case study', async () => {
     const id = await createProject('draft-case-study', 'draft');
     expect((await saveSections(id, [section('narrative')])).ok).toBe(true);
-    expect(await findProjectBySlug(db, 'draft-case-study', 'es')).toEqual({ kind: 'not-found' });
+    expect(await findProjectBySlug(db, 'draft-case-study')).toEqual({ kind: 'not-found' });
   });
 
   it('keeps retired slugs redirecting after case-study edits', async () => {
@@ -204,34 +198,19 @@ describe('case-study sections', () => {
     expect((await saveSections(id, [section('narrative')])).ok).toBe(true);
     const values = (await service.loadProject(id))!;
     expect((await actions.saveProject({ ...values, slug: 'new-slug-cs' })).ok).toBe(true);
-    expect(await findProjectBySlug(db, 'old-slug-cs', 'en')).toEqual({ kind: 'redirect', slug: 'new-slug-cs' });
+    expect(await findProjectBySlug(db, 'old-slug-cs')).toEqual({ kind: 'redirect', slug: 'new-slug-cs' });
     expect((await publicCaseStudy('new-slug-cs')).sections).toHaveLength(1);
   });
 
-  it('renders Spanish where translated and falls back to English per section and entry', async () => {
-    const id = await createProject('bilingual-cs');
-    await saveSections(id, [
-      section('narrative', { translations: text({ heading: 'Story', body: ['English.'] }, { heading: 'Historia', body: ['Español.'] }) }),
-      section('lessons', {
-        translations: text({ heading: 'Lessons' }),
-        items: [item('Test early', '', { title: 'Probar pronto', body: '' }), item('Ship small')],
-      }),
-    ]);
-    const es = await publicCaseStudy('bilingual-cs', 'es');
-    expect(es.sections.map((s) => s.heading)).toEqual(['Historia', 'Lessons']);
-    expect(es.sections[0]!.body).toEqual(['Español.']);
-    expect(es.sections[1]!.items.map((i) => i.title)).toEqual(['Probar pronto', 'Ship small']);
-  });
-
-  it('rejects a partly translated Spanish section and fields a kind does not use', async () => {
+  it('rejects a section missing what its kind requires, and fields a kind does not use', async () => {
     const id = await createProject('invalid-cs');
-    const partial = await saveSections(id, [section('narrative', { translations: text({ heading: 'Story', body: ['x'] }, { heading: 'Historia' }) })]);
-    expect(partial).toMatchObject({ ok: false, fieldErrors: { 'sections.0.translations.es.body': 'Add at least one paragraph' } });
+    const partial = await saveSections(id, [section('narrative', { ...text({ heading: 'Story' }) })]);
+    expect(partial).toMatchObject({ ok: false, fieldErrors: { 'sections.0.body': 'Add at least one paragraph' } });
 
     const wrongShape = await saveSections(id, [
       section('video', { videoUrl: 'https://youtu.be/dQw4w9WgXcQ', items: [item('Nope')] }),
-      section('gallery', { translations: text({ heading: 'Shots' }) }),
-      section('highlights', { translations: text({ heading: 'Empty' }) }),
+      section('gallery', { ...text({ heading: 'Shots' }) }),
+      section('highlights', { ...text({ heading: 'Empty' }) }),
     ]);
     expect(wrongShape.ok).toBe(false);
     if (wrongShape.ok) return;
@@ -249,10 +228,10 @@ describe('case-study sections', () => {
     const [a, b] = [await addImage(id, 'First'), await addImage(id, 'Second')];
     const foreign = await addImage(other, 'Foreign');
 
-    const bad = await saveSections(id, [section('gallery', { translations: text({ heading: 'Shots' }), media: [a, foreign] })]);
+    const bad = await saveSections(id, [section('gallery', { ...text({ heading: 'Shots' }), media: [a, foreign] })]);
     expect(bad).toMatchObject({ ok: false, fieldErrors: { 'sections.0.media': 'Choose images from this project’s media' } });
 
-    expect((await saveSections(id, [section('gallery', { translations: text({ heading: 'Shots' }), media: [b, a] })])).ok).toBe(true);
+    expect((await saveSections(id, [section('gallery', { ...text({ heading: 'Shots' }), media: [b, a] })])).ok).toBe(true);
     expect((await publicCaseStudy('gallery-cs')).sections[0]!.media.map((m) => m.alt)).toEqual(['Second', 'First']);
   });
 });
@@ -265,7 +244,7 @@ describe('media references', () => {
     const own = await addImage(id, 'Own');
     await db.insert(projectMedia).values({ projectId: other, assetId: shared, role: 'gallery', sortOrder: 5 });
 
-    await saveSections(id, [section('gallery', { translations: text({ heading: 'Shots' }), media: [shared, own] })]);
+    await saveSections(id, [section('gallery', { ...text({ heading: 'Shots' }), media: [shared, own] })]);
     await actions.saveProjectMilestones({ projectId: id, milestones: [milestone('2025-02-01', 'Beta', { assetId: shared })] });
 
     const media = (await service.loadProjectMedia(id))!;
@@ -308,27 +287,27 @@ describe('milestones', () => {
     ]);
   });
 
-  it('validates dates, links, and translations', async () => {
+  it('validates dates, links, and titles', async () => {
     const id = await createProject('milestones-invalid');
     const res = await actions.saveProjectMilestones({
       projectId: id,
       milestones: [
         milestone('not-a-date', 'Bad date'),
         milestone('2025-01-01', 'Bad link', { url: 'javascript:alert(1)' }),
-        milestone('2025-01-01', 'Half Spanish', { translations: { en: { title: 'Half', description: '' }, es: { title: '', description: 'Solo descripción' } } }),
+        milestone('2025-01-01', '', { description: 'A description without a title' }),
       ],
     });
     expect(res.ok).toBe(false);
     if (res.ok) return;
     expect(Object.keys(res.fieldErrors)).toEqual(
-      expect.arrayContaining(['milestones.0.occurredOn', 'milestones.1.url', 'milestones.2.translations.es.title']),
+      expect.arrayContaining(['milestones.0.occurredOn', 'milestones.1.url', 'milestones.2.title']),
     );
   });
 
-  it('formats dates at their precision in each locale without shifting a day', () => {
-    expect(formatMilestoneDate('2026-03-01', 'day', 'en')).toBe('Mar 1, 2026');
-    expect(formatMilestoneDate('2026-03-01', 'month', 'en')).toBe('Mar 2026');
-    expect(formatMilestoneDate('2026-01-01', 'year', 'es')).toBe('2026');
+  it('formats dates at their precision without shifting a day', () => {
+    expect(formatMilestoneDate('2026-03-01', 'day')).toBe('Mar 1, 2026');
+    expect(formatMilestoneDate('2026-03-01', 'month')).toBe('Mar 2026');
+    expect(formatMilestoneDate('2026-01-01', 'year')).toBe('2026');
   });
 });
 
@@ -348,7 +327,7 @@ describe('related projects', () => {
     // The page resolves picks against published projects only: the draft never surfaces.
     const live = await publicCaseStudy('related-main');
     expect(live.relatedIds).toEqual([b, a]);
-    const shown = pickRelated(live.id, live.relatedIds, await listPublishedProjects(db, 'en'));
+    const shown = pickRelated(live.id, live.relatedIds, await listPublishedProjects(db));
     expect(shown.map((p) => p.slug)).toEqual(['related-a']);
   });
 

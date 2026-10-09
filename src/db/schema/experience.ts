@@ -1,6 +1,5 @@
-import { relations } from 'drizzle-orm';
-import { boolean, date, pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { authorship, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { boolean, date, pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { authorship, contentStatusEnum, sortOrder, timestamps } from './_shared';
 
 export const experienceKindEnum = pgEnum('experience_kind', ['career', 'education']);
 
@@ -8,14 +7,21 @@ export const experienceKindEnum = pgEnum('experience_kind', ['career', 'educatio
 export const datePrecisionEnum = pgEnum('date_precision', ['month', 'year']);
 
 /**
- * A career position or an education entry. Dates are real dates, formatted per
- * locale at render time — no hand-written date strings per language.
+ * A career position or an education entry. Dates are real dates, formatted at
+ * render time, never stored as hand-written strings.
  */
 export const experiences = pgTable('experiences', {
   id: uuid().primaryKey().defaultRandom(),
   kind: experienceKindEnum().notNull(),
-  /** Organization name; a proper noun shown identically in every locale. */
+  /** Organization name, a proper noun. */
   organization: text().notNull(),
+  /** Replaces the organization for non-proper-noun entries ("Career break", "Homeschool"). */
+  organizationLabel: text(),
+  role: text().notNull(),
+  employmentType: text(),
+  location: text(),
+  summary: text().array().notNull().default([]),
+  tags: text().array().notNull().default([]),
   startDate: date({ mode: 'string' }).notNull(),
   /** Null means ongoing ("Present"). A future date reads as an expected end. */
   endDate: date({ mode: 'string' }),
@@ -26,32 +32,3 @@ export const experiences = pgTable('experiences', {
   ...timestamps,
   ...authorship,
 });
-
-export const experienceTranslations = pgTable(
-  'experience_translations',
-  {
-    experienceId: uuid()
-      .notNull()
-      .references(() => experiences.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    /** Translated organization label for non-proper-noun entries ("Career break", "Homeschool"). */
-    organizationLabel: text(),
-    role: text().notNull(),
-    employmentType: text(),
-    location: text(),
-    summary: text().array().notNull().default([]),
-    tags: text().array().notNull().default([]),
-  },
-  (t) => [primaryKey({ columns: [t.experienceId, t.locale] })],
-);
-
-export const experiencesRelations = relations(experiences, ({ many }) => ({
-  translations: many(experienceTranslations),
-}));
-
-export const experienceTranslationsRelations = relations(experienceTranslations, ({ one }) => ({
-  experience: one(experiences, {
-    fields: [experienceTranslations.experienceId],
-    references: [experiences.id],
-  }),
-}));

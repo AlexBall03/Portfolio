@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, integer, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
-import { authorship, localeEnum, timestamps } from './_shared';
+import { boolean, check, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
+import { authorship, timestamps } from './_shared';
 
 export const themeEnum = pgEnum('theme', ['dark', 'light']);
 
@@ -38,20 +38,15 @@ export const pageKeyEnum = pgEnum('page_key', [
   'contact',
 ]);
 
-/** Per-page, per-locale SEO copy. */
-export const pageContent = pgTable(
-  'page_content',
-  {
-    pageKey: pageKeyEnum().notNull(),
-    locale: localeEnum().notNull(),
-    /** Overrides the default "<Page> — <Name>" title when set. */
-    seoTitle: text(),
-    seoDescription: text().notNull(),
-    ...timestamps,
-    ...authorship,
-  },
-  (t) => [primaryKey({ columns: [t.pageKey, t.locale] })],
-);
+/** Per-page SEO copy. */
+export const pageContent = pgTable('page_content', {
+  pageKey: pageKeyEnum().primaryKey(),
+  /** Overrides the default "<Page> — <Name>" title when set. */
+  seoTitle: text(),
+  seoDescription: text().notNull(),
+  ...timestamps,
+  ...authorship,
+});
 
 /** Content sections that carry an editable heading block. */
 export const sectionKeyEnum = pgEnum('section_key', [
@@ -68,20 +63,15 @@ export const sectionKeyEnum = pgEnum('section_key', [
   'cta',
 ]);
 
-/** Per-section, per-locale heading copy (eyebrow, title, subtitle, optional lead, optional secondary heading). */
-export const sectionContent = pgTable(
-  'section_content',
-  {
-    sectionKey: sectionKeyEnum().notNull(),
-    locale: localeEnum().notNull(),
-    eyebrow: text().notNull(),
-    title: text().notNull(),
-    subtitle: text(),
-    body: text(),
-    /** Secondary heading inside the section (About: differentiators; Stack: learning banner). */
-    aside: text(),
-    ...timestamps,
-    ...authorship,
-  },
-  (t) => [primaryKey({ columns: [t.sectionKey, t.locale] })],
-);
+/** Per-section heading copy (eyebrow, title, subtitle, optional lead, optional secondary heading). */
+export const sectionContent = pgTable('section_content', {
+  sectionKey: sectionKeyEnum().primaryKey(),
+  eyebrow: text().notNull(),
+  title: text().notNull(),
+  subtitle: text(),
+  body: text(),
+  /** Secondary heading inside the section (About: differentiators; Stack: learning banner). */
+  aside: text(),
+  ...timestamps,
+  ...authorship,
+});

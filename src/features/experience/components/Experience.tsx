@@ -4,8 +4,7 @@ import { Section } from '@/components/ui/Section';
 import { Status } from '@/components/ui/Status';
 import { Tag, TagList } from '@/components/ui/Tag';
 import type { SectionContent } from '@/features/site/types';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import { copy } from '@/config/copy';
 import { cn } from '@/lib/cn';
 import { formatExperienceRange } from '../format';
 import type { Experience as ExperienceItem } from '../types';
@@ -14,15 +13,14 @@ import { ExperienceTabs } from './ExperienceTabs';
 interface ExperienceProps {
   section: SectionContent;
   items: ExperienceItem[];
-  locale: Locale;
-  t: Dictionary['experience'];
 }
 
 /**
  * A résumé-style timeline: dates in their own column, a rail, then the role.
  * Typography carries the hierarchy; only the current role gets a glass panel.
  */
-function Timeline({ items, locale, t, education }: { items: ExperienceItem[]; locale: Locale; t: Dictionary['experience']; education: boolean }) {
+function Timeline({ items, education }: { items: ExperienceItem[]; education: boolean }) {
+  const t = copy.experience;
   return (
     <ol>
       {items.map((item, i) => (
@@ -31,7 +29,7 @@ function Timeline({ items, locale, t, education }: { items: ExperienceItem[]; lo
             {/* Dates stay beside a long entry while it scrolls past (md+). */}
             <div className="col-start-2 flex flex-wrap items-center gap-3 pt-0.5 pb-3 md:sticky md:top-24 md:col-start-1 md:row-start-1 md:flex-col md:items-end md:gap-2.5 md:self-start md:pt-6 md:pb-0 md:text-right">
               <span className={cn('font-mono text-label tracking-[0.08em] uppercase', education ? 'text-accent-fg' : 'text-brand-fg')}>
-                {formatExperienceRange(item, locale, t)}
+                {formatExperienceRange(item)}
               </span>
               {item.isCurrent && <Status tone={education ? 'accent' : 'brand'}>{t.current}</Status>}
             </div>
@@ -78,7 +76,7 @@ function Timeline({ items, locale, t, education }: { items: ExperienceItem[]; lo
   );
 }
 
-export function Experience({ section, items, locale, t }: ExperienceProps) {
+export function Experience({ section, items }: ExperienceProps) {
   const career = items.filter((i) => i.kind === 'career');
   const education = items.filter((i) => i.kind === 'education');
 
@@ -86,10 +84,9 @@ export function Experience({ section, items, locale, t }: ExperienceProps) {
     <Section id="experience" labelledBy="experience-title">
       <ExperienceTabs
         section={section}
-        t={t}
         panels={{
-          career: <Timeline items={career} locale={locale} t={t} education={false} />,
-          education: <Timeline items={education} locale={locale} t={t} education />,
+          career: <Timeline items={career} education={false} />,
+          education: <Timeline items={education} education />,
         }}
       />
     </Section>

@@ -3,8 +3,7 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import type { SectionContent } from '@/features/site/types';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
+
 import type { SkillsOverview } from '../types';
 import { TechTags } from './TechTags';
 
@@ -13,12 +12,10 @@ interface StackProps {
   skills: SkillsOverview;
   /** Published projects per technology slug: used technologies link to their projects. */
   usage: ReadonlyMap<string, number>;
-  locale: Locale;
-  t: Dictionary['skills'];
 }
 
 /** Skills as a scannable definition list: category on the left, technologies on the right. */
-export function Stack({ section, skills, usage, locale, t }: StackProps) {
+export function Stack({ section, skills, usage }: StackProps) {
   return (
     <Section id="stack" labelledBy="stack-title">
       <SectionHeader content={section} id="stack-title" />
@@ -39,7 +36,7 @@ export function Stack({ section, skills, usage, locale, t }: StackProps) {
                 {cat.name}
               </dt>
               <dd className="md:pt-0.5">
-                <TechTags technologies={cat.technologies} usage={usage} locale={locale} t={t} />
+                <TechTags technologies={cat.technologies} usage={usage} />
               </dd>
             </div>
           ))}
@@ -58,7 +55,7 @@ export function Stack({ section, skills, usage, locale, t }: StackProps) {
                 <h3 className="text-h3">{cat.name}</h3>
               </div>
             </div>
-            <TechTags technologies={cat.technologies} usage={usage} locale={locale} t={t} tone="accent" />
+            <TechTags technologies={cat.technologies} usage={usage} tone="accent" />
           </div>
         </Reveal>
       ))}

@@ -170,7 +170,7 @@ function PublishedSummary({ published }: { published: ResumeVersion | null }) {
             {published.publishedAt && (
               <span className="text-body-sm text-fg-faint">
                 {' '}
-                · published <RelativeTime iso={published.publishedAt} locale="en-US" />
+                · published <RelativeTime iso={published.publishedAt} />
               </span>
             )}
           </span>
@@ -263,13 +263,13 @@ function VersionRow({ version: v, disabled, onAction, onRenamed }: VersionRowPro
           <span>{formatSize(v.sizeBytes)}</span>
           <span aria-hidden="true">·</span>
           <span title={v.uploadedAt}>
-            uploaded <RelativeTime iso={v.uploadedAt} locale="en-US" />
+            uploaded <RelativeTime iso={v.uploadedAt} />
           </span>
           {v.isPublished && v.publishedAt && (
             <>
               <span aria-hidden="true">·</span>
               <span title={v.publishedAt}>
-                published <RelativeTime iso={v.publishedAt} locale="en-US" />
+                published <RelativeTime iso={v.publishedAt} />
               </span>
             </>
           )}

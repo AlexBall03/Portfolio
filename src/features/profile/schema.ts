@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { isIconName } from '@/components/ui/icons';
-import { accent, blankToNull, icon, localized, mediaInput, nullableText, text, url } from '@/lib/validation';
+import { accent, blankToNull, icon, mediaInput, nullableText, text, url } from '@/lib/validation';
 
-export const profileTranslationInput = z.object({
+/** The profile's prose: title, statement, about paragraphs, and hero copy. */
+export const profileTextInput = z.object({
   title: text(120),
   statement: text(300),
   availabilityText: text(120),
@@ -29,7 +30,7 @@ export const profileInput = z.object({
   addressRegion: z.string().trim().max(100).nullish(),
   addressCountry: z.string().trim().length(2).nullish(),
   headshot: mediaInput.nullish(),
-  translations: localized(profileTranslationInput),
+  ...profileTextInput.shape,
 });
 export type ProfileInput = z.infer<typeof profileInput>;
 
@@ -42,39 +43,32 @@ export const socialLinkInput = z.object({
 });
 export type SocialLinkInput = z.infer<typeof socialLinkInput>;
 
-export const roleTranslationInput = z.object({ label: text(80) });
-
 export const profileRoleInput = z.object({
+  label: text(80),
   accent: accent.default('blue'),
   visible: z.boolean().default(true),
-  translations: localized(roleTranslationInput),
 });
 export type ProfileRoleInput = z.infer<typeof profileRoleInput>;
-
-export const highlightTranslationInput = z.object({ title: text(120), body: text(600) });
 
 export const highlightInput = z.object({
   kind: z.enum(['differentiator', 'resume']),
   icon: icon.nullish(),
+  title: text(120),
+  body: text(600),
   visible: z.boolean().default(true),
-  translations: localized(highlightTranslationInput),
 });
 export type HighlightInput = z.infer<typeof highlightInput>;
 
-export const metricTranslationInput = z.object({
-  label: text(60),
-  note: z.string().trim().max(120, 'At most 120 characters').default(''),
-});
-
 export const snapshotMetricInput = z.object({
   icon,
+  label: text(60),
+  note: z.string().trim().max(120, 'At most 120 characters').default(''),
   source: z.enum(['static', 'published_projects', 'technologies']).default('static'),
   /** Ignored when `source` is derived; stored so switching back to static has a value. */
   value: z.number().finite().nonnegative(),
   suffix: z.string().max(4).default(''),
   accent: accent.default('blue'),
   visible: z.boolean().default(true),
-  translations: localized(metricTranslationInput),
 });
 export type SnapshotMetricInput = z.infer<typeof snapshotMetricInput>;
 
@@ -135,11 +129,9 @@ export type SocialLinksInput = z.infer<typeof socialLinksInput>;
 
 /* ── Headshot ───────────────────────────────────────────────────────────────
  * The photo itself is uploaded through a Route Handler (multipart `file`,
- * `alt.<locale>`); its alt text is also editable on its own.
+ * `alt`); its alt text is also editable on its own.
  */
 
-export const headshotTranslationInput = z.object({ alt: text(300) });
-
-/** The headshot's alt text: required in English, optional (all or nothing) per other locale. */
-export const headshotTextInput = z.object({ translations: localized(headshotTranslationInput) });
+/** The headshot's alt text. */
+export const headshotTextInput = z.object({ alt: text(300) });
 export type HeadshotTextInput = z.infer<typeof headshotTextInput>;

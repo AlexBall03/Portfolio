@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useId, useState } from 'react';
 import { CONTROL } from '@/components/admin/form/fields';
-import { TranslationBadge } from '@/components/admin/form/LocaleTabs';
+
 import { Icon } from '@/components/ui/Icon';
 import { RelativeTime } from '@/components/ui/RelativeTime';
 import { adminProjectPath } from '@/config/admin';
@@ -107,9 +107,8 @@ export function ProjectList({ projects }: { projects: ProjectListItem[] }) {
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:w-[24rem] md:flex-nowrap md:justify-end">
                 <ProjectStatusPill status={p.status} />
-                <TranslationBadge locale="es" status={p.translation.es} />
                 <span className="text-micro whitespace-nowrap text-fg-faint">
-                  Edited <RelativeTime iso={p.updatedAt} locale="en-US" />
+                  Edited <RelativeTime iso={p.updatedAt} />
                 </span>
               </div>
               <div className="-ml-2 flex shrink-0 gap-0.5 md:ml-0">

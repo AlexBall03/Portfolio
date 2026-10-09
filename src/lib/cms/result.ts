@@ -7,7 +7,7 @@ export type MutationResult<T> =
   | { ok: true; data: T; savedAt: string }
   | {
       ok: false;
-      /** Messages keyed by the input path, e.g. `translations.es.title` or `items.2.icon`. */
+      /** Messages keyed by the input path, e.g. `title` or `items.2.icon`. */
       fieldErrors: Record<string, string>;
       /** A message for the form as a whole. */
       formError?: string;

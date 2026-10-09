@@ -3,7 +3,6 @@ import { isDeployment } from '../admin/env';
 import { queryRows } from '../raw';
 import * as s from '../schema';
 import type { Database } from '../types';
-import type { Locale } from '../../i18n/config';
 import type { MediaInput } from '../../lib/validation';
 import { contentSeedSchema, type ContentSeed } from './schema';
 
@@ -14,50 +13,29 @@ import { contentSeedSchema, type ContentSeed } from './schema';
 const CONTENT_TABLES = [
   s.resumeVersions,
   s.projectRelations,
-  s.projectMilestoneTranslations,
   s.projectMilestones,
   s.projectSectionMedia,
-  s.projectSectionItemTranslations,
   s.projectSectionItems,
-  s.projectSectionTranslations,
   s.projectSections,
   s.projectMedia,
   s.projectRepositories,
   s.projectTechnologies,
   s.projectSlugHistory,
-  s.projectTranslations,
   s.projects,
   s.skillCategoryTechnologies,
-  s.skillCategoryTranslations,
   s.skillCategories,
   s.technologies,
-  s.experienceTranslations,
   s.experiences,
-  s.snapshotMetricTranslations,
   s.snapshotMetrics,
-  s.profileHighlightTranslations,
   s.profileHighlights,
-  s.profileRoleTranslations,
   s.profileRoles,
   s.socialLinks,
-  s.profileTranslations,
   s.profile,
   s.sectionContent,
   s.pageContent,
   s.siteSettings,
-  s.mediaAssetTranslations,
   s.mediaAssets,
 ];
-
-/** Expands a `{ en, es? }` translation object into rows for the locales present. */
-function rows<T extends object, Extra extends object>(
-  translations: Partial<Record<Locale, T>>,
-  extra: Extra,
-): (T & Extra & { locale: Locale })[] {
-  return (Object.entries(translations) as [Locale, T | undefined][])
-    .filter((entry): entry is [Locale, T] => entry[1] !== undefined)
-    .map(([locale, t]) => ({ ...t, ...extra, locale }));
-}
 
 export type SeedResult =
   /** The database was new: the content document was loaded. */
@@ -124,54 +102,42 @@ export async function seedContent(
           mimeType: media.mimeType ?? null,
           width: media.width ?? null,
           height: media.height ?? null,
+          alt: media.alt,
         })
         .returning({ id: s.mediaAssets.id });
       if (!asset) throw new Error('Failed to insert media asset');
-      const alt: Partial<Record<Locale, { alt: string }>> = {};
-      for (const [locale, text] of Object.entries(media.alt) as [Locale, string | undefined][]) {
-        if (text) alt[locale] = { alt: text };
-      }
-      await tx.insert(s.mediaAssetTranslations).values(rows(alt, { assetId: asset.id }));
       return asset.id;
     };
 
     // Site settings and page copy
     await tx.insert(s.siteSettings).values({ id: 1, ...doc.settings });
-    for (const [pageKey, translations] of Object.entries(doc.pages)) {
-      await tx.insert(s.pageContent).values(rows(translations, { pageKey: pageKey as keyof typeof doc.pages }));
+    for (const [pageKey, page] of Object.entries(doc.pages)) {
+      await tx.insert(s.pageContent).values({ ...page, pageKey: pageKey as keyof typeof doc.pages });
     }
-    for (const [sectionKey, translations] of Object.entries(doc.sections)) {
-      await tx
-        .insert(s.sectionContent)
-        .values(rows(translations, { sectionKey: sectionKey as keyof typeof doc.sections }));
+    for (const [sectionKey, section] of Object.entries(doc.sections)) {
+      await tx.insert(s.sectionContent).values({ ...section, sectionKey: sectionKey as keyof typeof doc.sections });
     }
 
     // Profile
-    const { headshot, translations: profileTranslations, ...profile } = doc.profile;
+    const { headshot, ...profile } = doc.profile;
     await tx.insert(s.profile).values({
       id: 1,
       ...profile,
       headshotAssetId: await insertMedia(headshot),
     });
-    await tx.insert(s.profileTranslations).values(rows(profileTranslations, { profileId: 1 }));
 
     if (doc.socialLinks.length) {
       await tx.insert(s.socialLinks).values(doc.socialLinks.map((l, i) => ({ ...l, sortOrder: i })));
     }
 
-    for (const [i, { translations, ...role }] of doc.roles.entries()) {
-      const [row] = await tx.insert(s.profileRoles).values({ ...role, sortOrder: i }).returning();
-      await tx.insert(s.profileRoleTranslations).values(rows(translations, { roleId: row!.id }));
+    if (doc.roles.length) {
+      await tx.insert(s.profileRoles).values(doc.roles.map((role, i) => ({ ...role, sortOrder: i })));
     }
-
-    for (const [i, { translations, ...highlight }] of doc.highlights.entries()) {
-      const [row] = await tx.insert(s.profileHighlights).values({ ...highlight, sortOrder: i }).returning();
-      await tx.insert(s.profileHighlightTranslations).values(rows(translations, { highlightId: row!.id }));
+    if (doc.highlights.length) {
+      await tx.insert(s.profileHighlights).values(doc.highlights.map((h, i) => ({ ...h, sortOrder: i })));
     }
-
-    for (const [i, { translations, ...metric }] of doc.metrics.entries()) {
-      const [row] = await tx.insert(s.snapshotMetrics).values({ ...metric, sortOrder: i }).returning();
-      await tx.insert(s.snapshotMetricTranslations).values(rows(translations, { metricId: row!.id }));
+    if (doc.metrics.length) {
+      await tx.insert(s.snapshotMetrics).values(doc.metrics.map((m, i) => ({ ...m, sortOrder: i })));
     }
 
     // Technologies and skills
@@ -180,9 +146,8 @@ export async function seedContent(
     const techLinks = (slugs: string[]) =>
       slugs.map((slug, sortOrder) => ({ technologyId: techId.get(slug)!, sortOrder }));
 
-    for (const [i, { translations, technologies, ...category }] of doc.skillCategories.entries()) {
+    for (const [i, { technologies, ...category }] of doc.skillCategories.entries()) {
       const [row] = await tx.insert(s.skillCategories).values({ ...category, sortOrder: i }).returning();
-      await tx.insert(s.skillCategoryTranslations).values(rows(translations, { categoryId: row!.id }));
       await tx
         .insert(s.skillCategoryTechnologies)
         .values(techLinks(technologies).map((l) => ({ ...l, categoryId: row!.id })));
@@ -190,7 +155,7 @@ export async function seedContent(
 
     // Projects
     for (const [i, p] of doc.projects.entries()) {
-      const { translations, technologies, repositories, cover, ...project } = p;
+      const { technologies, repositories, cover, ...project } = p;
       const [row] = await tx
         .insert(s.projects)
         .values({
@@ -203,7 +168,6 @@ export async function seedContent(
         })
         .returning();
       const projectId = row!.id;
-      await tx.insert(s.projectTranslations).values(rows(translations, { projectId }));
       if (technologies.length) {
         await tx.insert(s.projectTechnologies).values(techLinks(technologies).map((l) => ({ ...l, projectId })));
       }
@@ -217,12 +181,17 @@ export async function seedContent(
     }
 
     // Experience
-    for (const [i, { translations, ...experience }] of doc.experiences.entries()) {
-      const [row] = await tx
-        .insert(s.experiences)
-        .values({ ...experience, endDate: experience.endDate ?? null, sortOrder: i })
-        .returning();
-      await tx.insert(s.experienceTranslations).values(rows(translations, { experienceId: row!.id }));
+    if (doc.experiences.length) {
+      await tx.insert(s.experiences).values(
+        doc.experiences.map((e, i) => ({
+          ...e,
+          endDate: e.endDate ?? null,
+          organizationLabel: e.organizationLabel ?? null,
+          employmentType: e.employmentType ?? null,
+          location: e.location ?? null,
+          sortOrder: i,
+        })),
+      );
     }
 
     return { status: 'seeded' };

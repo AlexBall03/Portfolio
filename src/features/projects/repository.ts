@@ -2,40 +2,31 @@ import 'server-only';
 import { and, asc, eq, inArray, max, ne, sql, type SQL } from 'drizzle-orm';
 import {
   mediaAssets,
-  mediaAssetTranslations,
   projectMedia,
   projectMilestones,
-  projectMilestoneTranslations,
   projectRelations,
   projectRepositories,
   projects,
   projectSectionItems,
-  projectSectionItemTranslations,
   projectSectionMedia,
   projectSections,
-  projectSectionTranslations,
   projectSlugHistory,
   projectTechnologies,
-  projectTranslations,
   technologies,
 } from '@/db/schema';
 import { deleteUnreferencedAssets, type StoredObject } from '@/db/media';
 import type { Database } from '@/db/types';
 import type { RepositoryLabel } from '@/features/github/types';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
-import { mapTranslated, pickTranslation } from '@/i18n/translations';
-import { localeRecord, translationStatus } from '@/lib/cms/locale';
-import { reconcileList, syncTranslations } from '@/lib/cms/write';
+import { reconcileList } from '@/lib/cms/write';
 import { FieldValidationError, NotFoundError } from '@/lib/errors';
 import { resolveMedia } from '@/lib/media';
-import {
-  projectTranslationInput,
-  type ProjectEditorInput,
-  type ProjectMediaInput,
-  type ProjectMilestonesInput,
-  type ProjectOrderInput,
-  type ProjectRelationsInput,
-  type ProjectSectionsInput,
+import type {
+  ProjectEditorInput,
+  ProjectMediaInput,
+  ProjectMilestonesInput,
+  ProjectOrderInput,
+  ProjectRelationsInput,
+  ProjectSectionsInput,
 } from './schema';
 import type {
   CaseStudyValues,
@@ -61,25 +52,24 @@ function queryProjects(db: Database, where: SQL | undefined) {
     where,
     orderBy: [asc(projects.sortOrder), asc(projects.createdAt)],
     with: {
-      translations: true,
       technologies: { with: { technology: true } },
       repositories: true,
-      media: { with: { asset: { with: { translations: true } } } },
+      media: { with: { asset: true } },
     },
   });
 }
 
 const published = eq(projects.status, 'published');
 
-function toProject(row: ProjectRow, t: ProjectRow['translations'][number], locale: Locale): Project {
+function toProject(row: ProjectRow): Project {
   const media = [...row.media].sort((a, b) => a.sortOrder - b.sortOrder);
   return {
     id: row.id,
     slug: row.slug,
-    name: t.name,
-    tagline: t.tagline,
-    summary: t.summary,
-    body: t.body,
+    name: row.name,
+    tagline: row.tagline,
+    summary: row.summary,
+    body: row.body,
     featured: row.featured,
     isLive: row.isLive,
     links: { demo: row.demoUrl, source: row.sourceUrl, details: row.detailsUrl },
@@ -98,17 +88,17 @@ function toProject(row: ProjectRow, t: ProjectRow['translations'][number], local
         isPrimary: r.isPrimary,
       })),
     githubAnalytics: row.githubAnalyticsVisible,
-    cover: resolveMedia(media.find((m) => m.role === 'cover')?.asset, locale),
+    cover: resolveMedia(media.find((m) => m.role === 'cover')?.asset),
     gallery: media
       .filter((m) => m.role === 'gallery')
-      .map((m) => resolveMedia(m.asset, locale))
+      .map((m) => resolveMedia(m.asset))
       .filter((m) => m !== null),
   };
 }
 
-export async function listPublishedProjects(db: Database, locale: Locale): Promise<Project[]> {
+export async function listPublishedProjects(db: Database): Promise<Project[]> {
   const rows = await queryProjects(db, published);
-  return mapTranslated(rows, locale, (row, t) => toProject(row, t, locale));
+  return rows.map(toProject);
 }
 
 export async function listPublishedProjectSlugs(db: Database): Promise<string[]> {
@@ -154,12 +144,10 @@ export async function listPublishedProjectSitemap(db: Database): Promise<{ slug:
  * Resolves a public slug: the current slug renders the project, a retired slug
  * redirects to the current one, anything else (including drafts) is not found.
  */
-export async function findProjectBySlug(db: Database, slug: string, locale: Locale): Promise<ProjectLookup> {
+export async function findProjectBySlug(db: Database, slug: string): Promise<ProjectLookup> {
   const [row] = await queryProjects(db, and(published, eq(projects.slug, slug)));
   if (row) {
-    const [project] = mapTranslated([row], locale, (r, t) => toProject(r, t, locale));
-    if (!project) return { kind: 'not-found' };
-    return { kind: 'found', project: { ...project, ...(await loadCaseStudy(db, project.id, locale, false)) } };
+    return { kind: 'found', project: { ...toProject(row), ...(await loadCaseStudy(db, row.id, false)) } };
   }
 
   const [retired] = await db
@@ -172,30 +160,27 @@ export async function findProjectBySlug(db: Database, slug: string, locale: Loca
 }
 
 /* ── Admin editor reads ─────────────────────────────────────────────────────
- * Uncached and complete: drafts included, every locale's raw translation.
+ * Uncached and complete: drafts and hidden content included.
  */
 
 /**
  * Any project, whatever its status, as the public page would render it (admin
  * preview), including hidden sections and milestones (flagged `hidden`).
  */
-export async function findProjectForPreview(db: Database, id: string, locale: Locale): Promise<ProjectCaseStudy | null> {
+export async function findProjectForPreview(db: Database, id: string): Promise<ProjectCaseStudy | null> {
   const [row] = await queryProjects(db, eq(projects.id, id));
   if (!row) return null;
-  const project = mapTranslated([row], locale, (r, t) => toProject(r, t, locale))[0];
-  return project ? { ...project, ...(await loadCaseStudy(db, id, locale, true)) } : null;
+  return { ...toProject(row), ...(await loadCaseStudy(db, id, true)) };
 }
 
 /**
- * A project's case study for one locale: sections in order, milestones
- * chronologically (same-day ties by list order), related project ids in
- * order. Public reads leave hidden content out; text falls back to English
- * per section, entry, and milestone.
+ * A project's case study: sections in order, milestones chronologically
+ * (same-day ties by list order), related project ids in order. Public reads
+ * leave hidden content out.
  */
 async function loadCaseStudy(
   db: Database,
   projectId: string,
-  locale: Locale,
   includeHidden: boolean,
 ): Promise<Pick<ProjectCaseStudy, 'sections' | 'milestones' | 'relatedIds'>> {
   const [sectionRows, milestoneRows, related] = await Promise.all([
@@ -203,15 +188,14 @@ async function loadCaseStudy(
       where: and(eq(projectSections.projectId, projectId), includeHidden ? undefined : eq(projectSections.visible, true)),
       orderBy: [asc(projectSections.sortOrder), asc(projectSections.createdAt)],
       with: {
-        translations: true,
-        items: { orderBy: [asc(projectSectionItems.sortOrder)], with: { translations: true } },
-        media: { orderBy: [asc(projectSectionMedia.sortOrder)], with: { asset: { with: { translations: true } } } },
+        items: { orderBy: [asc(projectSectionItems.sortOrder)] },
+        media: { orderBy: [asc(projectSectionMedia.sortOrder)], with: { asset: true } },
       },
     }),
     db.query.projectMilestones.findMany({
       where: and(eq(projectMilestones.projectId, projectId), includeHidden ? undefined : eq(projectMilestones.visible, true)),
       orderBy: [asc(projectMilestones.occurredOn), asc(projectMilestones.sortOrder)],
-      with: { translations: true, asset: { with: { translations: true } } },
+      with: { asset: true },
     }),
     db
       .select({ id: projectRelations.relatedProjectId })
@@ -221,25 +205,25 @@ async function loadCaseStudy(
   ]);
 
   return {
-    sections: mapTranslated(sectionRows, locale, (row, t) => ({
+    sections: sectionRows.map((row) => ({
       id: row.id,
       kind: row.kind,
-      heading: t.heading,
-      body: t.body,
-      items: mapTranslated(row.items, locale, (_, it) => ({ title: it.title, body: it.body })),
-      media: row.media.map((m) => resolveMedia(m.asset, locale)).filter((m) => m !== null),
+      heading: row.heading,
+      body: row.body,
+      items: row.items.map((it) => ({ title: it.title, body: it.body })),
+      media: row.media.map((m) => resolveMedia(m.asset)).filter((m) => m !== null),
       videoUrl: row.videoUrl,
       hidden: !row.visible,
     })),
-    milestones: mapTranslated(milestoneRows, locale, (row, t) => ({
+    milestones: milestoneRows.map((row) => ({
       id: row.id,
       date: row.occurredOn,
       precision: row.datePrecision,
       kind: row.kind,
-      title: t.title,
-      description: t.description,
+      title: row.title,
+      description: row.description,
       url: row.url,
-      image: resolveMedia(row.asset, locale),
+      image: resolveMedia(row.asset),
       hidden: !row.visible,
     })),
     relatedIds: related.map((r) => r.id),
@@ -248,26 +232,20 @@ async function loadCaseStudy(
 
 const iso = (d: Date | null) => d?.toISOString() ?? null;
 
-const blankTranslation = () => ({ name: '', tagline: '', summary: '', body: [] as string[] });
-
 export async function listProjectsForAdmin(db: Database): Promise<ProjectListItem[]> {
   const rows = await db.query.projects.findMany({
     orderBy: [asc(projects.sortOrder), asc(projects.createdAt)],
-    with: { translations: true, media: { with: { asset: { with: { translations: true } } } } },
+    with: { media: { with: { asset: true } } },
   });
   return rows.map((row) => {
-    const translations = localeRecord(row.translations, (t) => ({ ...t }), blankTranslation);
-    const cover = resolveMedia(row.media.find((m) => m.role === 'cover')?.asset, DEFAULT_LOCALE);
+    const cover = resolveMedia(row.media.find((m) => m.role === 'cover')?.asset);
     return {
       id: row.id,
       slug: row.slug,
-      name: pickTranslation(row.translations, DEFAULT_LOCALE)?.name ?? row.slug,
+      name: row.name || row.slug,
       status: row.status,
       featured: row.featured,
       sortOrder: row.sortOrder,
-      translation: Object.fromEntries(
-        LOCALES.map((l) => [l, translationStatus(projectTranslationInput, translations[l])]),
-      ) as ProjectListItem['translation'],
       cover: cover && { src: cover.src, alt: cover.alt },
       publishedAt: iso(row.publishedAt),
       updatedAt: row.updatedAt.toISOString(),
@@ -278,7 +256,7 @@ export async function listProjectsForAdmin(db: Database): Promise<ProjectListIte
 export async function getProjectValues(db: Database, id: string): Promise<ProjectValues | null> {
   const row = await db.query.projects.findFirst({
     where: eq(projects.id, id),
-    with: { translations: true, technologies: { with: { technology: true } } },
+    with: { technologies: { with: { technology: true } } },
   });
   if (!row) return null;
   return {
@@ -293,11 +271,10 @@ export async function getProjectValues(db: Database, id: string): Promise<Projec
     technologies: [...row.technologies]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map(({ technology: t }) => ({ key: t.slug, slug: t.slug, name: t.name })),
-    translations: localeRecord(
-      row.translations,
-      (t) => ({ name: t.name, tagline: t.tagline, summary: t.summary, body: t.body }),
-      blankTranslation,
-    ),
+    name: row.name,
+    tagline: row.tagline,
+    summary: row.summary,
+    body: row.body,
     publishedAt: iso(row.publishedAt),
   };
 }
@@ -326,21 +303,18 @@ export async function getProjectMediaValues(db: Database, projectId: string): Pr
   const rows = await db.query.projectMedia.findMany({
     where: eq(projectMedia.projectId, projectId),
     orderBy: [asc(projectMedia.sortOrder)],
-    with: { asset: { with: { translations: true } } },
+    with: { asset: true },
   });
   return {
     items: rows.map(({ asset, role }) => ({
       key: asset.id,
       assetId: asset.id,
-      src: resolveMedia(asset, DEFAULT_LOCALE)!.src,
+      src: resolveMedia(asset)!.src,
       width: asset.width,
       height: asset.height,
       isCover: role === 'cover',
-      translations: localeRecord(
-        asset.translations,
-        (t) => ({ alt: t.alt, caption: t.caption ?? '' }),
-        () => ({ alt: '', caption: '' }),
-      ),
+      alt: asset.alt,
+      caption: asset.caption ?? '',
     })),
   };
 }
@@ -382,6 +356,10 @@ const projectFields = (data: ProjectEditorInput) => ({
   demoUrl: data.demoUrl ?? null,
   sourceUrl: data.sourceUrl ?? null,
   detailsUrl: data.detailsUrl ?? null,
+  name: data.name,
+  tagline: data.tagline,
+  summary: data.summary,
+  body: data.body,
 });
 
 /** Creates a project at the end of the editorial order. Returns its id. */
@@ -442,18 +420,6 @@ export async function updateProject(
 }
 
 async function writeProjectContent(db: Database, projectId: string, data: ProjectEditorInput) {
-  await syncTranslations(data.translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(projectTranslations)
-        .values({ projectId, locale, ...t })
-        .onConflictDoUpdate({ target: [projectTranslations.projectId, projectTranslations.locale], set: t }),
-    remove: (locale) =>
-      db
-        .delete(projectTranslations)
-        .where(and(eq(projectTranslations.projectId, projectId), eq(projectTranslations.locale, locale))),
-  });
-
   // Technologies are a shared vocabulary: new ones are added, existing names are kept.
   await db.delete(projectTechnologies).where(eq(projectTechnologies.projectId, projectId));
   if (data.technologies.length) {
@@ -509,37 +475,32 @@ export interface NewImage {
   height: number | null;
 }
 
-type MediaTranslations = ProjectMediaInput['items'][number]['translations'];
-
-const syncMediaTranslations = (db: Database, assetId: string, translations: MediaTranslations) =>
-  syncTranslations(translations, {
-    upsert: (locale, t) => {
-      const values = { alt: t.alt, caption: t.caption ?? null };
-      return db
-        .insert(mediaAssetTranslations)
-        .values({ assetId, locale, ...values })
-        .onConflictDoUpdate({ target: [mediaAssetTranslations.assetId, mediaAssetTranslations.locale], set: values });
-    },
-    remove: (locale) =>
-      db
-        .delete(mediaAssetTranslations)
-        .where(and(eq(mediaAssetTranslations.assetId, assetId), eq(mediaAssetTranslations.locale, locale))),
-  });
+/** An image's alt text and optional caption. */
+export interface ImageText {
+  alt: string;
+  caption?: string | null;
+}
 
 /** Adds an uploaded image at the end of the gallery; a project's first image becomes its hero. */
 export async function insertProjectImage(
   db: Database,
   projectId: string,
   image: NewImage,
-  translations: MediaTranslations,
+  text: ImageText,
   actor: Actor,
 ): Promise<string> {
   if (!(await projectExists(db, projectId))) throw new NotFoundError('The project');
   const [asset] = await db
     .insert(mediaAssets)
-    .values({ storage: 'blob', ...image, createdBy: actor.userId, updatedBy: actor.userId })
+    .values({
+      storage: 'blob',
+      ...image,
+      alt: text.alt,
+      caption: text.caption ?? null,
+      createdBy: actor.userId,
+      updatedBy: actor.userId,
+    })
     .returning({ id: mediaAssets.id });
-  await syncMediaTranslations(db, asset!.id, translations);
   const links = await db
     .select({ role: projectMedia.role, sortOrder: projectMedia.sortOrder })
     .from(projectMedia)
@@ -602,8 +563,10 @@ export async function saveProjectMedia(db: Database, input: ProjectMediaInput, a
       .update(projectMedia)
       .set({ sortOrder, role: item.isCover ? 'cover' : 'gallery' })
       .where(and(ofProject, eq(projectMedia.assetId, item.assetId)));
-    await db.update(mediaAssets).set({ updatedBy: actor.userId }).where(eq(mediaAssets.id, item.assetId));
-    await syncMediaTranslations(db, item.assetId, item.translations);
+    await db
+      .update(mediaAssets)
+      .set({ alt: item.alt, caption: item.caption ?? null, updatedBy: actor.userId })
+      .where(eq(mediaAssets.id, item.assetId));
   }
   return deleteUnreferencedAssets(db, removed);
 }
@@ -613,7 +576,7 @@ export async function saveProjectMedia(db: Database, input: ProjectMediaInput, a
 /** The project's images, for the editors that reference them (sections, milestones). */
 export async function listProjectImages(db: Database, projectId: string): Promise<ProjectImageChoice[]> {
   const { items } = await getProjectMediaValues(db, projectId);
-  return items.map((i) => ({ assetId: i.assetId, src: i.src, alt: i.translations.en.alt }));
+  return items.map((i) => ({ assetId: i.assetId, src: i.src, alt: i.alt }));
 }
 
 export async function getCaseStudyValues(db: Database, projectId: string): Promise<CaseStudyValues> {
@@ -621,8 +584,7 @@ export async function getCaseStudyValues(db: Database, projectId: string): Promi
     where: eq(projectSections.projectId, projectId),
     orderBy: [asc(projectSections.sortOrder), asc(projectSections.createdAt)],
     with: {
-      translations: true,
-      items: { orderBy: [asc(projectSectionItems.sortOrder)], with: { translations: true } },
+      items: { orderBy: [asc(projectSectionItems.sortOrder)] },
       media: { orderBy: [asc(projectSectionMedia.sortOrder)] },
     },
   });
@@ -633,20 +595,9 @@ export async function getCaseStudyValues(db: Database, projectId: string): Promi
       kind: row.kind,
       visible: row.visible,
       videoUrl: row.videoUrl ?? '',
-      translations: localeRecord(
-        row.translations,
-        (t) => ({ heading: t.heading, body: t.body }),
-        () => ({ heading: '', body: [] as string[] }),
-      ),
-      items: row.items.map((item) => ({
-        key: item.id,
-        id: item.id,
-        translations: localeRecord(
-          item.translations,
-          (t) => ({ title: t.title, body: t.body ?? '' }),
-          () => ({ title: '', body: '' }),
-        ),
-      })),
+      heading: row.heading,
+      body: row.body,
+      items: row.items.map((item) => ({ key: item.id, id: item.id, title: item.title, body: item.body ?? '' })),
       media: row.media.map((m) => m.assetId),
     })),
   };
@@ -656,7 +607,6 @@ export async function getMilestoneValues(db: Database, projectId: string): Promi
   const rows = await db.query.projectMilestones.findMany({
     where: eq(projectMilestones.projectId, projectId),
     orderBy: [asc(projectMilestones.sortOrder), asc(projectMilestones.createdAt)],
-    with: { translations: true },
   });
   return {
     milestones: rows.map((row) => ({
@@ -668,11 +618,8 @@ export async function getMilestoneValues(db: Database, projectId: string): Promi
       url: row.url ?? '',
       assetId: row.assetId ?? '',
       visible: row.visible,
-      translations: localeRecord(
-        row.translations,
-        (t) => ({ title: t.title, description: t.description ?? '' }),
-        () => ({ title: '', description: '' }),
-      ),
+      title: row.title,
+      description: row.description ?? '',
     })),
   };
 }
@@ -739,6 +686,8 @@ export async function saveProjectSections(db: Database, input: ProjectSectionsIn
     kind: s.kind,
     visible: s.visible,
     videoUrl: s.videoUrl ?? null,
+    heading: s.heading,
+    body: s.body,
     updatedBy: actor.userId,
   });
   const ids = await reconcileList(
@@ -763,59 +712,29 @@ export async function saveProjectSections(db: Database, input: ProjectSectionsIn
 
   for (const [i, sectionId] of ids.entries()) {
     const section = input.sections[i]!;
-    await syncTranslations(section.translations, {
-      upsert: (locale, t) =>
-        db
-          .insert(projectSectionTranslations)
-          .values({ sectionId, locale, ...t })
-          .onConflictDoUpdate({ target: [projectSectionTranslations.sectionId, projectSectionTranslations.locale], set: t }),
-      remove: (locale) =>
-        db
-          .delete(projectSectionTranslations)
-          .where(and(eq(projectSectionTranslations.sectionId, sectionId), eq(projectSectionTranslations.locale, locale))),
-    });
-
     const items = await db
       .select({ id: projectSectionItems.id })
       .from(projectSectionItems)
       .where(eq(projectSectionItems.sectionId, sectionId));
-    const itemIds = await reconcileList(
+    await reconcileList(
       items.map((r) => r.id),
       section.items,
       {
-        update: (id, _, sortOrder) =>
+        update: (id, item, sortOrder) =>
           db
             .update(projectSectionItems)
-            .set({ sortOrder })
+            .set({ title: item.title, body: item.body ?? null, sortOrder })
             .where(and(eq(projectSectionItems.id, id), eq(projectSectionItems.sectionId, sectionId))),
-        insert: async (_, sortOrder) => {
+        insert: async (item, sortOrder) => {
           const [row] = await db
             .insert(projectSectionItems)
-            .values({ sectionId, sortOrder })
+            .values({ sectionId, title: item.title, body: item.body ?? null, sortOrder })
             .returning({ id: projectSectionItems.id });
           return row!.id;
         },
         remove: (stale) => db.delete(projectSectionItems).where(inArray(projectSectionItems.id, stale)),
       },
     );
-    for (const [j, itemId] of itemIds.entries()) {
-      await syncTranslations(section.items[j]!.translations, {
-        upsert: (locale, t) => {
-          const values = { title: t.title, body: t.body ?? null };
-          return db
-            .insert(projectSectionItemTranslations)
-            .values({ itemId, locale, ...values })
-            .onConflictDoUpdate({
-              target: [projectSectionItemTranslations.itemId, projectSectionItemTranslations.locale],
-              set: values,
-            });
-        },
-        remove: (locale) =>
-          db
-            .delete(projectSectionItemTranslations)
-            .where(and(eq(projectSectionItemTranslations.itemId, itemId), eq(projectSectionItemTranslations.locale, locale))),
-      });
-    }
 
     await db.delete(projectSectionMedia).where(eq(projectSectionMedia.sectionId, sectionId));
     if (section.media.length) {
@@ -847,9 +766,11 @@ export async function saveProjectMilestones(db: Database, input: ProjectMileston
     url: m.url ?? null,
     assetId: m.assetId ?? null,
     visible: m.visible,
+    title: m.title,
+    description: m.description ?? null,
     updatedBy: actor.userId,
   });
-  const ids = await reconcileList(
+  await reconcileList(
     existing.map((r) => r.id),
     input.milestones,
     {
@@ -868,27 +789,6 @@ export async function saveProjectMilestones(db: Database, input: ProjectMileston
       remove: (stale) => db.delete(projectMilestones).where(inArray(projectMilestones.id, stale)),
     },
   );
-
-  for (const [i, milestoneId] of ids.entries()) {
-    await syncTranslations(input.milestones[i]!.translations, {
-      upsert: (locale, t) => {
-        const values = { title: t.title, description: t.description ?? null };
-        return db
-          .insert(projectMilestoneTranslations)
-          .values({ milestoneId, locale, ...values })
-          .onConflictDoUpdate({
-            target: [projectMilestoneTranslations.milestoneId, projectMilestoneTranslations.locale],
-            set: values,
-          });
-      },
-      remove: (locale) =>
-        db
-          .delete(projectMilestoneTranslations)
-          .where(
-            and(eq(projectMilestoneTranslations.milestoneId, milestoneId), eq(projectMilestoneTranslations.locale, locale)),
-          ),
-    });
-  }
 }
 
 /**

@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { fill } from '@/i18n/paths';
+import { copy, fill } from '@/config/copy';
+import { INTL_LOCALE } from '@/config/site';
 import { cn } from '@/lib/cn';
 import type { ActivityWeek } from '../types';
 
-type T = Dictionary['projectGithub'];
+const t = copy.projectGithub;
 
 const utc = (week: string) => new Date(`${week}T00:00:00Z`);
 
@@ -18,8 +18,6 @@ export function monthlyTotals(weeks: readonly ActivityWeek[]): { month: string; 
 interface ActivityChartProps {
   weeks: ActivityWeek[];
   total: number;
-  intl: string;
-  t: T;
 }
 
 /**
@@ -28,7 +26,8 @@ interface ActivityChartProps {
  * the same numbers are in a screen-reader table grouped by month. Rendered
  * on the server from data dates only (UTC), so cached output never drifts.
  */
-export function ActivityChart({ weeks, total, intl, t }: ActivityChartProps) {
+export function ActivityChart({ weeks, total }: ActivityChartProps) {
+  const intl = INTL_LOCALE;
   const day = new Intl.DateTimeFormat(intl, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   const monthName = new Intl.DateTimeFormat(intl, { month: 'short', timeZone: 'UTC' });
   const monthYear = new Intl.DateTimeFormat(intl, { month: 'long', year: 'numeric', timeZone: 'UTC' });

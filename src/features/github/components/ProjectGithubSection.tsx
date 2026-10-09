@@ -5,9 +5,8 @@ import { RelativeTime } from '@/components/ui/RelativeTime';
 import { Stat } from '@/components/ui/Stat';
 import { Status } from '@/components/ui/Status';
 import { Surface } from '@/components/ui/Surface';
-import { LOCALE_TAGS, type Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { fill } from '@/i18n/paths';
+import { copy, fill } from '@/config/copy';
+import { INTL_LOCALE } from '@/config/site';
 import { cn } from '@/lib/cn';
 import { createLogger } from '@/lib/logger';
 import { languageColor } from '../languages';
@@ -17,15 +16,13 @@ import { ActivityChart } from './ActivityChart';
 
 const log = createLogger('github');
 
-type T = Dictionary['projectGithub'];
+const t = copy.projectGithub;
 
 const SUBHEAD = 'font-mono text-label tracking-[0.16em] text-fg-faint uppercase';
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
 interface ProjectGithubSectionProps {
   repositories: ProjectRepoRef[];
-  locale: Locale;
-  t: T;
 }
 
 /**
@@ -36,13 +33,13 @@ interface ProjectGithubSectionProps {
  */
 export function ProjectGithubSection(props: ProjectGithubSectionProps) {
   return (
-    <Suspense fallback={<Placeholder loading t={props.t} />}>
+    <Suspense fallback={<Placeholder loading />}>
       <Panel {...props} />
     </Suspense>
   );
 }
 
-async function Panel({ repositories, locale, t }: ProjectGithubSectionProps) {
+async function Panel({ repositories }: ProjectGithubSectionProps) {
   let data: ProjectGithub | null = null;
   try {
     // Only the identifying fields: they are the cache key.
@@ -50,11 +47,11 @@ async function Panel({ repositories, locale, t }: ProjectGithubSectionProps) {
   } catch (err) {
     log.error('Project GitHub analytics failed', err);
   }
-  if (!data || data.status === 'unavailable' || data.status === 'unconfigured') return <Placeholder t={t} />;
-  return <Content data={data} intl={LOCALE_TAGS[locale].intl} t={t} />;
+  if (!data || data.status === 'unavailable' || data.status === 'unconfigured') return <Placeholder />;
+  return <Content data={data} />;
 }
 
-function Placeholder({ loading, t }: { loading?: boolean; t: T }) {
+function Placeholder({ loading }: { loading?: boolean }) {
   return (
     <Surface variant="inset" radius="xl" className="flex min-h-40 items-center justify-center p-8">
       {loading ? (
@@ -72,7 +69,7 @@ function Placeholder({ loading, t }: { loading?: boolean; t: T }) {
   );
 }
 
-function CoverageNote({ coverage, t }: { coverage: Coverage; t: T }) {
+function CoverageNote({ coverage }: { coverage: Coverage }) {
   if (coverage.covered === coverage.of) return null;
   return <p className="font-mono text-micro text-fg-faint">{fill(t.coverage, { covered: coverage.covered, of: coverage.of })}</p>;
 }
@@ -96,7 +93,8 @@ const tileBorders = (i: number) =>
     i >= 3 && 'sm:border-t',
   );
 
-function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T }) {
+function Content({ data }: { data: ProjectGithub }) {
+  const intl = INTL_LOCALE;
   const number = new Intl.NumberFormat(intl);
   const day = new Intl.DateTimeFormat(intl, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   interface Tile {
@@ -133,7 +131,7 @@ function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T })
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-micro text-fg-faint">
           {data.lastActivityAt && (
             <span>
-              {t.lastActivity}: <RelativeTime iso={data.lastActivityAt} locale={intl} />
+              {t.lastActivity}: <RelativeTime iso={data.lastActivityAt} />
             </span>
           )}
           {data.unavailable > 0 && (
@@ -145,13 +143,13 @@ function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T })
       <Surface variant="glass" radius="xl" as="section" aria-label={t.activityTitle} className="flex flex-col gap-4 p-5 sm:p-7">
         <h3 className={SUBHEAD}>{t.activityTitle}</h3>
         {data.activity && data.activity.weeks.length > 0 ? (
-          <ActivityChart weeks={data.activity.weeks} total={data.activity.total} intl={intl} t={t} />
+          <ActivityChart weeks={data.activity.weeks} total={data.activity.total} />
         ) : data.activity ? (
           <p className="text-body-sm text-fg-muted">{t.activityEmpty}</p>
         ) : (
           !pending && <p className="text-body-sm text-fg-muted">{t.activityUnavailable}</p>
         )}
-        {data.activity && <CoverageNote coverage={data.activity} t={t} />}
+        {data.activity && <CoverageNote coverage={data.activity} />}
         {pending > 0 && (
           <p className="text-body-sm text-fg-muted" role="status">
             {pending === 1 ? t.activityPendingOne : fill(t.activityPendingMany, { count: pending })}
@@ -192,7 +190,7 @@ function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T })
               )}
             </ul>
             <p className="text-micro text-fg-faint">{t.languagesCaption}</p>
-            <CoverageNote coverage={data.languages} t={t} />
+            <CoverageNote coverage={data.languages} />
           </Block>
         )}
 
@@ -218,7 +216,7 @@ function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T })
               )}
             </ul>
             <p className="text-micro text-fg-faint">{t.contributorsCaption}</p>
-            <CoverageNote coverage={data.contributors} t={t} />
+            <CoverageNote coverage={data.contributors} />
           </Block>
         )}
       </div>
@@ -274,7 +272,7 @@ function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T })
                   <span className="flex flex-wrap gap-x-3 font-mono text-micro text-fg-faint">
                     <span>{c.sha.slice(0, 7)}</span>
                     {data.repositories.length > 1 && <span>{c.repository}</span>}
-                    <RelativeTime iso={c.date} locale={intl} />
+                    <RelativeTime iso={c.date} />
                   </span>
                 </li>
               ))}
@@ -305,7 +303,7 @@ function Content({ data, intl, t }: { data: ProjectGithub; intl: string; t: T })
             ) : (
               <p className="text-body-sm text-fg-muted">{t.releasesNone}</p>
             )}
-            <CoverageNote coverage={data.releases} t={t} />
+            <CoverageNote coverage={data.releases} />
           </Block>
         )}
       </div>

@@ -13,7 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { authorship, contentStatusEnum, localeEnum, sortOrder, timestamps } from './_shared';
+import { authorship, contentStatusEnum, sortOrder, timestamps } from './_shared';
 import { mediaAssets } from './media';
 import { technologies } from './skills';
 
@@ -28,6 +28,14 @@ export const projects = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     /** Current public slug. Previous slugs live in project_slug_history. */
     slug: text().notNull().unique(),
+    name: text().notNull(),
+    tagline: text().notNull(),
+    summary: text().notNull(),
+    /** Further description paragraphs, shown below the summary on the project page. */
+    body: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     status: contentStatusEnum().notNull().default('draft'),
     featured: boolean().notNull().default(false),
     sortOrder: sortOrder(),
@@ -45,25 +53,6 @@ export const projects = pgTable(
     ...authorship,
   },
   (t) => [index('projects_status_sort_idx').on(t.status, t.sortOrder)],
-);
-
-export const projectTranslations = pgTable(
-  'project_translations',
-  {
-    projectId: uuid()
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    name: text().notNull(),
-    tagline: text().notNull(),
-    summary: text().notNull(),
-    /** Further description paragraphs, shown below the summary on the project page. */
-    body: text()
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-  },
-  (t) => [primaryKey({ columns: [t.projectId, t.locale] })],
 );
 
 /** Retired slugs. Requests for one permanently redirect to the project's current slug. */
@@ -91,7 +80,7 @@ export const projectTechnologies = pgTable(
 
 export const repositoryProviderEnum = pgEnum('repository_provider', ['github']);
 
-/** What a repository is to its project (labels are translated in the dictionaries). */
+/** What a repository is to its project (display labels live in the UI copy). */
 export const repositoryLabelEnum = pgEnum('repository_label', [
   'frontend',
   'backend',
@@ -155,8 +144,7 @@ export const projectMedia = pgTable(
 );
 
 /* ── Case study ─────────────────────────────────────────────────────────────
- * Structure (identity, kind, order, visibility, media) is shared by every
- * locale; text lives in translation tables. Which fields a kind uses is a code
+ * Which fields a kind uses is a code
  * map (`features/projects/case-study.ts`), enforced by validation.
  */
 
@@ -180,6 +168,12 @@ export const projectSections = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     kind: projectSectionKindEnum().notNull(),
+    heading: text().notNull(),
+    /** Paragraphs with light inline markup (`lib/inline-markup.ts`), never HTML. */
+    body: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     visible: boolean().notNull().default(false),
     sortOrder: sortOrder(),
     /** External video (kind `video`): an http(s) URL; YouTube and Vimeo are embedded. */
@@ -190,23 +184,6 @@ export const projectSections = pgTable(
   (t) => [index('project_sections_project_sort_idx').on(t.projectId, t.sortOrder)],
 );
 
-export const projectSectionTranslations = pgTable(
-  'project_section_translations',
-  {
-    sectionId: uuid()
-      .notNull()
-      .references(() => projectSections.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    heading: text().notNull(),
-    /** Paragraphs with light inline markup (`lib/inline-markup.ts`), never HTML. */
-    body: text()
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-  },
-  (t) => [primaryKey({ columns: [t.sectionId, t.locale] })],
-);
-
 /** A list entry of a section: a highlight, a challenge and its solution, an outcome, a lesson. */
 export const projectSectionItems = pgTable(
   'project_section_items',
@@ -215,22 +192,11 @@ export const projectSectionItems = pgTable(
     sectionId: uuid()
       .notNull()
       .references(() => projectSections.id, { onDelete: 'cascade' }),
+    title: text().notNull(),
+    body: text(),
     sortOrder: sortOrder(),
   },
   (t) => [index('project_section_items_section_idx').on(t.sectionId, t.sortOrder)],
-);
-
-export const projectSectionItemTranslations = pgTable(
-  'project_section_item_translations',
-  {
-    itemId: uuid()
-      .notNull()
-      .references(() => projectSectionItems.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    title: text().notNull(),
-    body: text(),
-  },
-  (t) => [primaryKey({ columns: [t.itemId, t.locale] })],
 );
 
 /** Images a section shows, in order: always images of the section's own project (`project_media`). */
@@ -264,6 +230,8 @@ export const projectMilestones = pgTable(
     occurredOn: date({ mode: 'string' }).notNull(),
     datePrecision: milestoneDatePrecisionEnum().notNull().default('month'),
     kind: milestoneKindEnum().notNull().default('other'),
+    title: text().notNull(),
+    description: text(),
     url: text(),
     /** Optional image: one of the project's own images. */
     assetId: uuid().references(() => mediaAssets.id, { onDelete: 'set null' }),
@@ -274,19 +242,6 @@ export const projectMilestones = pgTable(
     ...authorship,
   },
   (t) => [index('project_milestones_project_date_idx').on(t.projectId, t.occurredOn)],
-);
-
-export const projectMilestoneTranslations = pgTable(
-  'project_milestone_translations',
-  {
-    milestoneId: uuid()
-      .notNull()
-      .references(() => projectMilestones.id, { onDelete: 'cascade' }),
-    locale: localeEnum().notNull(),
-    title: text().notNull(),
-    description: text(),
-  },
-  (t) => [primaryKey({ columns: [t.milestoneId, t.locale] })],
 );
 
 /** Explicit "related projects" picks, in order. Directional: A listing B doesn't make B list A. */
@@ -309,7 +264,6 @@ export const projectRelations = pgTable(
 );
 
 export const projectsRelations = relations(projects, ({ many }) => ({
-  translations: many(projectTranslations),
   technologies: many(projectTechnologies),
   repositories: many(projectRepositories),
   media: many(projectMedia),
@@ -317,10 +271,6 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   sections: many(projectSections),
   milestones: many(projectMilestones),
   related: many(projectRelations, { relationName: 'relatedFrom' }),
-}));
-
-export const projectTranslationsRelations = relations(projectTranslations, ({ one }) => ({
-  project: one(projects, { fields: [projectTranslations.projectId], references: [projects.id] }),
 }));
 
 export const projectSlugHistoryRelations = relations(projectSlugHistory, ({ one }) => ({
@@ -346,22 +296,12 @@ export const projectMediaRelations = relations(projectMedia, ({ one }) => ({
 
 export const projectSectionsRelations = relations(projectSections, ({ one, many }) => ({
   project: one(projects, { fields: [projectSections.projectId], references: [projects.id] }),
-  translations: many(projectSectionTranslations),
   items: many(projectSectionItems),
   media: many(projectSectionMedia),
 }));
 
-export const projectSectionTranslationsRelations = relations(projectSectionTranslations, ({ one }) => ({
-  section: one(projectSections, { fields: [projectSectionTranslations.sectionId], references: [projectSections.id] }),
-}));
-
-export const projectSectionItemsRelations = relations(projectSectionItems, ({ one, many }) => ({
+export const projectSectionItemsRelations = relations(projectSectionItems, ({ one }) => ({
   section: one(projectSections, { fields: [projectSectionItems.sectionId], references: [projectSections.id] }),
-  translations: many(projectSectionItemTranslations),
-}));
-
-export const projectSectionItemTranslationsRelations = relations(projectSectionItemTranslations, ({ one }) => ({
-  item: one(projectSectionItems, { fields: [projectSectionItemTranslations.itemId], references: [projectSectionItems.id] }),
 }));
 
 export const projectSectionMediaRelations = relations(projectSectionMedia, ({ one }) => ({
@@ -369,17 +309,9 @@ export const projectSectionMediaRelations = relations(projectSectionMedia, ({ on
   asset: one(mediaAssets, { fields: [projectSectionMedia.assetId], references: [mediaAssets.id] }),
 }));
 
-export const projectMilestonesRelations = relations(projectMilestones, ({ one, many }) => ({
+export const projectMilestonesRelations = relations(projectMilestones, ({ one }) => ({
   project: one(projects, { fields: [projectMilestones.projectId], references: [projects.id] }),
   asset: one(mediaAssets, { fields: [projectMilestones.assetId], references: [mediaAssets.id] }),
-  translations: many(projectMilestoneTranslations),
-}));
-
-export const projectMilestoneTranslationsRelations = relations(projectMilestoneTranslations, ({ one }) => ({
-  milestone: one(projectMilestones, {
-    fields: [projectMilestoneTranslations.milestoneId],
-    references: [projectMilestones.id],
-  }),
 }));
 
 export const projectRelationsRelations = relations(projectRelations, ({ one }) => ({

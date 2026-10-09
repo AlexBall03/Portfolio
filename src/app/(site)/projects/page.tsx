@@ -5,50 +5,41 @@ import { getProfile } from '@/features/profile/queries';
 import { Projects } from '@/features/projects/components/Projects';
 import { getProjects } from '@/features/projects/queries';
 import { getSection, getSiteSettings } from '@/features/site/queries';
-import { getDictionary } from '@/i18n/get-dictionary';
-import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
 import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
-export async function generateMetadata({ params }: LocaleParams) {
-  return topLevelPageMetadata('projects', await resolveLocale(params), '/projects');
+export async function generateMetadata() {
+  return topLevelPageMetadata('projects', '/projects');
 }
 
-export default async function ProjectsPage({ params }: LocaleParams) {
-  const locale = await resolveLocale(params);
-  const dict = getDictionary(locale);
+export default async function ProjectsPage() {
   const [projects, settings, profile, projectsSection, githubSection, content] = await Promise.all([
-    getProjects(locale),
+    getProjects(),
     getSiteSettings(),
-    getProfile(locale),
-    getSection('projects', locale),
-    getSection('github', locale),
-    resolvePageSeo('projects', locale),
+    getProfile(),
+    getSection('projects'),
+    getSection('github'),
+    resolvePageSeo('projects'),
   ]);
   const github = settings.showGithubSection ? settings.githubUsername : null;
 
   return (
-    <PageShell page="projects" locale={locale}>
+    <PageShell page="projects">
       <Projects
         section={projectsSection}
         projects={projects}
         githubUrl={github ? `https://github.com/${github}` : null}
-        locale={locale}
-        t={dict.projects}
       />
       {github && (
         <GitHubSection
           section={githubSection}
           username={github}
           displayName={profile.fullName}
-          locale={locale}
-          t={dict.github}
         />
       )}
       <JsonLd
         data={buildPageNode({
           type: 'CollectionPage',
-          locale,
           path: '/projects',
           name: content.title,
           description: content.description,

@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pageContent, sectionContent, socialLinks } from '@/db/schema';
 import { content } from '@/db/seed/content';
@@ -83,13 +82,10 @@ describe('page content', () => {
 
   it('validates by path and refuses sections owned elsewhere', async () => {
     const values = await service.loadPageCopy('about');
-    values.seo.translations.en.seoDescription = '';
-    values.sections.stack!.translations.es.title = '';
+    values.seo.seoDescription = '';
+    values.sections.stack!.title = '';
     const result = await actions.savePageCopy(values);
-    expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual([
-      'sections.stack.translations.es.title',
-      'seo.translations.en.seoDescription',
-    ]);
+    expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual(['sections.stack.title', 'seo.seoDescription']);
 
     const contact = await service.loadPageCopy('contact');
     const intruder = await actions.savePageCopy({ ...contact, sections: { contact: await service.loadContactCopy() } });
@@ -97,55 +93,54 @@ describe('page content', () => {
     expect(tags).toEqual([]);
   });
 
-  it('saves SEO and section copy, drops a cleared Spanish translation, and refreshes the site tag', async () => {
+  it('saves SEO and section copy and refreshes the site tag', async () => {
     const values = await service.loadPageCopy('about');
-    values.seo.translations.en.seoTitle = '';
-    values.sections.about!.translations.en.aside = 'Off the clock';
-    values.sections.stack!.translations.es = { eyebrow: '', title: '', subtitle: '', body: '', aside: '' };
+    values.seo.seoTitle = '';
+    values.sections.about!.aside = 'Off the clock';
 
     const result = await actions.savePageCopy(values);
     expect(result.ok).toBe(true);
     expect(tags).toEqual(['site']);
 
-    const en = await getSectionContent(db, 'en');
-    const es = await getSectionContent(db, 'es');
-    expect(en.about?.aside).toBe('Off the clock');
-    expect(es.stack).toEqual(en.stack); // English fallback
-    expect((await getPageContent(db, 'about', 'en'))?.seoTitle).toBeNull();
+    expect((await getSectionContent(db)).about?.aside).toBe('Off the clock');
+    expect((await getPageContent(db, 'about'))?.seoTitle).toBeNull();
 
-    const [row] = await db
-      .select()
-      .from(sectionContent)
-      .where(and(eq(sectionContent.sectionKey, 'about'), eq(sectionContent.locale, 'en')));
+    const [row] = await db.select().from(sectionContent).where(eq(sectionContent.sectionKey, 'about'));
     expect(row).toMatchObject({ updatedBy: ADMIN_ID, subtitle: expect.any(String), body: null });
-    const [seo] = await db
-      .select()
-      .from(pageContent)
-      .where(and(eq(pageContent.pageKey, 'about'), eq(pageContent.locale, 'en')));
+    const [seo] = await db.select().from(pageContent).where(eq(pageContent.pageKey, 'about'));
     expect(seo?.updatedBy).toBe(ADMIN_ID);
   });
 
-  it('reports Spanish coverage per page', async () => {
+  it('creates a section row on first save (a section added after the database was seeded)', async () => {
+    await db.delete(sectionContent).where(eq(sectionContent.sectionKey, 'cta'));
+    const values = await service.loadPageCopy('home');
+    expect(values.sections.cta).toEqual({ eyebrow: '', title: '', subtitle: '', body: '', aside: '' });
+    values.sections.cta = { eyebrow: 'Next', title: 'Say hello', subtitle: '', body: '', aside: '' };
+    const result = await actions.savePageCopy(values);
+    expect(result.ok).toBe(true);
+    expect((await getSectionContent(db)).cta).toMatchObject({ eyebrow: 'Next', title: 'Say hello', subtitle: null });
+  });
+
+  it('lists every page and whether its search copy exists', async () => {
     const pages = await service.listPageCopy();
     expect(pages.map((p) => p.page)).toEqual(['home', 'about', 'projects', 'experience', 'resume', 'contact']);
-    expect(pages.find((p) => p.page === 'about')!.coverage.es.missing).toBe(1); // the stack section cleared above
+    expect(pages.every((p) => p.complete)).toBe(true);
   });
 });
 
 describe('contact copy', () => {
   it('saves the contact section heading and introduction', async () => {
     const values = await service.loadContactCopy();
-    values.translations.en.body = 'Write to me.';
-    values.translations.es.title = '';
+    values.body = 'Write to me.';
+    values.title = '';
     const invalid = await actions.saveContactCopy(values);
-    expect(!invalid.ok && invalid.fieldErrors).toEqual({ 'translations.es.title': 'Required' });
+    expect(!invalid.ok && invalid.fieldErrors).toEqual({ title: 'Required' });
 
-    values.translations.es.title = 'Hablemos';
+    values.title = "Let's talk";
     const result = await actions.saveContactCopy(values);
     expect(result.ok).toBe(true);
     expect(tags).toEqual(['site']);
-    expect((await getSectionContent(db, 'en')).contact?.body).toBe('Write to me.');
-    expect((await getSectionContent(db, 'es')).contact?.title).toBe('Hablemos');
+    expect((await getSectionContent(db)).contact).toMatchObject({ title: "Let's talk", body: 'Write to me.' });
   });
 });
 
@@ -180,26 +175,5 @@ describe('social links', () => {
     expect(publicLinks[0]!.handle).toBeNull();
     const [blog] = await db.select().from(socialLinks).where(eq(socialLinks.label, 'Blog'));
     expect(blog).toMatchObject({ createdBy: ADMIN_ID, updatedBy: ADMIN_ID });
-  });
-});
-
-describe('migration 0007 (section asides)', () => {
-  it('fills the secondary headings of an existing database without overwriting edits', async () => {
-    await db.update(sectionContent).set({ aside: null });
-    await db
-      .update(sectionContent)
-      .set({ aside: 'Kept' })
-      .where(and(eq(sectionContent.sectionKey, 'stack'), eq(sectionContent.locale, 'en')));
-    const statements = readFileSync('src/db/migrations/0007_section_asides.sql', 'utf8').split('--> statement-breakpoint');
-    for (const statement of statements) await db.execute(sql.raw(statement));
-
-    const en = await getSectionContent(db, 'en');
-    const es = await getSectionContent(db, 'es');
-    expect([en.about?.aside, en.stack?.aside, es.about?.aside, es.stack?.aside]).toEqual([
-      'Beyond the code',
-      'Kept',
-      'Más allá del código',
-      'Kept', // the Spanish stack row was cleared above, so English shows
-    ]);
   });
 });

@@ -1,18 +1,14 @@
 import 'server-only';
 import { getDb, withTransaction } from '@/db/client';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
+
 import { blobStore, type MediaStore } from '@/integrations/blob/store';
-import { translationCoverage, type TranslationCoverage } from '@/lib/cms/locale';
+
 import { removeStoredFiles } from '@/lib/cms/media-files';
 import { ContentMissingError, FieldValidationError } from '@/lib/errors';
 import { MAX_IMAGE_BYTES, sniffImage } from '@/lib/image-file';
 import { createLogger } from '@/lib/logger';
 import * as repo from './repository';
 import {
-  highlightTranslationInput,
-  metricTranslationInput,
-  profileTranslationInput,
-  roleTranslationInput,
   type HeadshotTextInput,
   type ProfileDetailsInput,
   type ProfileHighlightsInput,
@@ -120,7 +116,7 @@ export async function uploadHeadshot(
   let old: repo.StoredObject[];
   try {
     old = await withTransaction((tx) =>
-      repo.setHeadshot(tx, { src, mimeType: image.mimeType, width: image.width, height: image.height }, data.translations, actor),
+      repo.setHeadshot(tx, { src, mimeType: image.mimeType, width: image.width, height: image.height }, data.alt, actor),
     );
   } catch (err) {
     await removeStoredFiles(store, [{ storage: 'blob', src }], log);
@@ -131,7 +127,7 @@ export async function uploadHeadshot(
 }
 
 export async function saveHeadshotText(data: HeadshotTextInput, actor: repo.Actor): Promise<HeadshotValues> {
-  await withTransaction((tx) => repo.updateHeadshotText(tx, data.translations, actor));
+  await withTransaction((tx) => repo.updateHeadshotText(tx, data.alt, actor));
   return loadHeadshot();
 }
 
@@ -141,29 +137,3 @@ export async function removeHeadshot(actor: repo.Actor, store: MediaStore = blob
   return loadHeadshot();
 }
 
-/** Translation coverage of every profile-owned entity, per non-default locale (dashboard). */
-export async function getProfileTranslationCoverage(): Promise<Record<Exclude<Locale, 'en'>, TranslationCoverage>> {
-  const [details, roles, highlights, metrics] = await Promise.all([
-    loadProfileDetails(),
-    loadProfileRoles(),
-    loadProfileHighlights(),
-    loadSnapshotMetrics(),
-  ]);
-  const groups = [
-    { schema: profileTranslationInput, items: [details.translations] },
-    { schema: roleTranslationInput, items: roles.map((r) => r.translations) },
-    {
-      schema: highlightTranslationInput,
-      items: [...highlights.differentiator, ...highlights.resume].map((h) => h.translations),
-    },
-    { schema: metricTranslationInput, items: metrics.map((m) => m.translations) },
-  ];
-  const coverage = (locale: Locale) =>
-    groups
-      .map((g) => translationCoverage(g.schema, g.items, locale))
-      .reduce((a, b) => ({ complete: a.complete + b.complete, partial: a.partial + b.partial, missing: a.missing + b.missing }));
-  return Object.fromEntries(LOCALES.filter((l) => l !== DEFAULT_LOCALE).map((l) => [l, coverage(l)])) as Record<
-    Exclude<Locale, 'en'>,
-    TranslationCoverage
-  >;
-}

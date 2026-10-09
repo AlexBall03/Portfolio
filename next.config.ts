@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
   // Share cards read their fonts and static images (the headshot) from disk;
   // public/ isn't part of a function's filesystem unless traced in.
   outputFileTracingIncludes: { '/og/**': ['./src/assets/fonts/*.ttf', './public/assets/**'] },
+  // Share cards were per language (/og/en/…, /og/es/…) before the site became English-only.
+  // Social platforms cache scraped image URLs, so old ones redirect to the current card.
+  async redirects() {
+    return [{ source: '/og/:locale(en|es)/:card*', destination: '/og/:card*', permanent: true }];
+  },
   async headers() {
     return [
       {

@@ -17,7 +17,7 @@ export default async function ProjectCaseStudyPage({ params }: { params: Promise
   return (
     <>
       <ProjectPageHeader
-        project={{ id, name: project.translations.en.name, slug: project.slug, status: project.status }}
+        project={{ id, name: project.name, slug: project.slug, status: project.status }}
         current="case-study"
       />
       <CaseStudyEditor projectId={id} initial={caseStudy.values} images={caseStudy.images} published={project.status === 'published'} />

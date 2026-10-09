@@ -17,7 +17,7 @@ export default async function ProjectRelatedPage({ params }: { params: Promise<{
   return (
     <>
       <ProjectPageHeader
-        project={{ id, name: project.translations.en.name, slug: project.slug, status: project.status }}
+        project={{ id, name: project.name, slug: project.slug, status: project.status }}
         current="related"
       />
       <RelatedProjectsEditor projectId={id} initial={related.values} choices={related.choices} />

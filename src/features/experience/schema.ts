@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { blankToNull, contentStatus, isoDate, localized, nullableText, text } from '@/lib/validation';
+import { blankToNull, contentStatus, isoDate, nullableText, text } from '@/lib/validation';
 
-export const experienceTranslationInput = z.object({
-  /** Translated organization label for non-proper-noun entries ("Career break", "Homeschool"). */
+/** The text of an entry: role, details, summary paragraphs, and tags. */
+export const experienceTextInput = z.object({
+  /** Replaces the organization for non-proper-noun entries ("Career break", "Homeschool"). */
   organizationLabel: nullableText(150),
   role: text(150),
   employmentType: nullableText(60),
@@ -22,7 +23,7 @@ export const experienceInput = z
     datePrecision: z.enum(['month', 'year']).default('month'),
     isCurrent: z.boolean().default(false),
     status: contentStatus.default('published'),
-    translations: localized(experienceTranslationInput),
+    ...experienceTextInput.shape,
   })
   .refine((e) => !e.endDate || e.endDate >= e.startDate, endAfterStart);
 export type ExperienceInput = z.infer<typeof experienceInput>;
@@ -45,7 +46,7 @@ const experienceItem = z
     datePrecision: z.enum(['month', 'year']).default('month'),
     isCurrent: z.boolean().default(false),
     visible: z.boolean().default(true),
-    translations: localized(experienceTranslationInput),
+    ...experienceTextInput.shape,
   })
   .refine((e) => !e.endDate || e.endDate >= e.startDate, endAfterStart)
   .refine((e) => e.isCurrent || e.endDate, {

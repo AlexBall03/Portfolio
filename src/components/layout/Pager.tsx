@@ -2,8 +2,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
+import { copy } from '@/config/copy';
 import type { PageKey } from '@/features/site/types';
-import type { Dictionary } from '@/i18n/get-dictionary';
 import { cn } from '@/lib/cn';
 import type { NavPage } from './types';
 
@@ -62,7 +62,8 @@ export function PagerNav({ label, children }: { label: string; children: ReactNo
 }
 
 /** Previous/next page links at the bottom of every top-level page. */
-export function Pager({ pages, current, t }: { pages: NavPage[]; current: PageKey; t: Dictionary['pager'] }) {
+export function Pager({ pages, current }: { pages: NavPage[]; current: PageKey }) {
+  const t = copy.pager;
   const index = pages.findIndex((p) => p.key === current);
   if (index === -1) return null;
   const prev = pages[index - 1];

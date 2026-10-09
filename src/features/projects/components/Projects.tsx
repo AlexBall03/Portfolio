@@ -2,9 +2,8 @@ import { buttonStyles } from '@/components/ui/button-styles';
 import { Icon } from '@/components/ui/Icon';
 import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { copy } from '@/config/copy';
 import type { SectionContent } from '@/features/site/types';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
 import { toFilterable } from '../filter';
 import { technologyUsage } from '../technologies';
 import type { Project } from '../types';
@@ -15,8 +14,6 @@ interface ProjectsProps {
   section: SectionContent;
   projects: Project[];
   githubUrl: string | null;
-  locale: Locale;
-  t: Dictionary['projects'];
 }
 
 /**
@@ -24,17 +21,18 @@ interface ProjectsProps {
  * a grid, each group in CMS order. Every card is rendered here on the server;
  * the explorer island filters which are shown.
  */
-export function Projects({ section, projects, githubUrl, locale, t }: ProjectsProps) {
+export function Projects({ section, projects, githubUrl }: ProjectsProps) {
+  const t = copy.projects;
   const featured = projects.filter((p) => p.featured);
   const others = projects.filter((p) => !p.featured);
   const cards = Object.fromEntries([
     ...featured.map((p, i) => [
       p.id,
-      <ProjectCard key={p.id} project={p} index={i} locale={locale} t={t} reverse={i % 2 === 1} showFeatured />,
+      <ProjectCard key={p.id} project={p} index={i} reverse={i % 2 === 1} showFeatured />,
     ]),
     ...others.map((p, i) => [
       p.id,
-      <ProjectCard key={p.id} project={p} index={featured.length + i} locale={locale} t={t} layout="compact" />,
+      <ProjectCard key={p.id} project={p} index={featured.length + i} layout="compact" />,
     ]),
   ]);
 
@@ -60,7 +58,7 @@ export function Projects({ section, projects, githubUrl, locale, t }: ProjectsPr
           entries={projects.map(toFilterable)}
           cards={cards}
           technologies={technologyUsage(projects)}
-          t={t}
+         
         />
       )}
     </Section>

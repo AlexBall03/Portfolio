@@ -9,7 +9,7 @@ import { adminRoute, notFoundResponse } from '@/server/auth/route';
 type Context = { params: Promise<{ id: string }> };
 
 /**
- * Uploads a project image (multipart: `file`, `alt.<locale>`, `caption.<locale>`).
+ * Uploads a project image (multipart: `file`, `alt`, `caption`).
  * A Route Handler rather than a Server Action: images exceed the action body
  * limit. The service checks the bytes and chooses the storage path; the new
  * image is live immediately if the project is, so public reads are expired.

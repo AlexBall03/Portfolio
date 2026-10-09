@@ -2,8 +2,7 @@ import Image from 'next/image';
 import { Icon } from '@/components/ui/Icon';
 import { InlineText } from '@/components/ui/RichText';
 import { Status } from '@/components/ui/Status';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import { copy } from '@/config/copy';
 import { cn } from '@/lib/cn';
 import { formatMilestoneDate } from '../format';
 import type { Milestone } from '../types';
@@ -13,7 +12,8 @@ import type { Milestone } from '../types';
  * with a node per milestone: dates sit in their own column from `md`, above
  * the title on small screens. Launches and releases get a filled node.
  */
-export function MilestoneTimeline({ milestones, locale, t }: { milestones: Milestone[]; locale: Locale; t: Dictionary['projects'] }) {
+export function MilestoneTimeline({ milestones }: { milestones: Milestone[] }) {
+  const t = copy.projects;
   return (
     <ol className="relative flex flex-col">
       {milestones.map((m, i) => {
@@ -25,7 +25,7 @@ export function MilestoneTimeline({ milestones, locale, t }: { milestones: Miles
               dateTime={m.date}
               className="hidden pt-0.5 text-right font-mono text-label text-fg-muted tabular-nums md:block"
             >
-              {formatMilestoneDate(m.date, m.precision, locale)}
+              {formatMilestoneDate(m.date, m.precision)}
             </time>
             <div className={cn('relative flex flex-col gap-2.5 border-l border-line pl-7', !last && 'pb-10')}>
               <span
@@ -37,7 +37,7 @@ export function MilestoneTimeline({ milestones, locale, t }: { milestones: Miles
               />
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <time dateTime={m.date} className="font-mono text-label text-fg-muted tabular-nums md:hidden">
-                  {formatMilestoneDate(m.date, m.precision, locale)}
+                  {formatMilestoneDate(m.date, m.precision)}
                 </time>
                 <span className="font-mono text-micro tracking-[0.14em] text-accent-fg uppercase">{t.milestoneKinds[m.kind]}</span>
                 {m.hidden && <Status>{t.hidden}</Status>}

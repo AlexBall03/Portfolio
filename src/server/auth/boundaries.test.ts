@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { clerkAppearance } from '@/components/admin/clerk-appearance';
-import { getDictionary } from '@/i18n/get-dictionary';
+import { copy } from '@/config/copy';
 
 /**
  * Structural guarantees of the auth design, checked over the source tree so
@@ -125,9 +125,8 @@ describe('every admin resource authorizes itself', () => {
 });
 
 describe('public footer entry point', () => {
-  it('labels the link "Admin" in both languages and points it at /admin', () => {
-    expect(getDictionary('en').footer.admin).toBe('Admin');
-    expect(getDictionary('es').footer.admin).toBe('Admin');
+  it('labels the link "Admin" and points it at /admin', () => {
+    expect(copy.footer.admin).toBe('Admin');
     const footer = sources.find((f) => f.rel === 'components/layout/Footer.tsx')!.code;
     expect(footer).toMatch(/<a href=\{ADMIN_PATH\} rel="nofollow"/);
   });

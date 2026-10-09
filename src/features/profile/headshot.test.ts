@@ -76,7 +76,7 @@ beforeEach(() => {
 
 const ORIGIN = 'https://alexball.dev';
 
-function uploadRequest(file: Uint8Array, fields: Record<string, string> = { 'alt.en': 'Portrait', 'alt.es': 'Retrato' }) {
+function uploadRequest(file: Uint8Array, fields: Record<string, string> = { alt: 'Portrait' }) {
   const form = new FormData();
   form.set('file', new Blob([file as BlobPart], { type: 'image/png' }), 'me.png');
   for (const [k, v] of Object.entries(fields)) form.set(k, v);
@@ -91,7 +91,7 @@ describe('headshot', () => {
     session.userId = OTHER_ID;
     expect((await upload(uploadRequest(pngBytes(800, 1000)))).status).toBe(404);
     await expect(actions.removeHeadshot()).rejects.toThrow('404');
-    await expect(actions.saveHeadshotText({ translations: { en: { alt: 'x' } } })).rejects.toThrow('404');
+    await expect(actions.saveHeadshotText({ alt: 'x' })).rejects.toThrow('404');
     expect(store.objects.size).toBe(0);
   });
 
@@ -109,8 +109,8 @@ describe('headshot', () => {
     // The seeded static asset row is gone; a static file is never deleted from storage.
     expect(await db.select().from(mediaAssets).where(eq(mediaAssets.id, seeded!))).toEqual([]);
     expect(store.removed).toEqual([]);
-    const es = await getProfile(db, 'es');
-    expect(es?.headshot).toMatchObject({ src: body.data.photo.src, alt: 'Retrato' });
+    const profile = await getProfile(db);
+    expect(profile?.headshot).toMatchObject({ src: body.data.photo.src, alt: 'Portrait' });
   });
 
   it('deletes the previous uploaded file after a replacement commits', async () => {
@@ -121,21 +121,21 @@ describe('headshot', () => {
     expect(store.objects.has(second)).toBe(true);
   });
 
-  it('accepts only JPEG and PNG (link previews), requires English alt text, and stores nothing on failure', async () => {
+  it('accepts only JPEG and PNG (link previews), requires alt text, and stores nothing on failure', async () => {
     const before = store.objects.size;
     const webp = toBytes('RIFF', [0, 0, 0, 0], 'WEBPVP8 ', [0, 0, 0, 0]);
     const wrongType = await upload(uploadRequest(webp));
     expect(wrongType.status).toBe(422);
     expect((await wrongType.json()).fieldErrors.file).toMatch(/JPEG or PNG/);
     const noAlt = await upload(uploadRequest(pngBytes(10, 10), {}));
-    expect((await noAlt.json()).fieldErrors['translations.en.alt']).toBeTruthy();
+    expect((await noAlt.json()).fieldErrors.alt).toBeTruthy();
     expect(store.objects.size).toBe(before);
   });
 
-  it('edits alt text on its own; clearing Spanish falls back to English', async () => {
-    const result = await actions.saveHeadshotText({ translations: { en: { alt: 'Alex smiling' } } });
+  it('edits alt text on its own', async () => {
+    const result = await actions.saveHeadshotText({ alt: 'Alex smiling' });
     expect(result.ok).toBe(true);
-    expect((await getProfile(db, 'es'))?.headshot?.alt).toBe('Alex smiling');
+    expect((await getProfile(db))?.headshot?.alt).toBe('Alex smiling');
     expect(tags).toContain('profile');
   });
 
@@ -144,8 +144,8 @@ describe('headshot', () => {
     const result = await actions.removeHeadshot();
     expect(result.ok && result.data.photo).toBe(null);
     expect(store.removed).toContain(src);
-    expect((await getProfile(db, 'en'))?.headshot).toBe(null);
-    const orphanText = await actions.saveHeadshotText({ translations: { en: { alt: 'x' } } });
+    expect((await getProfile(db))?.headshot).toBe(null);
+    const orphanText = await actions.saveHeadshotText({ alt: 'x' });
     expect(orphanText.ok).toBe(false);
   });
 

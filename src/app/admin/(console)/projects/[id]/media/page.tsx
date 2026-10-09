@@ -27,7 +27,7 @@ export default async function ProjectMediaPage({ params }: { params: Promise<{ i
   return (
     <>
       <ProjectPageHeader
-        project={{ id, name: project.translations.en.name, slug: project.slug, status: project.status }}
+        project={{ id, name: project.name, slug: project.slug, status: project.status }}
         current="media"
       />
       <ProjectMediaEditor projectId={id} initial={media} storageConfigured={storageConfigured()} />

@@ -9,7 +9,7 @@ import type { Profile } from '@/features/profile/types';
 import { listPublishedProjectSitemap } from '@/features/projects/repository';
 import type { Project } from '@/features/projects/types';
 import { createTestDb } from '@/test/db';
-import { alternates, pageMetadata } from './metadata';
+import { pageMetadata } from './metadata';
 import { cardFingerprint, type CardSpec } from './share-card/inputs';
 import { sitemapEntries } from './sitemap';
 import { buildPageNode, buildProject, buildSiteGraph } from './structured-data';
@@ -53,58 +53,43 @@ const project: Project = {
   gallery: [],
 };
 
-describe('canonical and hreflang', () => {
-  it('points each locale at itself, with reciprocal alternates and an English x-default', () => {
-    const en = alternates('en', '/');
-    const es = alternates('es', '/projects/my-app');
-    expect(en?.canonical).toBe('https://alexball.dev/');
-    expect(en?.languages).toEqual({
-      en: 'https://alexball.dev/',
-      es: 'https://alexball.dev/es',
-      'x-default': 'https://alexball.dev/',
-    });
-    expect(es?.canonical).toBe('https://alexball.dev/es/projects/my-app');
-    expect(es?.languages).toEqual({
-      en: 'https://alexball.dev/projects/my-app',
-      es: 'https://alexball.dev/es/projects/my-app',
-      'x-default': 'https://alexball.dev/projects/my-app',
-    });
-  });
-});
-
 describe('pageMetadata', () => {
   const meta = pageMetadata({
-    locale: 'es',
     path: '/about',
-    title: 'Sobre mí',
-    description: 'Descripción',
+    title: 'About',
+    description: 'Description',
     siteName: 'Alexander Ball',
     shareVersion: 'abc',
   });
 
-  it('sets the site name and locale on Open Graph (the layout value is replaced, not merged)', () => {
-    expect(meta.openGraph).toMatchObject({
-      siteName: 'Alexander Ball',
-      url: 'https://alexball.dev/es/about',
-      locale: 'es_US',
-      alternateLocale: ['en_US'],
-      title: 'Sobre mí — Alexander Ball',
-    });
+  it('has one canonical URL and no language alternates', () => {
+    expect(meta.alternates).toEqual({ canonical: 'https://alexball.dev/about' });
   });
 
-  it('uses the localized, versioned share card for Open Graph and Twitter', () => {
-    const url = 'https://alexball.dev/og/es/about.png?v=abc';
+  it('sets the site name and English locale on Open Graph (the layout value is replaced, not merged)', () => {
+    expect(meta.openGraph).toMatchObject({
+      siteName: 'Alexander Ball',
+      url: 'https://alexball.dev/about',
+      locale: 'en_US',
+      title: 'About — Alexander Ball',
+    });
+    expect(meta.openGraph).not.toHaveProperty('alternateLocale');
+  });
+
+  it('uses the versioned share card for Open Graph and Twitter', () => {
+    const url = 'https://alexball.dev/og/about.png?v=abc';
     expect(meta.openGraph?.images).toEqual([
-      { url, width: 1200, height: 630, alt: 'Sobre mí — Alexander Ball', type: 'image/png' },
+      { url, width: 1200, height: 630, alt: 'About — Alexander Ball', type: 'image/png' },
     ]);
     expect(meta.twitter).toMatchObject({ card: 'summary_large_image', images: [{ url, width: 1200, height: 630 }] });
   });
 
   it('keeps an absolute (home) title as the social title', () => {
-    const home = pageMetadata({ locale: 'en', path: '/', title: 'A — B', description: 'd', siteName: 'A', absoluteTitle: true });
+    const home = pageMetadata({ path: '/', title: 'A — B', description: 'd', siteName: 'A', absoluteTitle: true });
     expect(home.title).toEqual({ absolute: 'A — B' });
     expect(home.openGraph?.title).toBe('A — B');
-    expect(shareCardUrl('en', '/')).toBe('https://alexball.dev/og/en/home.png');
+    expect(home.alternates).toEqual({ canonical: 'https://alexball.dev/' });
+    expect(shareCardUrl('/')).toBe('https://alexball.dev/og/home.png');
   });
 });
 
@@ -117,13 +102,13 @@ describe('structured data', () => {
   });
 
   it('describes a project with its canonical URL, cover, primary repository, and author', () => {
-    expect(buildProject(project, 'es')).toEqual({
+    expect(buildProject(project)).toEqual({
       '@type': 'SoftwareSourceCode',
-      '@id': 'https://alexball.dev/es/projects/my-app#project',
+      '@id': 'https://alexball.dev/projects/my-app#project',
       name: 'My App',
       description: 'A summary',
-      url: 'https://alexball.dev/es/projects/my-app',
-      inLanguage: 'es',
+      url: 'https://alexball.dev/projects/my-app',
+      inLanguage: 'en',
       image: 'https://alexball.dev/assets/projects/my-app.png',
       codeRepository: 'https://github.com/a/app',
       programmingLanguage: ['TypeScript'],
@@ -131,9 +116,9 @@ describe('structured data', () => {
     });
   });
 
-  it('builds page nodes in the page locale, omitting absent facts', () => {
-    const node = buildPageNode({ type: 'ContactPage', locale: 'es', path: '/contact', name: 'Contacto', description: null });
-    expect(node).toMatchObject({ '@id': 'https://alexball.dev/es/contact#webpage', inLanguage: 'es' });
+  it('builds English page nodes, omitting absent facts', () => {
+    const node = buildPageNode({ type: 'ContactPage', path: '/contact', name: 'Contact', description: null });
+    expect(node).toMatchObject({ '@id': 'https://alexball.dev/contact#webpage', inLanguage: 'en' });
     expect(node).not.toHaveProperty('description');
   });
 });
@@ -145,14 +130,18 @@ describe('sitemapEntries', () => {
   ]);
   const byUrl = new Map(entries.map((e) => [e.url, e]));
 
-  it('lists every page and project in both locales with x-default alternates', () => {
-    expect(byUrl.has('https://alexball.dev/')).toBe(true);
-    expect(byUrl.has('https://alexball.dev/es')).toBe(true);
-    expect(byUrl.get('https://alexball.dev/es/projects/older')?.alternates?.languages).toEqual({
-      en: 'https://alexball.dev/projects/older',
-      es: 'https://alexball.dev/es/projects/older',
-      'x-default': 'https://alexball.dev/projects/older',
-    });
+  it('lists every page and project once, at its canonical English URL', () => {
+    expect(entries.map((e) => e.url)).toEqual([
+      'https://alexball.dev/',
+      'https://alexball.dev/about',
+      'https://alexball.dev/projects',
+      'https://alexball.dev/experience',
+      'https://alexball.dev/resume',
+      'https://alexball.dev/contact',
+      'https://alexball.dev/projects/older',
+      'https://alexball.dev/projects/newer',
+    ]);
+    expect(entries.every((e) => e.alternates === undefined)).toBe(true);
   });
 
   it('uses real timestamps only, and no arbitrary priority', () => {

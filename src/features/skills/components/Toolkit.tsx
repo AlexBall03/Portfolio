@@ -4,8 +4,7 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import type { SectionContent } from '@/features/site/types';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
+
 import type { SkillsOverview } from '../types';
 import { TechTags } from './TechTags';
 
@@ -13,8 +12,6 @@ interface ToolkitProps {
   section: SectionContent;
   skills: SkillsOverview;
   usage: ReadonlyMap<string, number>;
-  locale: Locale;
-  t: Dictionary['skills'];
   /** A compact companion beside the list (the GitHub pulse), or nothing. */
   aside?: ReactNode;
 }
@@ -24,7 +21,7 @@ interface ToolkitProps {
  * compact hairline list whose technologies link to the projects that use them.
  * Learning categories stay on About.
  */
-export function Toolkit({ section, skills, usage, locale, t, aside }: ToolkitProps) {
+export function Toolkit({ section, skills, usage, aside }: ToolkitProps) {
   if (!skills.stack.length) return null;
   return (
     <Section id="toolkit" labelledBy="toolkit-title">
@@ -38,7 +35,7 @@ export function Toolkit({ section, skills, usage, locale, t, aside }: ToolkitPro
                   <Icon name={cat.icon} className={`size-4 shrink-0 ${cat.accent === 'gold' ? 'text-accent-fg' : 'text-brand-fg'}`} />
                   {cat.name}
                 </h3>
-                <TechTags technologies={cat.technologies} usage={usage} locale={locale} t={t} />
+                <TechTags technologies={cat.technologies} usage={usage} />
               </li>
             ))}
           </ul>

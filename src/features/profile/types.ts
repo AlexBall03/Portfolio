@@ -1,5 +1,4 @@
 import type { Accent } from '@/features/skills/types';
-import type { Locale } from '@/i18n/config';
 import type { MediaAsset } from '@/lib/media';
 
 export type SocialPlatform = 'github' | 'linkedin' | 'x' | 'youtube' | 'instagram' | 'website';
@@ -53,26 +52,15 @@ export interface SnapshotMetric {
 }
 
 /* ── Admin editor values ────────────────────────────────────────────────────
- * What the editors load and submit: every locale present (blank when not
- * translated), hidden rows included, optional fields as '' rather than null.
- * List items carry a stable client `key` (the row id once saved).
+ * What the editors load and submit: hidden rows included, optional fields as
+ * '' rather than null. List items carry a stable client `key` (the row id
+ * once saved).
  */
 
-export interface ProfileTranslationValues {
-  title: string;
-  statement: string;
-  availabilityText: string;
-  locationLabel: string;
-  about: string[];
-  heroFocus: string;
-  heroStackLine: string;
-  heroChips: string[];
-}
-
-/** Headshot editor values: the current photo (null when none) and its alt text per locale. */
+/** Headshot editor values: the current photo (null when none) and its alt text. */
 export interface HeadshotValues {
   photo: { src: string; width: number | null; height: number | null; uploaded: boolean } | null;
-  translations: Record<Locale, { alt: string }>;
+  alt: string;
 }
 
 export interface ProfileDetailsValues {
@@ -83,7 +71,14 @@ export interface ProfileDetailsValues {
   timeZone: string;
   addressRegion: string;
   addressCountry: string;
-  translations: Record<Locale, ProfileTranslationValues>;
+  title: string;
+  statement: string;
+  availabilityText: string;
+  locationLabel: string;
+  about: string[];
+  heroFocus: string;
+  heroStackLine: string;
+  heroChips: string[];
 }
 
 interface ListItemValues {
@@ -94,12 +89,13 @@ interface ListItemValues {
 
 export interface RoleValues extends ListItemValues {
   accent: Accent;
-  translations: Record<Locale, { label: string }>;
+  label: string;
 }
 
 export interface HighlightValues extends ListItemValues {
   icon: string;
-  translations: Record<Locale, { title: string; body: string }>;
+  title: string;
+  body: string;
 }
 
 export type HighlightKind = 'differentiator' | 'resume';
@@ -112,7 +108,8 @@ export interface MetricValues extends ListItemValues {
   value: number;
   suffix: string;
   accent: Accent;
-  translations: Record<Locale, { label: string; note: string }>;
+  label: string;
+  note: string;
 }
 
 export interface SocialLinkValues {

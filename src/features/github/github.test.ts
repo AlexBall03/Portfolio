@@ -1,6 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { en } from '@/i18n/dictionaries/en';
-import { es } from '@/i18n/dictionaries/es';
 import { formatRelative } from '@/components/ui/RelativeTime';
 import type { GithubCommit, GithubEvent, GithubRepo } from '@/integrations/github/schemas';
 import { buildCalendar, calendarStart } from './calendar';
@@ -75,8 +73,7 @@ const event = (type: string, payload: GithubEvent['payload']): GithubEvent => ({
 describe('activity events', () => {
   it('describes pushes by branch now that commit counts are gone', () => {
     const a = normalizeEvent(event('PushEvent', { ref: 'refs/heads/dev' }))!;
-    expect(describeActivity(a, en.github.events)).toBe('Pushed to dev');
-    expect(describeActivity(a, es.github.events)).toBe('Hizo push a dev');
+    expect(describeActivity(a)).toBe('Pushed to dev');
     expect(a.repositoryUrl).toBe('https://github.com/AlexBall03/Portfolio');
   });
 
@@ -84,7 +81,7 @@ describe('activity events', () => {
     const merged = normalizeEvent(
       event('PullRequestEvent', { action: 'closed', number: 12, pull_request: { merged: true } }),
     )!;
-    expect(describeActivity(merged, en.github.events)).toBe('Merged pull request: #12');
+    expect(describeActivity(merged)).toBe('Merged pull request: #12');
   });
 
   it('drops event types the portfolio does not show', () => {
@@ -157,7 +154,7 @@ describe('activity merge', () => {
       '2026-10-06T22:00:00Z',
       '2026-10-06T20:00:00Z',
     ]);
-    expect(describeActivity(merged[1]!, en.github.events)).toBe('Committed “Fixes” to');
+    expect(describeActivity(merged[1]!)).toBe('Committed “Fixes” to');
   });
 
   it('drops default-branch pushes the commits already describe, but keeps other branches', () => {
@@ -177,9 +174,9 @@ describe('relative time', () => {
   const ago = (hours: number) => new Date(now - hours * 3_600_000).toISOString();
 
   it('never reads "24 hours ago" before switching to "yesterday"', () => {
-    expect(formatRelative(ago(23.6), 'en-US', now)).toBe('23 hours ago');
-    expect(formatRelative(ago(24.2), 'en-US', now)).toBe('yesterday');
-    expect(formatRelative(ago(47), 'en-US', now)).toBe('yesterday');
-    expect(formatRelative(ago(49), 'en-US', now)).toBe('2 days ago');
+    expect(formatRelative(ago(23.6), now)).toBe('23 hours ago');
+    expect(formatRelative(ago(24.2), now)).toBe('yesterday');
+    expect(formatRelative(ago(47), now)).toBe('yesterday');
+    expect(formatRelative(ago(49), now)).toBe('2 days ago');
   });
 });

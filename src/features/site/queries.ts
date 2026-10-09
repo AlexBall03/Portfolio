@@ -1,7 +1,7 @@
 import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 import { getDb } from '@/db/client';
-import type { Locale } from '@/i18n/config';
+
 import { CACHE_LIFE, CACHE_TAGS } from '@/lib/cache-tags';
 import { ContentMissingError } from '@/lib/errors';
 import * as repo from './repository';
@@ -16,20 +16,20 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   return settings;
 }
 
-export async function getPageContent(page: PageKey, locale: Locale) {
+export async function getPageContent(page: PageKey) {
   'use cache';
   cacheLife(CACHE_LIFE.content);
   cacheTag(CACHE_TAGS.site);
-  return repo.getPageContent(await getDb(), page, locale);
+  return repo.getPageContent(await getDb(), page);
 }
 
 const EMPTY_SECTION: SectionContent = { eyebrow: '', title: '', subtitle: null, body: null, aside: null };
 
 /** Heading copy for one section; renders empty rather than crashing if a row is missing. */
-export async function getSection(key: SectionKey, locale: Locale): Promise<SectionContent> {
+export async function getSection(key: SectionKey): Promise<SectionContent> {
   'use cache';
   cacheLife(CACHE_LIFE.content);
   cacheTag(CACHE_TAGS.site);
-  const sections = await repo.getSectionContent(await getDb(), locale);
+  const sections = await repo.getSectionContent(await getDb());
   return sections[key] ?? EMPTY_SECTION;
 }

@@ -216,8 +216,6 @@ interface StringListFieldProps {
   errorAt: (index: number) => string | undefined;
   /** Error for the list as a whole (e.g. "Add at least one paragraph"). */
   error?: string;
-  /** Per-entry placeholder (e.g. the English text on the Spanish tab). */
-  placeholderAt?: (index: number) => string | undefined;
   itemLabel: (index: number) => string;
   addLabel: string;
   max?: number;
@@ -234,7 +232,6 @@ export function StringListField({
   onChange,
   errorAt,
   error,
-  placeholderAt,
   itemLabel,
   addLabel,
   max,
@@ -261,7 +258,6 @@ export function StringListField({
             value={value}
             onChange={(v) => replace(i, v)}
             error={errorAt(i)}
-            placeholder={placeholderAt?.(i)}
             multiline={multiline}
             rows={multiline ? 4 : undefined}
             maxLength={maxLength}

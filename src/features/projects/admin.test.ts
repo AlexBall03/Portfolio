@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mediaAssets, projectMedia, projects, projectTranslations } from '@/db/schema';
+import { mediaAssets, projectMedia, projects } from '@/db/schema';
 import { content } from '@/db/seed/content';
 import { seedContent } from '@/db/seed/seed';
 import type { Database } from '@/db/types';
@@ -89,7 +89,7 @@ const ORIGIN = 'https://alexball.dev';
 function draft(slug: string, patch: Partial<ProjectValues> = {}): ProjectValues {
   const values = service.blankProject();
   values.slug = slug;
-  values.translations.en = { name: `Project ${slug}`, tagline: 'A tagline', summary: 'A summary.', body: ['More.', ''] };
+  Object.assign(values, { name: `Project ${slug}`, tagline: 'A tagline', summary: 'A summary.', body: ['More.', ''] });
   values.technologies = [
     { key: 'typescript', slug: 'typescript', name: 'TypeScript' },
     { key: 'new-tech', slug: 'brand-new-tech', name: 'Brand New Tech' },
@@ -103,7 +103,7 @@ async function create(slug: string, patch: Partial<ProjectValues> = {}) {
   return result.data;
 }
 
-function uploadRequest(projectId: string, file: Uint8Array | null, fields: Record<string, string> = { 'alt.en': 'Screenshot' }, origin = ORIGIN) {
+function uploadRequest(projectId: string, file: Uint8Array | null, fields: Record<string, string> = { alt: 'Screenshot' }, origin = ORIGIN) {
   const form = new FormData();
   if (file) form.set('file', new Blob([file as BlobPart], { type: 'image/png' }), 'shot.png');
   for (const [k, v] of Object.entries(fields)) form.set(k, v);
@@ -164,12 +164,12 @@ describe('drafts and publishing', () => {
   it('creates a draft that the public site never shows, but the preview does', async () => {
     const saved = await create('secret-draft');
     expect(saved).toMatchObject({ status: 'draft', publishedAt: null });
-    expect(saved.translations.en.body).toEqual(['More.']);
+    expect(saved.body).toEqual(['More.']);
     expect(tags).toEqual(['projects']);
 
-    expect((await listPublishedProjects(db, 'en')).some((p) => p.slug === 'secret-draft')).toBe(false);
+    expect((await listPublishedProjects(db)).some((p) => p.slug === 'secret-draft')).toBe(false);
     expect(await listPublishedProjectSlugs(db)).not.toContain('secret-draft');
-    expect(await findProjectBySlug(db, 'secret-draft', 'en')).toEqual({ kind: 'not-found' });
+    expect(await findProjectBySlug(db, 'secret-draft')).toEqual({ kind: 'not-found' });
     expect((await service.loadProjectPreview(saved.id!))?.name).toBe('Project secret-draft');
 
     const [row] = await db.select().from(projects).where(eq(projects.id, saved.id!));
@@ -185,20 +185,20 @@ describe('drafts and publishing', () => {
     expect(published.ok && published.data.status).toBe('published');
     const publishedAt = published.ok ? published.data.publishedAt : null;
     expect(publishedAt).toEqual(expect.any(String));
-    expect(await findProjectBySlug(db, 'going-live', 'en')).toMatchObject({ kind: 'found' });
+    expect(await findProjectBySlug(db, 'going-live')).toMatchObject({ kind: 'found' });
 
     const edited = await actions.saveProject({
       ...saved,
       status: 'published',
-      translations: { ...saved.translations, en: { ...saved.translations.en, tagline: 'Now live' } },
+      tagline: 'Now live',
     });
     expect(edited.ok && edited.data.publishedAt).toBe(publishedAt); // a plain save keeps the timestamp
-    const live = await findProjectBySlug(db, 'going-live', 'en');
+    const live = await findProjectBySlug(db, 'going-live');
     expect(live.kind === 'found' && live.project.tagline).toBe('Now live');
 
     const unpublished = await actions.saveProject({ ...saved, status: 'draft' });
     expect(unpublished.ok).toBe(true);
-    expect(await findProjectBySlug(db, 'going-live', 'en')).toEqual({ kind: 'not-found' });
+    expect(await findProjectBySlug(db, 'going-live')).toEqual({ kind: 'not-found' });
     expect(tags).toEqual(['projects', 'projects', 'projects', 'projects']);
   });
 
@@ -206,7 +206,7 @@ describe('drafts and publishing', () => {
     const saved = await create('old-name', { status: 'published' });
     const renamed = await actions.saveProject({ ...saved, slug: 'new-name' });
     expect(renamed.ok).toBe(true);
-    expect(await findProjectBySlug(db, 'old-name', 'en')).toEqual({ kind: 'redirect', slug: 'new-name' });
+    expect(await findProjectBySlug(db, 'old-name')).toEqual({ kind: 'redirect', slug: 'new-name' });
 
     // The retired slug stays reserved for this project…
     const clash = await actions.createProject(draft('old-name'));
@@ -214,7 +214,7 @@ describe('drafts and publishing', () => {
     // …which may take it back.
     const back = await actions.saveProject({ ...(renamed.ok ? renamed.data : saved), slug: 'old-name' });
     expect(back.ok).toBe(true);
-    expect(await findProjectBySlug(db, 'old-name', 'en')).toMatchObject({ kind: 'found' });
+    expect(await findProjectBySlug(db, 'old-name')).toMatchObject({ kind: 'found' });
   });
 
   it('reports a slug used by another project as a field error', async () => {
@@ -224,48 +224,26 @@ describe('drafts and publishing', () => {
   });
 });
 
-describe('validation and translations', () => {
+describe('validation and content', () => {
   it('reports invalid input by path and writes nothing', async () => {
     const before = await db.select().from(projects);
     const values = draft('Bad Slug!', { demoUrl: 'javascript:alert(1)' });
-    values.translations.en.name = '';
+    values.name = '';
     const result = await actions.createProject(values);
-    expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual([
-      'demoUrl',
-      'slug',
-      'translations.en.name',
-    ]);
+    expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual(['demoUrl', 'name', 'slug']);
     expect(await db.select().from(projects)).toEqual(before);
   });
 
-  it('rejects a half-finished Spanish translation', async () => {
-    const values = draft('half-spanish');
-    values.translations.es = { name: 'Proyecto', tagline: '', summary: '', body: [] };
-    const result = await actions.createProject(values);
-    expect(!result.ok && result.fieldErrors).toEqual({
-      'translations.es.tagline': 'Required',
-      'translations.es.summary': 'Required',
-    });
-  });
-
-  it('stores a blank Spanish tab as absent, so Spanish falls back to English', async () => {
+  it('stores the copy on the project row and serves edits', async () => {
     const saved = await create('english-only', { status: 'published' });
-    expect(
-      await db.select().from(projectTranslations).where(eq(projectTranslations.projectId, saved.id!)),
-    ).toHaveLength(1);
-    const es = await findProjectBySlug(db, 'english-only', 'es');
-    expect(es.kind === 'found' && es.project.name).toBe('Project english-only');
-    expect(saved.translations.es.name).toBe('');
+    const [row] = await db.select().from(projects).where(eq(projects.id, saved.id!));
+    expect(row).toMatchObject({ name: 'Project english-only', tagline: 'A tagline', summary: 'A summary.', body: ['More.'] });
 
-    const translated = await actions.saveProject({
-      ...saved,
-      translations: { ...saved.translations, es: { name: 'Solo inglés', tagline: 'Lema', summary: 'Resumen.', body: [] } },
-    });
-    expect(translated.ok).toBe(true);
-    const esAfter = await findProjectBySlug(db, 'english-only', 'es');
-    expect(esAfter.kind === 'found' && esAfter.project.name).toBe('Solo inglés');
-    const listed = (await service.loadProjectList()).find((p) => p.id === saved.id);
-    expect(listed?.translation).toEqual({ en: 'complete', es: 'complete' });
+    const edited = await actions.saveProject({ ...saved, name: 'Renamed project', body: [] });
+    expect(edited.ok).toBe(true);
+    const live = await findProjectBySlug(db, 'english-only');
+    expect(live.kind === 'found' && live.project).toMatchObject({ name: 'Renamed project', body: [] });
+    expect((await service.loadProjectList()).find((p) => p.id === saved.id)?.name).toBe('Renamed project');
   });
 
   it('adds new technologies to the shared vocabulary in order', async () => {
@@ -292,7 +270,7 @@ describe('ordering and featured', () => {
     expect(tags).toEqual(['projects']);
     expect(result.ok && result.data.featured.map((p) => p.slug)).toEqual(['english-only', 'portfolio']);
 
-    const publicList = await listPublishedProjects(db, 'en');
+    const publicList = await listPublishedProjects(db);
     expect(publicList.filter((p) => p.featured).map((p) => p.slug)).toEqual(['english-only', 'portfolio']);
     expect(publicList.find((p) => p.slug === 'weather')?.featured).toBe(false);
     const sorted = await db.select({ slug: projects.slug, sortOrder: projects.sortOrder }).from(projects);
@@ -312,7 +290,7 @@ describe('images', () => {
   it('uploads a checked image to a server-chosen path; the first becomes the hero', async () => {
     const project = await create('gallery', { status: 'published' });
     tags.length = 0;
-    const res = await upload(project.id!, uploadRequest(project.id!, pngBytes(1600, 900), { 'alt.en': 'Dashboard', 'caption.en': 'Main view' }));
+    const res = await upload(project.id!, uploadRequest(project.id!, pngBytes(1600, 900), { alt: 'Dashboard', caption: 'Main view' }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
@@ -322,7 +300,7 @@ describe('images', () => {
     expect(store.objects.get(item.src)).toBe('image/png');
     expect(tags).toEqual(['projects:{"expire":0}']);
 
-    const live = await findProjectBySlug(db, 'gallery', 'en');
+    const live = await findProjectBySlug(db, 'gallery');
     expect(live.kind === 'found' && live.project.cover).toMatchObject({ alt: 'Dashboard', caption: 'Main view', src: item.src });
 
     const [asset] = await db.select().from(mediaAssets).where(eq(mediaAssets.id, item.assetId));
@@ -341,7 +319,7 @@ describe('images', () => {
     expect((await upload(project.id, uploadRequest(project.id, huge))).status).toBe(413);
 
     const noAlt = await upload(project.id, uploadRequest(project.id, pngBytes(10, 10), {}));
-    expect((await noAlt.json()).fieldErrors).toEqual({ 'translations.en.alt': expect.any(String) });
+    expect((await noAlt.json()).fieldErrors).toEqual({ alt: expect.any(String) });
     expect(store.objects.size).toBe(1); // only the earlier upload
   });
 
@@ -378,7 +356,7 @@ describe('images', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     const [after] = body.data.items;
-    expect(after).toMatchObject({ assetId: before!.assetId, isCover: true, width: 800, translations: before!.translations });
+    expect(after).toMatchObject({ assetId: before!.assetId, isCover: true, width: 800, alt: before!.alt, caption: before!.caption });
     expect(after.src).not.toBe(before!.src);
     expect(store.removed).toEqual([before!.src]);
 
@@ -388,8 +366,8 @@ describe('images', () => {
 
   it('saves order, hero, and text; removed images are deleted from storage after commit', async () => {
     const project = (await service.loadProjectList()).find((p) => p.slug === 'gallery')!;
-    await upload(project.id, uploadRequest(project.id, pngBytes(20, 20), { 'alt.en': 'Second' }));
-    await upload(project.id, uploadRequest(project.id, pngBytes(30, 30), { 'alt.en': 'Third' }));
+    await upload(project.id, uploadRequest(project.id, pngBytes(20, 20), { alt: 'Second' }));
+    await upload(project.id, uploadRequest(project.id, pngBytes(30, 30), { alt: 'Third' }));
     const { items } = (await service.loadProjectMedia(project.id))!;
     expect(items.map((i) => i.isCover)).toEqual([true, false, false]);
     const [first, second, third] = items;
@@ -404,7 +382,7 @@ describe('images', () => {
     const result = await actions.saveProjectMedia({
       projectId: project.id,
       items: [
-        { ...third!, isCover: true, translations: { ...third!.translations, es: { alt: 'Tercera', caption: '' } } },
+        { ...third!, isCover: true, alt: 'Third, now the hero' },
         second!,
       ],
     });
@@ -413,9 +391,9 @@ describe('images', () => {
     expect(store.removed).toEqual([first!.src]);
     expect(await db.select().from(mediaAssets).where(eq(mediaAssets.id, first!.assetId))).toEqual([]);
 
-    const es = await findProjectBySlug(db, 'gallery', 'es');
-    expect(es.kind === 'found' && es.project.cover?.alt).toBe('Tercera');
-    expect(es.kind === 'found' && es.project.gallery.map((g) => g.alt)).toEqual(['Second']);
+    const live = await findProjectBySlug(db, 'gallery');
+    expect(live.kind === 'found' && live.project.cover?.alt).toBe('Third, now the hero');
+    expect(live.kind === 'found' && live.project.gallery.map((g) => g.alt)).toEqual(['Second']);
   });
 
   it('keeps the save when storage cleanup fails (logged, not thrown)', async () => {
@@ -447,6 +425,6 @@ describe('delete', () => {
     expect(await service.loadProject(project.id)).toBeNull();
     expect(await db.select().from(projectMedia).where(eq(projectMedia.projectId, project.id))).toEqual([]);
     expect(store.removed).toEqual(items.map((i) => i.src));
-    expect(await findProjectBySlug(db, 'gallery', 'en')).toEqual({ kind: 'not-found' });
+    expect(await findProjectBySlug(db, 'gallery')).toEqual({ kind: 'not-found' });
   });
 });

@@ -17,7 +17,7 @@ export default async function ProjectMilestonesPage({ params }: { params: Promis
   return (
     <>
       <ProjectPageHeader
-        project={{ id, name: project.translations.en.name, slug: project.slug, status: project.status }}
+        project={{ id, name: project.name, slug: project.slug, status: project.status }}
         current="milestones"
       />
       <MilestoneEditor projectId={id} initial={milestones.values} images={milestones.images} published={project.status === 'published'} />

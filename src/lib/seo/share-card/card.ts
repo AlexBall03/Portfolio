@@ -1,12 +1,12 @@
 import { PAGE_KEYS, type PageKey } from '@/features/site/types';
 
-/** Which share card a URL names (the segments after /og/[locale]/). */
+/** Which share card a URL names (the segments after /og/). */
 export type ShareCard = { kind: 'page'; page: PageKey } | { kind: 'project'; slug: string };
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /**
- * Parses the catch-all segments of /og/[locale]/[...card]: ["home.png"],
+ * Parses the catch-all segments of /og/[...card]: ["home.png"],
  * ["about.png"], or ["projects", "<slug>.png"]. Anything else is null (404).
  * The inverse of `shareCardPath` (config/site.ts).
  */

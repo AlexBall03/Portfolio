@@ -1,17 +1,8 @@
 import 'server-only';
-import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
-import {
-  projectTechnologies,
-  skillCategories,
-  skillCategoryTechnologies,
-  skillCategoryTranslations,
-  technologies,
-} from '@/db/schema';
+import { asc, count, eq, inArray, sql } from 'drizzle-orm';
+import { projectTechnologies, skillCategories, skillCategoryTechnologies, technologies } from '@/db/schema';
 import type { Database } from '@/db/types';
-import type { Locale } from '@/i18n/config';
-import { mapTranslated } from '@/i18n/translations';
-import { localeRecord } from '@/lib/cms/locale';
-import { reconcileList, syncTranslations } from '@/lib/cms/write';
+import { reconcileList } from '@/lib/cms/write';
 import type { SkillCategoriesInput } from './schema';
 import type {
   SkillCategoriesValues,
@@ -21,18 +12,18 @@ import type {
   TechnologyValues,
 } from './types';
 
-export async function getSkillsOverview(db: Database, locale: Locale): Promise<SkillsOverview> {
+export async function getSkillsOverview(db: Database): Promise<SkillsOverview> {
   const rows = await db.query.skillCategories.findMany({
     where: eq(skillCategories.status, 'published'),
     orderBy: [asc(skillCategories.sortOrder), asc(skillCategories.createdAt)],
-    with: { translations: true, technologies: { with: { technology: true } } },
+    with: { technologies: { with: { technology: true } } },
   });
 
-  const categories = mapTranslated(rows, locale, (row, t) => ({
+  const categories = rows.map((row) => ({
     kind: row.kind,
     category: {
       slug: row.slug,
-      name: t.name,
+      name: row.name,
       icon: row.icon,
       accent: row.accent,
       technologies: [...row.technologies]
@@ -48,13 +39,13 @@ export async function getSkillsOverview(db: Database, locale: Locale): Promise<S
 }
 
 /* ── Admin editor reads ─────────────────────────────────────────────────────
- * Uncached and complete: hidden categories and every locale's raw name.
+ * Uncached and complete: hidden categories included.
  */
 
 export async function listCategoryValues(db: Database): Promise<SkillCategoriesValues> {
   const rows = await db.query.skillCategories.findMany({
     orderBy: [asc(skillCategories.sortOrder), asc(skillCategories.createdAt)],
-    with: { translations: true, technologies: { with: { technology: true } } },
+    with: { technologies: { with: { technology: true } } },
   });
   const values = (kind: SkillCategoryKind) =>
     rows
@@ -63,6 +54,7 @@ export async function listCategoryValues(db: Database): Promise<SkillCategoriesV
         key: row.id,
         id: row.id,
         slug: row.slug,
+        name: row.name,
         icon: row.icon,
         accent: row.accent,
         // Legacy `archived` rows read as hidden; a save stores them as drafts.
@@ -70,7 +62,6 @@ export async function listCategoryValues(db: Database): Promise<SkillCategoriesV
         technologies: [...row.technologies]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map(({ technology: t }) => ({ key: t.slug, slug: t.slug, name: t.name })),
-        translations: localeRecord(row.translations, (t) => ({ name: t.name }), () => ({ name: '' })),
       }));
   return { stack: values('stack'), learning: values('learning') };
 }
@@ -130,6 +121,7 @@ export async function replaceCategories(
   const fields = (item: CategoryItem, sortOrder: number) => ({
     kind,
     slug: item.slug,
+    name: item.name,
     icon: item.icon,
     accent: item.accent,
     status: item.visible ? ('published' as const) : ('draft' as const),
@@ -158,18 +150,6 @@ export async function replaceCategories(
 }
 
 async function writeCategoryContent(db: Database, categoryId: string, item: CategoryItem, actor: Actor) {
-  await syncTranslations(item.translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(skillCategoryTranslations)
-        .values({ categoryId, locale, ...t })
-        .onConflictDoUpdate({ target: [skillCategoryTranslations.categoryId, skillCategoryTranslations.locale], set: t }),
-    remove: (locale) =>
-      db
-        .delete(skillCategoryTranslations)
-        .where(and(eq(skillCategoryTranslations.categoryId, categoryId), eq(skillCategoryTranslations.locale, locale))),
-  });
-
   // Technologies are a shared vocabulary: new ones are added, existing names are kept.
   await db.delete(skillCategoryTechnologies).where(eq(skillCategoryTechnologies.categoryId, categoryId));
   await db

@@ -79,7 +79,7 @@ describe('validation', () => {
       const current = v.career.findIndex((e) => e.isCurrent);
       v.career[current] = { ...v.career[current]!, endDate: '2001-01-01' }; // current but already ended
       v.education[0] = { ...v.education[0]!, isCurrent: false, startDate: '2020-01-01', endDate: '2019-01-01' };
-      v.career[pastIndex]!.translations.es.role = '';
+      v.career[pastIndex]!.role = '';
     });
     const result = await actions.saveExperiences(values);
     expect(result.ok).toBe(false);
@@ -89,18 +89,17 @@ describe('validation', () => {
     expect(keys).toEqual(
       expect.arrayContaining([`career.${pastIndex}.endDate`, `career.${current}.endDate`, 'education.0.endDate']),
     );
-    expect(keys).toContain(`career.${pastIndex}.translations.es.role`);
+    expect(keys).toContain(`career.${pastIndex}.role`);
     expect(tags).toEqual([]);
   });
 });
 
 describe('saving', () => {
-  it('reorders, hides, falls back to English, and records the author', async () => {
+  it('reorders, hides, edits, and records the author', async () => {
     const values = await loadWith((v) => {
       v.career.reverse();
       v.career[0]!.visible = false;
-      const es = v.career[1]!.translations.es;
-      Object.assign(es, { organizationLabel: '', role: '', employmentType: '', location: '', summary: [], tags: [] });
+      Object.assign(v.career[1]!, { organizationLabel: 'Career break', role: 'Sabbatical', employmentType: '', location: '' });
     });
     const result = await actions.saveExperiences(values);
     expect(result.ok).toBe(true);
@@ -109,10 +108,9 @@ describe('saving', () => {
     const saved = await service.loadExperiences();
     expect(saved.career.map((e) => e.id)).toEqual(values.career.map((e) => e.id));
 
-    const en = (await listExperiences(db, 'en')).filter((e) => e.kind === 'career');
-    const es = (await listExperiences(db, 'es')).filter((e) => e.kind === 'career');
-    expect(en.map((e) => e.id)).toEqual(values.career.slice(1).map((e) => e.id)); // hidden first one, order kept
-    expect(es[0]!.role).toBe(en[0]!.role);
+    const career = (await listExperiences(db)).filter((e) => e.kind === 'career');
+    expect(career.map((e) => e.id)).toEqual(values.career.slice(1).map((e) => e.id)); // hidden first one, order kept
+    expect(career[0]).toMatchObject({ organization: 'Career break', role: 'Sabbatical', employmentType: null, location: null });
 
     const [row] = await db.select().from(experiences).where(eq(experiences.id, values.career[1]!.id!));
     expect(row).toMatchObject({ updatedBy: ADMIN_ID, sortOrder: 1, status: 'published' });
@@ -129,10 +127,12 @@ describe('saving', () => {
         datePrecision: 'month',
         isCurrent: true,
         visible: true,
-        translations: {
-          en: { organizationLabel: '', role: 'Engineer', employmentType: '', location: '', summary: ['Builds things.'], tags: ['Go'] },
-          es: { organizationLabel: '', role: '', employmentType: '', location: '', summary: [''], tags: [] },
-        },
+        organizationLabel: '',
+        role: 'Engineer',
+        employmentType: '',
+        location: '',
+        summary: ['Builds things.'],
+        tags: ['Go'],
       });
     });
     const result = await actions.saveExperiences(values);

@@ -9,10 +9,8 @@ import { Section } from '@/components/ui/Section';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Stat, statDividers } from '@/components/ui/Stat';
 import { Surface } from '@/components/ui/Surface';
+import { copy, fill } from '@/config/copy';
 import type { SectionContent } from '@/features/site/types';
-import { LOCALE_TAGS, type Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { fill } from '@/i18n/paths';
 import { cn } from '@/lib/cn';
 import { createLogger } from '@/lib/logger';
 import { describeActivity } from '../events';
@@ -29,9 +27,9 @@ interface GitHubSectionProps {
   section: SectionContent;
   username: string;
   displayName: string;
-  locale: Locale;
-  t: Dictionary['github'];
 }
+
+const t = copy.github;
 
 /** Engineering activity: overview → contributions → repositories → recent activity. */
 export function GitHubSection(props: GitHubSectionProps) {
@@ -58,7 +56,7 @@ async function GitHubPanel(props: GitHubSectionProps) {
   return <GitHubContent {...props} overview={overview} />;
 }
 
-function Identity({ username, displayName, t, avatarUrl }: GitHubSectionProps & { avatarUrl?: string | null }) {
+function Identity({ username, displayName, avatarUrl }: GitHubSectionProps & { avatarUrl?: string | null }) {
   const url = `https://github.com/${username}`;
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -87,13 +85,13 @@ function GitHubFallback(props: GitHubSectionProps & { loading?: boolean }) {
       <Surface variant="inset" radius="xl" className="flex min-h-48 items-center justify-center p-8">
         {props.loading ? (
           <div className="flex w-full max-w-2xl flex-col gap-3 motion-safe:animate-pulse" role="status">
-            <span className="sr-only">{props.t.loading}</span>
+            <span className="sr-only">{t.loading}</span>
             <span className="h-4 w-1/3 rounded-sm bg-fg/[0.06]" />
             <span className="h-28 w-full rounded-md bg-fg/[0.05]" />
           </div>
         ) : (
           <p className="text-body-sm text-fg-muted" role="status">
-            {props.t.unavailable}
+            {t.unavailable}
           </p>
         )}
       </Surface>
@@ -102,8 +100,7 @@ function GitHubFallback(props: GitHubSectionProps & { loading?: boolean }) {
 }
 
 function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview }) {
-  const { overview, locale, t } = props;
-  const intl = LOCALE_TAGS[locale].intl;
+  const { overview } = props;
   const stats = overview.stats;
   const tiles = stats
     ? [
@@ -133,7 +130,7 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
         <Surface variant="glass" radius="xl" as="section" className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-12">
           {overview.calendar ? (
             <>
-              <ContributionHeatmap calendar={overview.calendar} locale={locale} t={t} />
+              <ContributionHeatmap calendar={overview.calendar} />
               <div className="flex flex-col justify-between gap-6 lg:border-l lg:border-line lg:pl-10">
                 <div className="flex flex-col gap-2">
                   <h3 className={SUBHEAD}>{t.contributions}</h3>
@@ -143,10 +140,10 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
                   <p className="text-body-sm text-fg-muted">{overview.calendar.total === 1 ? t.contributionsCaptionOne : fill(t.contributionsCaption, { count: overview.calendar.total })}</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <HeatmapLegend t={t} />
+                  <HeatmapLegend />
                   {overview.lastActivityAt && (
                     <p className="font-mono text-micro text-fg-faint">
-                      {t.lastActivity}: <RelativeTime iso={overview.lastActivityAt} locale={intl} />
+                      {t.lastActivity}: <RelativeTime iso={overview.lastActivityAt} />
                     </p>
                   )}
                 </div>
@@ -185,7 +182,7 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
                         )}
                         {r.pushedAt && (
                           <span>
-                            {t.updated} <RelativeTime iso={r.pushedAt} locale={intl} />
+                            {t.updated} <RelativeTime iso={r.pushedAt} />
                           </span>
                         )}
                       </span>
@@ -206,17 +203,17 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
                     <span className="line-clamp-2 text-body-sm text-fg-muted">
                       {a.type === 'commit' ? (
                         <a className="transition-colors hover:text-fg" href={a.url} target="_blank" rel="noopener noreferrer">
-                          {describeActivity(a, t.events)}
+                          {describeActivity(a)}
                         </a>
                       ) : (
-                        describeActivity(a, t.events)
+                        describeActivity(a)
                       )}{' '}
                       <a className="font-mono text-brand-fg hover:text-fg" href={a.repositoryUrl} target="_blank" rel="noopener noreferrer">
                         {a.repository}
                       </a>
                     </span>
                     <span className="font-mono text-micro text-fg-faint">
-                      <RelativeTime iso={a.createdAt} locale={intl} />
+                      <RelativeTime iso={a.createdAt} />
                     </span>
                   </li>
                 ))}

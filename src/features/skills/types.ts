@@ -1,5 +1,4 @@
 import type { Technology } from '@/features/projects/types';
-import type { Locale } from '@/i18n/config';
 
 export type Accent = 'blue' | 'gold';
 
@@ -26,12 +25,12 @@ export interface SkillCategoryValues {
   key: string;
   id?: string;
   slug: string;
+  name: string;
   icon: string;
   accent: Accent;
   visible: boolean;
   /** In display order; `key` is the technology slug. */
   technologies: (Technology & { key: string })[];
-  translations: Record<Locale, { name: string }>;
 }
 
 export type SkillCategoriesValues = Record<SkillCategoryKind, SkillCategoryValues[]>;

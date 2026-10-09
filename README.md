@@ -7,18 +7,17 @@
 ![Neon](https://img.shields.io/badge/Neon-Postgres-00E599?logo=postgresql&logoColor=white&style=flat-square)
 ![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white&style=flat-square)
 
-A bilingual (English/Spanish) portfolio built as a full-stack Next.js application. Pages are server-rendered from content modeled in Neon Postgres, live GitHub activity comes through a cached integration, and the contact form delivers through Resend.
+An English-language portfolio built as a full-stack Next.js application. Pages are server-rendered from content modeled in Neon Postgres, live GitHub activity comes through a cached integration, and the contact form delivers through Resend.
 
 See **[ARCHITECTURE.md](ARCHITECTURE.md)** for how it's built and where things go.
 
 ## Features
 
 - **Six routed pages plus project pages:** Home, About, Projects (`/projects/<slug>`), Experience, Resume, Contact.
-- **English and Spanish:** Spanish lives under `/es`, both versions are server-rendered with hreflang alternates, and the site remembers your language choice.
 - **Database-backed content:** projects, skills, experience, profile, socials, and page copy, with draft/published/archived lifecycle and ordering, ready for a future admin.
-- **Live GitHub section:** a week-aligned contribution heatmap, repositories, stats, and localized recent activity, cached for 15 minutes and degrading gracefully.
+- **Live GitHub section:** a week-aligned contribution heatmap, repositories, stats, and recent activity, cached for 15 minutes and degrading gracefully.
 - **Contact form:** validated in the browser and again on the server, works without JavaScript, has a honeypot, and delivers through Resend.
-- **Command palette:** `⌘K` / `Ctrl K` to jump to pages, download the resume, copy the email address, or switch theme and language.
+- **Command palette:** `⌘K` / `Ctrl K` to jump to pages, download the resume, copy the email address, or switch theme.
 - **Dark and light themes** with no flash on load; respects reduced-motion settings.
 - **Private admin:** `/admin`, a Clerk-authenticated console for the single site owner (no public sign-up).
 - **SEO:** per-page metadata, canonical URLs, Open Graph, a generated sitemap and robots.txt, and server-rendered Schema.org JSON-LD.
@@ -37,7 +36,7 @@ With Neon, put the **`dev` branch's** two connection strings in `.env.local` (ne
 
 ## Admin & authentication
 
-`/admin` is the site's private control room, linked discreetly as **Admin** in the footer. It is a small CMS: every piece of public content has one editor there (projects with drafts, order, and images; skills; experience; resume versions; profile; social links; contact copy; page copy; site configuration), plus a status dashboard. Content is bilingual through per-locale translations with English fallback.
+`/admin` is the site's private control room, linked discreetly as **Admin** in the footer. It is a small CMS: every piece of public content has one editor there (projects with drafts, order, and images; skills; experience; resume versions; profile; social links; contact copy; page copy; site configuration), plus a status dashboard. Each piece of content is written once, in English.
 
 - **Clerk** handles sign-in (email + password, GitHub, Google). **The site** decides who is admin: exactly one Clerk user, identified by `ADMIN_CLERK_USER_ID`. Authentication alone grants nothing.
 - **There is no sign-up.** The single admin account is created by hand in Clerk, and the Clerk instance is set to *Invite-only*, so nobody can register.

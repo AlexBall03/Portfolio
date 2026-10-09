@@ -1,28 +1,12 @@
 import 'server-only';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import {
-  mediaAssets,
-  mediaAssetTranslations,
-  profile,
-  profileHighlights,
-  profileHighlightTranslations,
-  profileRoles,
-  profileRoleTranslations,
-  profileTranslations,
-  snapshotMetrics,
-  snapshotMetricTranslations,
-  socialLinks,
-} from '@/db/schema';
+import { mediaAssets, profile, profileHighlights, profileRoles, snapshotMetrics, socialLinks } from '@/db/schema';
 import { deleteUnreferencedAssets, type StoredObject } from '@/db/media';
 import type { Database } from '@/db/types';
-import type { Locale } from '@/i18n/config';
-import { mapTranslated, pickTranslation } from '@/i18n/translations';
-import { localeRecord } from '@/lib/cms/locale';
-import { reconcileList, syncTranslations } from '@/lib/cms/write';
+import { reconcileList } from '@/lib/cms/write';
 import { NotFoundError } from '@/lib/errors';
 import { resolveMedia } from '@/lib/media';
 import type {
-  HeadshotTextInput,
   ProfileDetailsInput,
   ProfileHighlightsInput,
   ProfileRolesInput,
@@ -45,16 +29,12 @@ import type {
   SocialLinkValues,
 } from './types';
 
-export async function getProfile(db: Database, locale: Locale): Promise<Profile | null> {
+export async function getProfile(db: Database): Promise<Profile | null> {
   const row = await db.query.profile.findFirst({
     where: eq(profile.id, 1),
-    with: {
-      translations: true,
-      headshot: { with: { translations: true } },
-    },
+    with: { headshot: true },
   });
-  const t = row && pickTranslation(row.translations, locale);
-  if (!row || !t) return null;
+  if (!row) return null;
 
   return {
     fullName: row.fullName,
@@ -64,13 +44,13 @@ export async function getProfile(db: Database, locale: Locale): Promise<Profile 
     timeZone: row.timeZone,
     addressRegion: row.addressRegion,
     addressCountry: row.addressCountry,
-    headshot: resolveMedia(row.headshot, locale),
-    title: t.title,
-    statement: t.statement,
-    availabilityText: t.availabilityText,
-    locationLabel: t.locationLabel,
-    about: t.about,
-    hero: { focus: t.heroFocus, stackLine: t.heroStackLine, chips: t.heroChips },
+    headshot: resolveMedia(row.headshot),
+    title: row.title,
+    statement: row.statement,
+    availabilityText: row.availabilityText,
+    locationLabel: row.locationLabel,
+    about: row.about,
+    hero: { focus: row.heroFocus, stackLine: row.heroStackLine, chips: row.heroChips },
   };
 }
 
@@ -87,54 +67,47 @@ export async function listSocialLinks(db: Database): Promise<SocialLink[]> {
     .orderBy(asc(socialLinks.sortOrder), asc(socialLinks.createdAt));
 }
 
-export async function listProfileRoles(db: Database, locale: Locale): Promise<ProfileRole[]> {
-  const rows = await db.query.profileRoles.findMany({
-    where: eq(profileRoles.visible, true),
-    orderBy: [asc(profileRoles.sortOrder), asc(profileRoles.createdAt)],
-    with: { translations: true },
-  });
-  return mapTranslated(rows, locale, (row, t) => ({ label: t.label, accent: row.accent }));
+export async function listProfileRoles(db: Database): Promise<ProfileRole[]> {
+  return db
+    .select({ label: profileRoles.label, accent: profileRoles.accent })
+    .from(profileRoles)
+    .where(eq(profileRoles.visible, true))
+    .orderBy(asc(profileRoles.sortOrder), asc(profileRoles.createdAt));
 }
 
-export async function listHighlights(
-  db: Database,
-  locale: Locale,
-  kind: 'differentiator' | 'resume',
-): Promise<Highlight[]> {
-  const rows = await db.query.profileHighlights.findMany({
-    where: and(eq(profileHighlights.visible, true), eq(profileHighlights.kind, kind)),
-    orderBy: [asc(profileHighlights.sortOrder), asc(profileHighlights.createdAt)],
-    with: { translations: true },
-  });
-  return mapTranslated(rows, locale, (row, t) => ({ icon: row.icon, title: t.title, body: t.body }));
+export async function listHighlights(db: Database, kind: 'differentiator' | 'resume'): Promise<Highlight[]> {
+  return db
+    .select({ icon: profileHighlights.icon, title: profileHighlights.title, body: profileHighlights.body })
+    .from(profileHighlights)
+    .where(and(eq(profileHighlights.visible, true), eq(profileHighlights.kind, kind)))
+    .orderBy(asc(profileHighlights.sortOrder), asc(profileHighlights.createdAt));
 }
 
-export async function listSnapshotMetrics(db: Database, locale: Locale): Promise<SnapshotMetric[]> {
-  const rows = await db.query.snapshotMetrics.findMany({
-    where: eq(snapshotMetrics.visible, true),
-    orderBy: [asc(snapshotMetrics.sortOrder), asc(snapshotMetrics.createdAt)],
-    with: { translations: true },
-  });
-  return mapTranslated(rows, locale, (row, t) => ({
-    icon: row.icon,
-    source: row.source,
-    value: row.value,
-    suffix: row.suffix,
-    accent: row.accent,
-    label: t.label,
-    note: t.note,
-  }));
+export async function listSnapshotMetrics(db: Database): Promise<SnapshotMetric[]> {
+  return db
+    .select({
+      icon: snapshotMetrics.icon,
+      source: snapshotMetrics.source,
+      value: snapshotMetrics.value,
+      suffix: snapshotMetrics.suffix,
+      accent: snapshotMetrics.accent,
+      label: snapshotMetrics.label,
+      note: snapshotMetrics.note,
+    })
+    .from(snapshotMetrics)
+    .where(eq(snapshotMetrics.visible, true))
+    .orderBy(asc(snapshotMetrics.sortOrder), asc(snapshotMetrics.createdAt));
 }
 
 /* ── Admin editor reads ─────────────────────────────────────────────────────
- * Uncached and complete: hidden rows and every locale's raw translation, so
- * the editor shows exactly what is stored (no English fallback filled in).
+ * Uncached and complete: hidden rows included, so the editor shows exactly
+ * what is stored.
  */
 
 const PROFILE_ID = 1;
 
 export async function getProfileDetailsValues(db: Database): Promise<ProfileDetailsValues | null> {
-  const row = await db.query.profile.findFirst({ where: eq(profile.id, PROFILE_ID), with: { translations: true } });
+  const row = await db.query.profile.findFirst({ where: eq(profile.id, PROFILE_ID) });
   if (!row) return null;
   return {
     fullName: row.fullName,
@@ -144,50 +117,27 @@ export async function getProfileDetailsValues(db: Database): Promise<ProfileDeta
     timeZone: row.timeZone,
     addressRegion: row.addressRegion ?? '',
     addressCountry: row.addressCountry ?? '',
-    translations: localeRecord(
-      row.translations,
-      (t) => ({
-        title: t.title,
-        statement: t.statement,
-        availabilityText: t.availabilityText,
-        locationLabel: t.locationLabel,
-        about: t.about,
-        heroFocus: t.heroFocus,
-        heroStackLine: t.heroStackLine,
-        heroChips: t.heroChips,
-      }),
-      () => ({
-        title: '',
-        statement: '',
-        availabilityText: '',
-        locationLabel: '',
-        about: [''],
-        heroFocus: '',
-        heroStackLine: '',
-        heroChips: [],
-      }),
-    ),
+    title: row.title,
+    statement: row.statement,
+    availabilityText: row.availabilityText,
+    locationLabel: row.locationLabel,
+    about: row.about,
+    heroFocus: row.heroFocus,
+    heroStackLine: row.heroStackLine,
+    heroChips: row.heroChips,
   };
 }
 
 export async function listRoleValues(db: Database): Promise<RoleValues[]> {
   const rows = await db.query.profileRoles.findMany({
     orderBy: [asc(profileRoles.sortOrder), asc(profileRoles.createdAt)],
-    with: { translations: true },
   });
-  return rows.map((row) => ({
-    key: row.id,
-    id: row.id,
-    accent: row.accent,
-    visible: row.visible,
-    translations: localeRecord(row.translations, (t) => ({ label: t.label }), () => ({ label: '' })),
-  }));
+  return rows.map((row) => ({ key: row.id, id: row.id, label: row.label, accent: row.accent, visible: row.visible }));
 }
 
 export async function listHighlightValues(db: Database): Promise<HighlightsValues> {
   const rows = await db.query.profileHighlights.findMany({
     orderBy: [asc(profileHighlights.sortOrder), asc(profileHighlights.createdAt)],
-    with: { translations: true },
   });
   const values = (kind: HighlightKind): HighlightValues[] =>
     rows
@@ -196,12 +146,9 @@ export async function listHighlightValues(db: Database): Promise<HighlightsValue
         key: row.id,
         id: row.id,
         icon: row.icon ?? '',
+        title: row.title,
+        body: row.body,
         visible: row.visible,
-        translations: localeRecord(
-          row.translations,
-          (t) => ({ title: t.title, body: t.body }),
-          () => ({ title: '', body: '' }),
-        ),
       }));
   return { differentiator: values('differentiator'), resume: values('resume') };
 }
@@ -209,22 +156,18 @@ export async function listHighlightValues(db: Database): Promise<HighlightsValue
 export async function listMetricValues(db: Database): Promise<MetricValues[]> {
   const rows = await db.query.snapshotMetrics.findMany({
     orderBy: [asc(snapshotMetrics.sortOrder), asc(snapshotMetrics.createdAt)],
-    with: { translations: true },
   });
   return rows.map((row) => ({
     key: row.id,
     id: row.id,
     icon: row.icon,
+    label: row.label,
+    note: row.note,
     source: row.source,
     value: row.value,
     suffix: row.suffix,
     accent: row.accent,
     visible: row.visible,
-    translations: localeRecord(
-      row.translations,
-      (t) => ({ label: t.label, note: t.note }),
-      () => ({ label: '', note: '' }),
-    ),
   }));
 }
 
@@ -251,30 +194,17 @@ export interface Actor {
 }
 
 export async function updateProfileDetails(db: Database, data: ProfileDetailsInput, actor: Actor): Promise<void> {
-  const { translations, ...fields } = data;
   const updated = await db
     .update(profile)
     .set({
-      ...fields,
-      addressRegion: fields.addressRegion ?? null,
-      addressCountry: fields.addressCountry ?? null,
+      ...data,
+      addressRegion: data.addressRegion ?? null,
+      addressCountry: data.addressCountry ?? null,
       updatedBy: actor.userId,
     })
     .where(eq(profile.id, PROFILE_ID))
     .returning({ id: profile.id });
   if (!updated.length) throw new Error('The site profile row is missing');
-
-  await syncTranslations(translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(profileTranslations)
-        .values({ profileId: PROFILE_ID, locale, ...t })
-        .onConflictDoUpdate({ target: [profileTranslations.profileId, profileTranslations.locale], set: t }),
-    remove: (locale) =>
-      db
-        .delete(profileTranslations)
-        .where(and(eq(profileTranslations.profileId, PROFILE_ID), eq(profileTranslations.locale, locale))),
-  });
 }
 
 type RoleItem = ProfileRolesInput['items'][number];
@@ -285,38 +215,22 @@ export async function replaceProfileRoles(db: Database, items: RoleItem[], actor
     existing.map((r) => r.id),
     items,
     {
-      update: async (id, { accent, visible, translations }, sortOrder) => {
-        await db
+      update: (id, { label, accent, visible }, sortOrder) =>
+        db
           .update(profileRoles)
-          .set({ accent, visible, sortOrder, updatedBy: actor.userId })
-          .where(eq(profileRoles.id, id));
-        await syncRoleTranslations(db, id, translations);
-      },
-      insert: async ({ accent, visible, translations }, sortOrder) => {
+          .set({ label, accent, visible, sortOrder, updatedBy: actor.userId })
+          .where(eq(profileRoles.id, id)),
+      insert: async ({ label, accent, visible }, sortOrder) => {
         const [row] = await db
           .insert(profileRoles)
-          .values({ accent, visible, sortOrder, createdBy: actor.userId, updatedBy: actor.userId })
+          .values({ label, accent, visible, sortOrder, createdBy: actor.userId, updatedBy: actor.userId })
           .returning({ id: profileRoles.id });
-        await syncRoleTranslations(db, row!.id, translations);
         return row!.id;
       },
       remove: (ids) => db.delete(profileRoles).where(inArray(profileRoles.id, ids)),
     },
   );
 }
-
-const syncRoleTranslations = (db: Database, roleId: string, translations: RoleItem['translations']) =>
-  syncTranslations(translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(profileRoleTranslations)
-        .values({ roleId, locale, ...t })
-        .onConflictDoUpdate({ target: [profileRoleTranslations.roleId, profileRoleTranslations.locale], set: t }),
-    remove: (locale) =>
-      db
-        .delete(profileRoleTranslations)
-        .where(and(eq(profileRoleTranslations.roleId, roleId), eq(profileRoleTranslations.locale, locale))),
-  });
 
 type HighlightItem = ProfileHighlightsInput[HighlightKind][number];
 
@@ -331,23 +245,28 @@ export async function replaceHighlights(
     .select({ id: profileHighlights.id })
     .from(profileHighlights)
     .where(eq(profileHighlights.kind, kind));
+  const fields = ({ icon, title, body, visible }: HighlightItem, sortOrder: number) => ({
+    icon: icon ?? null,
+    title,
+    body,
+    visible,
+    sortOrder,
+    updatedBy: actor.userId,
+  });
   await reconcileList(
     existing.map((r) => r.id),
     items,
     {
-      update: async (id, { icon, visible, translations }, sortOrder) => {
-        await db
+      update: (id, item, sortOrder) =>
+        db
           .update(profileHighlights)
-          .set({ icon: icon ?? null, visible, sortOrder, updatedBy: actor.userId })
-          .where(and(eq(profileHighlights.id, id), eq(profileHighlights.kind, kind)));
-        await syncHighlightTranslations(db, id, translations);
-      },
-      insert: async ({ icon, visible, translations }, sortOrder) => {
+          .set(fields(item, sortOrder))
+          .where(and(eq(profileHighlights.id, id), eq(profileHighlights.kind, kind))),
+      insert: async (item, sortOrder) => {
         const [row] = await db
           .insert(profileHighlights)
-          .values({ kind, icon: icon ?? null, visible, sortOrder, createdBy: actor.userId, updatedBy: actor.userId })
+          .values({ kind, ...fields(item, sortOrder), createdBy: actor.userId })
           .returning({ id: profileHighlights.id });
-        await syncHighlightTranslations(db, row!.id, translations);
         return row!.id;
       },
       remove: (ids) => db.delete(profileHighlights).where(inArray(profileHighlights.id, ids)),
@@ -355,30 +274,14 @@ export async function replaceHighlights(
   );
 }
 
-const syncHighlightTranslations = (db: Database, highlightId: string, translations: HighlightItem['translations']) =>
-  syncTranslations(translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(profileHighlightTranslations)
-        .values({ highlightId, locale, ...t })
-        .onConflictDoUpdate({
-          target: [profileHighlightTranslations.highlightId, profileHighlightTranslations.locale],
-          set: t,
-        }),
-    remove: (locale) =>
-      db
-        .delete(profileHighlightTranslations)
-        .where(
-          and(eq(profileHighlightTranslations.highlightId, highlightId), eq(profileHighlightTranslations.locale, locale)),
-        ),
-  });
-
 type MetricItem = SnapshotMetricsInput['items'][number];
 
 export async function replaceSnapshotMetrics(db: Database, items: MetricItem[], actor: Actor): Promise<void> {
   const existing = await db.select({ id: snapshotMetrics.id }).from(snapshotMetrics);
-  const fields = ({ icon, source, value, suffix, accent, visible }: MetricItem) => ({
+  const fields = ({ icon, label, note, source, value, suffix, accent, visible }: MetricItem) => ({
     icon,
+    label,
+    note,
     source,
     value,
     suffix,
@@ -389,41 +292,22 @@ export async function replaceSnapshotMetrics(db: Database, items: MetricItem[], 
     existing.map((r) => r.id),
     items,
     {
-      update: async (id, item, sortOrder) => {
-        await db
+      update: (id, item, sortOrder) =>
+        db
           .update(snapshotMetrics)
           .set({ ...fields(item), sortOrder, updatedBy: actor.userId })
-          .where(eq(snapshotMetrics.id, id));
-        await syncMetricTranslations(db, id, item.translations);
-      },
+          .where(eq(snapshotMetrics.id, id)),
       insert: async (item, sortOrder) => {
         const [row] = await db
           .insert(snapshotMetrics)
           .values({ ...fields(item), sortOrder, createdBy: actor.userId, updatedBy: actor.userId })
           .returning({ id: snapshotMetrics.id });
-        await syncMetricTranslations(db, row!.id, item.translations);
         return row!.id;
       },
       remove: (ids) => db.delete(snapshotMetrics).where(inArray(snapshotMetrics.id, ids)),
     },
   );
 }
-
-const syncMetricTranslations = (db: Database, metricId: string, translations: MetricItem['translations']) =>
-  syncTranslations(translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(snapshotMetricTranslations)
-        .values({ metricId, locale, ...t })
-        .onConflictDoUpdate({
-          target: [snapshotMetricTranslations.metricId, snapshotMetricTranslations.locale],
-          set: t,
-        }),
-    remove: (locale) =>
-      db
-        .delete(snapshotMetricTranslations)
-        .where(and(eq(snapshotMetricTranslations.metricId, metricId), eq(snapshotMetricTranslations.locale, locale))),
-  });
 
 type SocialLinkItem = SocialLinksInput['items'][number];
 
@@ -461,35 +345,22 @@ export async function getHeadshotValues(db: Database): Promise<HeadshotValues | 
   const row = await db.query.profile.findFirst({
     where: eq(profile.id, PROFILE_ID),
     columns: { id: true },
-    with: { headshot: { with: { translations: true } } },
+    with: { headshot: true },
   });
   if (!row) return null;
   const asset = row.headshot;
   return {
     photo: asset
       ? {
-          src: resolveMedia({ ...asset, translations: [] }, 'en')!.src,
+          src: resolveMedia(asset)!.src,
           width: asset.width,
           height: asset.height,
           uploaded: asset.storage === 'blob',
         }
       : null,
-    translations: localeRecord(asset?.translations ?? [], (t) => ({ alt: t.alt }), () => ({ alt: '' })),
+    alt: asset?.alt ?? '',
   };
 }
-
-const syncHeadshotAlt = (db: Database, assetId: string, translations: HeadshotTextInput['translations']) =>
-  syncTranslations(translations, {
-    upsert: (locale, t) =>
-      db
-        .insert(mediaAssetTranslations)
-        .values({ assetId, locale, alt: t.alt })
-        .onConflictDoUpdate({ target: [mediaAssetTranslations.assetId, mediaAssetTranslations.locale], set: { alt: t.alt } }),
-    remove: (locale) =>
-      db
-        .delete(mediaAssetTranslations)
-        .where(and(eq(mediaAssetTranslations.assetId, assetId), eq(mediaAssetTranslations.locale, locale))),
-  });
 
 async function currentHeadshotId(db: Database): Promise<string | null> {
   const [row] = await db
@@ -515,28 +386,21 @@ export interface NewHeadshot {
  * asset is deleted unless something else uses it; its file is returned for
  * removal after commit.
  */
-export async function setHeadshot(
-  db: Database,
-  image: NewHeadshot,
-  translations: HeadshotTextInput['translations'],
-  actor: Actor,
-): Promise<StoredObject[]> {
+export async function setHeadshot(db: Database, image: NewHeadshot, alt: string, actor: Actor): Promise<StoredObject[]> {
   const previous = await currentHeadshotId(db);
   const [asset] = await db
     .insert(mediaAssets)
-    .values({ storage: 'blob', ...image, createdBy: actor.userId, updatedBy: actor.userId })
+    .values({ storage: 'blob', ...image, alt, createdBy: actor.userId, updatedBy: actor.userId })
     .returning({ id: mediaAssets.id });
-  await syncHeadshotAlt(db, asset!.id, translations);
   await db.update(profile).set({ headshotAssetId: asset!.id, updatedBy: actor.userId }).where(eq(profile.id, PROFILE_ID));
   return deleteUnreferencedAssets(db, [previous]);
 }
 
 /** Updates the current photo's alt text. */
-export async function updateHeadshotText(db: Database, translations: HeadshotTextInput['translations'], actor: Actor) {
+export async function updateHeadshotText(db: Database, alt: string, actor: Actor) {
   const assetId = await currentHeadshotId(db);
   if (!assetId) throw new NotFoundError('The headshot');
-  await syncHeadshotAlt(db, assetId, translations);
-  await db.update(mediaAssets).set({ updatedBy: actor.userId }).where(eq(mediaAssets.id, assetId));
+  await db.update(mediaAssets).set({ alt, updatedBy: actor.userId }).where(eq(mediaAssets.id, assetId));
 }
 
 /** Removes the photo (the site then shows its placeholder). Returns the file to remove after commit. */

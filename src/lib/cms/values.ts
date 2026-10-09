@@ -14,7 +14,7 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   );
 }
 
-/** A location in a form value: `['translations', 'es', 'title']` ↔ the error key `translations.es.title`. */
+/** A location in a form value: `['items', 0, 'title']` ↔ the error key `items.0.title`. */
 export type Path = readonly (string | number)[];
 
 export const pathKey = (path: Path) => path.join('.');

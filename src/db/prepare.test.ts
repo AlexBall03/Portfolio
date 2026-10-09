@@ -10,7 +10,7 @@ import { content } from './seed/content';
 import { seedContent } from './seed/seed';
 import type { Database } from './types';
 
-const { contentBootstrap, experiences, projects, projectTranslations, siteSettings, technologies } = schema;
+const { contentBootstrap, experiences, projects, siteSettings, technologies } = schema;
 
 const open: PGlite[] = [];
 
@@ -30,7 +30,7 @@ async function snapshot(db: Database) {
     experiences: await total(experiences),
     technologies: await total(technologies),
     settings: await total(siteSettings),
-    names: (await db.select({ name: projectTranslations.name }).from(projectTranslations)).map((r) => r.name).sort(),
+    names: (await db.select({ name: projects.name }).from(projects)).map((r) => r.name).sort(),
     marker: await db.select({ source: contentBootstrap.source }).from(contentBootstrap),
   };
 }
@@ -63,7 +63,7 @@ describe('prepareDatabase', () => {
     const { db, applyMigrations } = blankDb();
     await prepareDatabase(db, applyMigrations);
 
-    await db.update(projectTranslations).set({ name: 'Edited in admin' }).where(eq(projectTranslations.locale, 'en'));
+    await db.update(projects).set({ name: 'Edited in admin' });
     await db.delete(projects).where(eq(projects.slug, 'portfolio'));
     await db.delete(experiences);
     const edited = await snapshot(db);

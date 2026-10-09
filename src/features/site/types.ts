@@ -1,5 +1,3 @@
-import type { Locale } from '@/i18n/config';
-
 export const PAGE_KEYS = ['home', 'about', 'projects', 'experience', 'resume', 'contact'] as const;
 export type PageKey = (typeof PAGE_KEYS)[number];
 
@@ -90,7 +88,7 @@ export const SECTIONS: Record<SectionKey, SectionDescriptor> = {
 
 export interface PageDescriptor {
   label: string;
-  /** Public path (English; Spanish adds the /es prefix). */
+  /** Public path. */
   path: string;
   sections: readonly SectionKey[];
 }
@@ -120,14 +118,10 @@ export interface SectionCopyValues {
   aside: string;
 }
 
-export interface SectionCopyEditorValues {
-  translations: Record<Locale, SectionCopyValues>;
-}
-
 export interface PageCopyValues {
   page: PageKey;
-  seo: { translations: Record<Locale, SeoValues> };
-  sections: Partial<Record<SectionKey, SectionCopyEditorValues>>;
+  seo: SeoValues;
+  sections: Partial<Record<SectionKey, SectionCopyValues>>;
 }
 
 /**

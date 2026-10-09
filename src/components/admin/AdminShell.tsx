@@ -5,7 +5,7 @@ import { ThemeSwitch } from '@/components/layout/Preferences';
 import { Icon } from '@/components/ui/Icon';
 import { ScrollFade } from '@/components/ui/ScrollFade';
 import { ADMIN_NAV, ADMIN_PATH } from '@/config/admin';
-import { getDictionary } from '@/i18n/get-dictionary';
+
 import { cn } from '@/lib/cn';
 import type { AdminProfile } from '@/server/auth/admin';
 import { AccountButton, SignOutButton } from './AccountActions';
@@ -13,8 +13,6 @@ import { AdminNav } from './AdminNav';
 import { AdminTopBar } from './AdminTopBar';
 import { adminIconButton, adminInset, type AdminPlacement, adminRow, stagger } from './styles';
 
-/** The admin is English-only, so the shared theme control uses the English labels. */
-const toggles = getDictionary('en').toggles;
 const NAV_COUNT = ADMIN_NAV.reduce((n, g) => n + g.items.length, 0);
 
 export function AdminIdentity({ brandMark }: { brandMark: string }) {
@@ -65,7 +63,7 @@ function Panel({ profile, placement }: { profile: AdminProfile; placement: Admin
               <span className="sr-only">(opens in a new tab)</span>
               <Icon name="arrowUpRight" className="text-fg-faint" />
             </a>
-            <ThemeSwitch t={toggles} />
+            <ThemeSwitch />
           </div>
         </div>
 

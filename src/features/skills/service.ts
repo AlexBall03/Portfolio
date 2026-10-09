@@ -1,10 +1,9 @@
 import 'server-only';
 import { getDb, withTransaction } from '@/db/client';
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
-import { translationCoverage, type TranslationCoverage } from '@/lib/cms/locale';
+
 import { FieldValidationError } from '@/lib/errors';
 import * as repo from './repository';
-import { skillCategoryTranslationInput, type SkillCategoriesInput, type TechnologiesInput } from './schema';
+import type { SkillCategoriesInput, TechnologiesInput } from './schema';
 import type { SkillCategoriesValues, TechnologyValues } from './types';
 
 /**
@@ -55,11 +54,3 @@ export async function saveTechnologies(data: TechnologiesInput, actor: { userId:
   return { items: await loadTechnologyValues() };
 }
 
-/** Translation coverage of every category, per non-default locale (dashboard). */
-export async function getSkillsTranslationCoverage(): Promise<Record<Exclude<Locale, 'en'>, TranslationCoverage>> {
-  const { stack, learning } = await loadSkillCategories();
-  const items = [...stack, ...learning].map((c) => c.translations);
-  return Object.fromEntries(
-    LOCALES.filter((l) => l !== DEFAULT_LOCALE).map((l) => [l, translationCoverage(skillCategoryTranslationInput, items, l)]),
-  ) as Record<Exclude<Locale, 'en'>, TranslationCoverage>;
-}

@@ -1,25 +1,9 @@
 import 'server-only';
-import { LOCALES, type Locale } from '@/i18n/config';
 
 /**
  * Repository write conventions for admin-managed content. Repositories supply
  * the table-specific statements; these helpers fix the rules.
  */
-
-/**
- * Writes one entity's translations: each locale present is upserted; each
- * locale absent (never the default, which validation requires) is deleted,
- * so reads fall back to English instead of showing a stale or copied value.
- */
-export async function syncTranslations<T>(
-  translations: Partial<Record<Locale, T>>,
-  ops: { upsert: (locale: Locale, t: T) => Promise<unknown>; remove: (locale: Locale) => Promise<unknown> },
-): Promise<void> {
-  for (const locale of LOCALES) {
-    const t = translations[locale];
-    await (t === undefined ? ops.remove(locale) : ops.upsert(locale, t));
-  }
-}
 
 /**
  * Makes an ordered list in the database match `items`: known ids are updated,

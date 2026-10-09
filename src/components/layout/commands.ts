@@ -1,5 +1,5 @@
 import type { IconName } from '@/components/ui/Icon';
-import { fill } from '@/i18n/paths';
+import { copy, fill } from '@/config/copy';
 import { PLATFORM_ICONS, type ChromeData } from './types';
 
 export const GROUP_ORDER = ['nav', 'actions', 'profiles'] as const;
@@ -25,7 +25,6 @@ export interface CommandHandlers {
   download: (href: string) => void;
   copy: (text: string) => void;
   toggleTheme: () => void;
-  toggleLocale: () => void;
 }
 
 /**
@@ -34,11 +33,11 @@ export interface CommandHandlers {
  * effects are injected so this stays pure data assembly.
  */
 export function buildCommands(
-  data: Pick<ChromeData, 'pages' | 'email' | 'resume' | 'socials'> & { dict: ChromeData['dict'] },
+  data: Pick<ChromeData, 'pages' | 'email' | 'resume' | 'socials'>,
   theme: 'dark' | 'light',
   handlers: CommandHandlers,
 ): Command[] {
-  const T = data.dict.palette;
+  const T = copy.palette;
   const resume = data.resume;
   const kw = T.keywords;
 
@@ -83,14 +82,6 @@ export function buildCommands(
       icon: theme === 'dark' ? 'sun' : 'moon',
       keywords: kw.theme,
       run: handlers.toggleTheme,
-    },
-    {
-      id: 'action-locale',
-      group: 'actions',
-      label: T.language,
-      icon: 'languages',
-      keywords: kw.language,
-      run: handlers.toggleLocale,
     },
   ];
 

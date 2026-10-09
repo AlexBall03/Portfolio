@@ -4,17 +4,17 @@ import { PAGES } from '@/config/navigation';
 import { clip, parseShareCard } from './card';
 
 describe('shareCardPath', () => {
-  it('names a card per page and locale', () => {
-    expect(shareCardPath('en', '/')).toBe('/og/en/home.png');
-    expect(shareCardPath('es', '/about')).toBe('/og/es/about.png');
-    expect(shareCardPath('en', '/projects/my-app')).toBe('/og/en/projects/my-app.png');
+  it('names a card per page', () => {
+    expect(shareCardPath('/')).toBe('/og/home.png');
+    expect(shareCardPath('/about')).toBe('/og/about.png');
+    expect(shareCardPath('/projects/my-app')).toBe('/og/projects/my-app.png');
   });
 });
 
 describe('parseShareCard', () => {
   it('round-trips every top-level page and a project', () => {
     for (const { key, path } of PAGES) {
-      const segments = shareCardPath('en', path).split('/').slice(3);
+      const segments = shareCardPath(path).split('/').slice(2);
       expect(parseShareCard(segments)).toEqual({ kind: 'page', page: key });
     }
     expect(parseShareCard(['projects', 'my-app.png'])).toEqual({ kind: 'project', slug: 'my-app' });

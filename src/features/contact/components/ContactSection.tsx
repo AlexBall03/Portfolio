@@ -6,17 +6,17 @@ import { Section } from '@/components/ui/Section';
 import { Surface } from '@/components/ui/Surface';
 import type { SocialLink } from '@/features/profile/types';
 import type { SectionContent } from '@/features/site/types';
-import type { Dictionary } from '@/i18n/get-dictionary';
+import { copy } from '@/config/copy';
 import { ContactForm } from './ContactForm';
 
 interface ContactSectionProps {
   section: SectionContent;
   email: string;
   socials: SocialLink[];
-  t: Dictionary['contact'];
 }
 
-export function ContactSection({ section, email, socials, t }: ContactSectionProps) {
+export function ContactSection({ section, email, socials }: ContactSectionProps) {
+  const t = copy.contact;
   const channels: { key: string; icon: IconName; label: string; value: string; href: string }[] = [
     { key: 'email', icon: 'mail', label: t.emailLabel, value: email, href: `mailto:${email}` },
     ...socials.map((s) => ({
@@ -68,7 +68,7 @@ export function ContactSection({ section, email, socials, t }: ContactSectionPro
 
         <Reveal delay={100}>
           <Surface variant="glass" radius="xl" className="p-6 sm:p-9">
-            <ContactForm email={email} t={t} />
+            <ContactForm email={email} />
           </Surface>
         </Reveal>
       </div>

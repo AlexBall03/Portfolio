@@ -11,8 +11,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { LOCALES } from '@/i18n/config';
-import { useSwitchLocale } from '@/lib/client/locale';
+import { copy } from '@/config/copy';
 import { startNavigationProgress } from '@/lib/client/navigation-progress';
 import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { useTheme } from '@/lib/client/theme';
@@ -74,8 +73,7 @@ export function CommandPalette({ data, open, onOpen, onClose }: CommandPalettePr
 function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void }) {
   const router = useRouter();
   const [theme, setTheme] = useTheme();
-  const switchLocale = useSwitchLocale();
-  const T = data.dict.palette;
+  const T = copy.palette;
 
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -95,10 +93,6 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
       openExternal: (url) => window.open(url, '_blank', 'noopener,noreferrer'),
       download,
       toggleTheme: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
-      toggleLocale: () => {
-        const next = LOCALES[(LOCALES.indexOf(data.locale) + 1) % LOCALES.length];
-        if (next) switchLocale(next);
-      },
       copy: (text) => {
         navigator.clipboard.writeText(text).then(
           () => {
@@ -110,7 +104,7 @@ function PalettePanel({ data, onClose }: { data: ChromeData; onClose: () => void
         );
       },
     }),
-    [router, theme, setTheme, switchLocale, data.locale, T],
+    [router, theme, setTheme, T],
   );
 
   const commands = useMemo(() => buildCommands(data, theme, handlers), [data, theme, handlers]);

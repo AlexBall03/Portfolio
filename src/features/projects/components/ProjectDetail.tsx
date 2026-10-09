@@ -9,15 +9,13 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Status } from '@/components/ui/Status';
 import { Surface } from '@/components/ui/Surface';
 import { TagList } from '@/components/ui/Tag';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { localizedPath } from '@/i18n/paths';
 import type { Project, ProjectCaseStudy } from '../types';
 import { CaseStudyBlock, CaseStudyContent, lightboxLabels, sectionAnchor } from './CaseStudySection';
 import { GalleryLightbox } from './GalleryLightbox';
 import { MilestoneTimeline } from './MilestoneTimeline';
 import { ProjectCard } from './ProjectCard';
 import { ProjectMedia } from './ProjectMedia';
+import { copy } from '@/config/copy';
 
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
@@ -31,7 +29,9 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** Glass metadata panel: renders only the rows the project has data for. */
-function ProjectMeta({ project: p, showRepositories, t }: { project: Project; showRepositories: boolean; t: Dictionary['projects'] }) {
+const t = copy.projects;
+
+function ProjectMeta({ project: p, showRepositories }: { project: Project; showRepositories: boolean }) {
   const linkClass =
     'inline-flex items-center gap-2 text-body-sm text-fg-muted transition-colors hover:text-fg [&_svg]:size-4 [&_svg]:text-brand-fg';
   return (
@@ -91,7 +91,7 @@ interface TocEntry {
 }
 
 /** "On this page": anchors to the numbered blocks, shown once there are enough to need it. */
-function OnThisPage({ entries, t }: { entries: TocEntry[]; t: Dictionary['projects'] }) {
+function OnThisPage({ entries }: { entries: TocEntry[] }) {
   return (
     <nav aria-labelledby="project-toc" className="hidden flex-col gap-3 px-1 lg:flex">
       <h2 id="project-toc" className="font-mono text-micro tracking-[0.14em] text-fg-faint uppercase">
@@ -120,8 +120,6 @@ interface ProjectDetailProps {
   project: ProjectCaseStudy;
   /** The related projects to show: already resolved against published projects, in order. */
   related: Project[];
-  locale: Locale;
-  t: Dictionary['projects'];
   /**
    * The project's GitHub analytics, composed by the page (a separate source
    * from the curated milestones). It lists the verified public repositories
@@ -136,7 +134,7 @@ interface ProjectDetailProps {
  * Every block is optional except the overview, so a project with no case
  * study renders as it did before Phase 5A.
  */
-export function ProjectDetail({ project: p, related, locale, t, github }: ProjectDetailProps) {
+export function ProjectDetail({ project: p, related, github }: ProjectDetailProps) {
   const legacyGallery = p.gallery.length > 0 && !p.sections.some((s) => s.kind === 'gallery');
   const blocks: TocEntry[] = [
     { anchor: 'project-overview', label: t.overview },
@@ -152,7 +150,7 @@ export function ProjectDetail({ project: p, related, locale, t, github }: Projec
     <article aria-labelledby="project-title" className="pt-page-top">
       <Container>
         <Reveal className="flex flex-col gap-6">
-          <Link href={localizedPath(locale, '/projects')} className={buttonStyles({ variant: 'quiet', className: 'self-start' })}>
+          <Link href={'/projects'} className={buttonStyles({ variant: 'quiet', className: 'self-start' })}>
             <Icon name="arrowLeft" /> {t.backToProjects}
           </Link>
           <Eyebrow>{t.project}</Eyebrow>
@@ -189,39 +187,39 @@ export function ProjectDetail({ project: p, related, locale, t, github }: Projec
             </Reveal>
 
             <Reveal>
-              <CaseStudyBlock anchor="project-overview" index={1} heading={t.overview} t={t}>
+              <CaseStudyBlock anchor="project-overview" index={1} heading={t.overview}>
                 <Prose paragraphs={[p.summary, ...p.body]} lead />
               </CaseStudyBlock>
             </Reveal>
 
             {p.sections.map((s) => (
               <Reveal key={s.id}>
-                <CaseStudyBlock anchor={sectionAnchor(s.id)} index={indexOf(sectionAnchor(s.id))} heading={s.heading} hidden={s.hidden} t={t}>
-                  <CaseStudyContent section={s} title={p.name} t={t} />
+                <CaseStudyBlock anchor={sectionAnchor(s.id)} index={indexOf(sectionAnchor(s.id))} heading={s.heading} hidden={s.hidden}>
+                  <CaseStudyContent section={s} title={p.name} />
                 </CaseStudyBlock>
               </Reveal>
             ))}
 
             {legacyGallery && (
               <Reveal>
-                <CaseStudyBlock anchor="project-gallery" index={indexOf('project-gallery')} heading={t.gallery} t={t}>
-                  <GalleryLightbox images={p.gallery} labels={lightboxLabels(t)} />
+                <CaseStudyBlock anchor="project-gallery" index={indexOf('project-gallery')} heading={t.gallery}>
+                  <GalleryLightbox images={p.gallery} labels={lightboxLabels()} />
                 </CaseStudyBlock>
               </Reveal>
             )}
 
             {p.milestones.length > 0 && (
               <Reveal>
-                <CaseStudyBlock anchor="project-timeline" index={indexOf('project-timeline')} heading={t.timeline} t={t}>
+                <CaseStudyBlock anchor="project-timeline" index={indexOf('project-timeline')} heading={t.timeline}>
                   <p className="-mt-3 max-w-[60ch] text-body text-fg-muted">{t.timelineLead}</p>
-                  <MilestoneTimeline milestones={p.milestones} locale={locale} t={t} />
+                  <MilestoneTimeline milestones={p.milestones} />
                 </CaseStudyBlock>
               </Reveal>
             )}
 
             {github && (
               <Reveal>
-                <CaseStudyBlock anchor="project-github" index={indexOf('project-github')} heading={github.heading} hidden={github.hidden} t={t}>
+                <CaseStudyBlock anchor="project-github" index={indexOf('project-github')} heading={github.heading} hidden={github.hidden}>
                   <p className="-mt-3 max-w-[60ch] text-body text-fg-muted">{github.lead}</p>
                   {github.content}
                 </CaseStudyBlock>
@@ -231,8 +229,8 @@ export function ProjectDetail({ project: p, related, locale, t, github }: Projec
 
           <Reveal delay={100} className="lg:sticky lg:top-28 lg:self-start">
             <div className="flex flex-col gap-8">
-              <ProjectMeta project={p} showRepositories={!github} t={t} />
-              {toc.length > 2 && <OnThisPage entries={toc} t={t} />}
+              <ProjectMeta project={p} showRepositories={!github} />
+              {toc.length > 2 && <OnThisPage entries={toc} />}
             </div>
           </Reveal>
         </div>
@@ -244,7 +242,7 @@ export function ProjectDetail({ project: p, related, locale, t, github }: Projec
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {related.map((r, i) => (
-                <ProjectCard key={r.id} project={r} index={i} locale={locale} t={t} layout="compact" headingLevel="h3" />
+                <ProjectCard key={r.id} project={r} index={i} layout="compact" headingLevel="h3" />
               ))}
             </div>
           </section>

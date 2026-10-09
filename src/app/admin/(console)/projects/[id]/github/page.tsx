@@ -17,7 +17,7 @@ export default async function ProjectGithubPage({ params }: { params: Promise<{ 
   return (
     <>
       <ProjectPageHeader
-        project={{ id, name: project.translations.en.name, slug: project.slug, status: project.status }}
+        project={{ id, name: project.name, slug: project.slug, status: project.status }}
         current="github"
       />
       <RepositoriesEditor projectId={id} initial={repositories} />

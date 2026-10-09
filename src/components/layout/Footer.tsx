@@ -1,10 +1,11 @@
 import { Container } from '@/components/ui/Container';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { ADMIN_PATH } from '@/config/admin';
-import { LOCALE_TAGS } from '@/i18n/config';
+import { copy } from '@/config/copy';
+import { INTL_LOCALE } from '@/config/site';
 import { BrandMark } from './BrandMark';
 import { FooterNav } from './FooterNav';
-import { LocaleSwitch, ThemeSwitch } from './Preferences';
+import { ThemeSwitch } from './Preferences';
 import { PLATFORM_ICONS, type ChromeData } from './types';
 
 /** Build timestamp, inlined by next.config.ts: when the live site was deployed. */
@@ -19,10 +20,10 @@ interface FooterProps {
 }
 
 export function Footer({ data, ownerName, statement }: FooterProps) {
-  const T = data.dict.footer;
+  const T = copy.footer;
   const built = BUILD_TIME ? new Date(BUILD_TIME) : null;
   const updated = built
-    ? new Intl.DateTimeFormat(LOCALE_TAGS[data.locale].intl, { dateStyle: 'long', timeZone: 'UTC' }).format(built)
+    ? new Intl.DateTimeFormat(INTL_LOCALE, { dateStyle: 'long', timeZone: 'UTC' }).format(built)
     : null;
 
   const links: { key: string; label: string; href: string; icon: IconName }[] = [
@@ -64,10 +65,8 @@ export function Footer({ data, ownerName, statement }: FooterProps) {
             <span className={COLUMN_TITLE}>{T.preferences}</span>
             {/* Label | control rows: labels align with the other columns' text, controls share a right edge. */}
             <div className="grid w-fit grid-cols-[auto_auto] items-center gap-x-8 gap-y-3 text-body-sm text-fg-muted">
-              <span aria-hidden="true">{data.dict.toggles.theme}</span>
-              <ThemeSwitch t={data.dict.toggles} className="justify-self-end" />
-              <span aria-hidden="true">{data.dict.toggles.language}</span>
-              <LocaleSwitch locale={data.locale} t={data.dict.toggles} className="justify-self-end" />
+              <span aria-hidden="true">{copy.toggles.theme}</span>
+              <ThemeSwitch className="justify-self-end" />
             </div>
           </div>
         </div>

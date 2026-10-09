@@ -1,17 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { type CSSProperties, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Container } from '@/components/ui/Container';
 import { Icon } from '@/components/ui/Icon';
 import { ScrollFade } from '@/components/ui/ScrollFade';
+import { copy } from '@/config/copy';
 import { pageForPath } from '@/config/navigation';
 import { cn } from '@/lib/cn';
-import { useLocalelessPath } from '@/lib/client/locale';
 import { lockScroll, unlockScroll } from '@/lib/client/scroll-lock';
 import { BrandMark } from './BrandMark';
 import { CommandPalette } from './CommandPalette';
-import { controlStyles, LocaleSwitch, ThemeSwitch, ThemeToggle } from './Preferences';
+import { controlStyles, ThemeSwitch, ThemeToggle } from './Preferences';
 import { PLATFORM_ICONS, type ChromeData } from './types';
 
 const noop = () => () => {};
@@ -60,8 +61,8 @@ export function SiteChrome({ data }: { data: ChromeData }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const scrolled = useScrolled();
   const shortcut = useShortcutLabel();
-  const current = pageForPath(useLocalelessPath());
-  const T = data.dict;
+  const current = pageForPath(usePathname());
+  const T = copy;
 
   const openPalette = useCallback(() => {
     setMenuOpen(false);
@@ -162,10 +163,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
                 </button>
               </div>
               <div className="hidden items-center gap-2 lg:flex">
-                <ThemeToggle t={T.toggles} />
-                <div className="hidden xl:block">
-                  <LocaleSwitch locale={data.locale} t={T.toggles} />
-                </div>
+                <ThemeToggle />
               </div>
               <div className="lg:hidden">
                 <button
@@ -282,10 +280,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
             </a>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <ThemeSwitch t={T.toggles} />
-              <LocaleSwitch locale={data.locale} t={T.toggles} />
-            </div>
+            <ThemeSwitch />
             {data.socials.length > 0 && (
               <ul aria-label={T.footer.connect} className="-mr-2 flex items-center">
                 {data.socials.map((s) => (

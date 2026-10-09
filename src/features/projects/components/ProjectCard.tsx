@@ -4,9 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Reveal } from '@/components/ui/Reveal';
 import { Status } from '@/components/ui/Status';
 import { TagList } from '@/components/ui/Tag';
-import type { Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { localizedPath } from '@/i18n/paths';
+import { copy } from '@/config/copy';
 import { cn } from '@/lib/cn';
 import type { Project } from '../types';
 import { ProjectMedia } from './ProjectMedia';
@@ -20,8 +18,7 @@ const STRETCHED_LINK =
 interface ProjectCardProps {
   project: Project;
   index: number;
-  locale: Locale;
-  t: Dictionary['projects'];
+
   /**
    * `feature`: full-width glass split; `compact`: media over content in a grid
    * cell; `tile`: a lighter preview (home), the whole card linking to the case study.
@@ -37,18 +34,18 @@ interface ProjectCardProps {
   showFeatured?: boolean;
 }
 
+const t = copy.projects;
+
 export function ProjectCard({
   project: p,
   index,
-  locale,
-  t,
   layout = 'feature',
   reverse = false,
   headingLevel: Heading = 'h2',
   cta,
   showFeatured = false,
 }: ProjectCardProps) {
-  const href = localizedPath(locale, `/projects/${p.slug}`);
+  const href = `/projects/${p.slug}`;
   const number = String(index + 1).padStart(2, '0');
   const feature = layout === 'feature';
   const tile = layout === 'tile';

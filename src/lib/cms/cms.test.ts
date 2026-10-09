@@ -1,90 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { profileTranslationInput, roleTranslationInput } from '@/features/profile/schema';
-import { localized } from '@/lib/validation';
-import {
-  blankLocales,
-  errorsByLocale,
-  isBlankTranslation,
-  localeStatuses,
-  translationCoverage,
-  translationStatus,
-  worstStatus,
-} from './locale';
 import { clearErrorsAt, deepEqual, getIn, setIn } from './values';
 
 vi.mock('next/navigation', () => ({ unstable_rethrow: () => {} }));
 const { fieldErrorsFrom, runMutation } = await import('./mutation');
-const { reconcileList, syncTranslations } = await import('./write');
+const { reconcileList } = await import('./write');
 
 afterEach(() => vi.restoreAllMocks());
-
-describe('translations: absent or complete, never copied', () => {
-  const schema = localized(roleTranslationInput);
-
-  it('treats a fully blank non-default locale as missing (English fallback)', () => {
-    const parsed = schema.parse({ en: { label: 'Engineer' }, es: { label: '  ' } });
-    expect(parsed).toEqual({ en: { label: 'Engineer' } });
-    expect('es' in parsed && parsed.es !== undefined).toBe(false);
-  });
-
-  it('validates a partly filled translation in full', () => {
-    const profile = localized(profileTranslationInput);
-    const en = {
-      title: 'T',
-      statement: 'S',
-      availabilityText: 'A',
-      locationLabel: 'L',
-      about: ['P'],
-      heroFocus: 'F',
-      heroStackLine: 'H',
-      heroChips: [],
-    };
-    const result = profile.safeParse({ en, es: { ...en, title: 'Título', statement: '', about: [''] } });
-    expect(result.success).toBe(false);
-    const errors = fieldErrorsFrom(result.error!);
-    expect(errors['es.statement']).toBe('Required');
-    expect(errors['es.about.0']).toBe('Required');
-    expect(errors['es.title']).toBeUndefined();
-  });
-
-  it('always requires the default locale', () => {
-    const result = schema.safeParse({ en: { label: '' }, es: { label: 'Ingeniero' } });
-    expect(fieldErrorsFrom(result.error!)).toEqual({ 'en.label': 'Required' });
-  });
-
-  it('classifies translation status by the save schema', () => {
-    expect(isBlankTranslation({ a: '', b: [' '], c: { d: null } })).toBe(true);
-    expect(isBlankTranslation({ a: '', flag: false })).toBe(false);
-    expect(translationStatus(roleTranslationInput, { label: '' })).toBe('missing');
-    expect(translationStatus(roleTranslationInput, undefined)).toBe('missing');
-    expect(translationStatus(roleTranslationInput, { label: 'x'.repeat(81) })).toBe('partial');
-    expect(translationStatus(roleTranslationInput, { label: 'Ingeniero' })).toBe('complete');
-  });
-
-  it('summarizes lists for tabs and the dashboard', () => {
-    const items = [
-      { en: { label: 'A' }, es: { label: 'A' } },
-      { en: { label: 'B' }, es: { label: '' } },
-    ];
-    expect(localeStatuses(roleTranslationInput, items)).toEqual({ en: 'complete', es: 'missing' });
-    expect(localeStatuses(roleTranslationInput, [])).toEqual({ en: 'complete', es: 'complete' });
-    expect(worstStatus(['complete', 'missing', 'partial'])).toBe('partial');
-    expect(translationCoverage(roleTranslationInput, items, 'es')).toEqual({ complete: 1, partial: 0, missing: 1 });
-    expect(blankLocales(() => ({ label: '' }))).toEqual({ en: { label: '' }, es: { label: '' } });
-  });
-
-  it('counts server errors per locale tab', () => {
-    expect(
-      errorsByLocale({
-        fullName: 'Required',
-        'translations.es.title': 'Required',
-        'items.2.translations.es.label': 'Required',
-        'items.0.translations.en.label': 'Required',
-      }),
-    ).toEqual({ en: 1, es: 2 });
-  });
-});
 
 describe('form values', () => {
   it('compares structurally for dirty tracking', () => {
@@ -95,10 +17,10 @@ describe('form values', () => {
   });
 
   it('reads and immutably writes by path', () => {
-    const value = { items: [{ translations: { es: { label: '' } } }], other: { x: 1 } };
-    const next = setIn(value, ['items', 0, 'translations', 'es', 'label'], 'Hola');
-    expect(getIn(next, ['items', 0, 'translations', 'es', 'label'])).toBe('Hola');
-    expect(getIn(value, ['items', 0, 'translations', 'es', 'label'])).toBe('');
+    const value = { items: [{ details: { label: '' } }], other: { x: 1 } };
+    const next = setIn(value, ['items', 0, 'details', 'label'], 'Hello');
+    expect(getIn(next, ['items', 0, 'details', 'label'])).toBe('Hello');
+    expect(getIn(value, ['items', 0, 'details', 'label'])).toBe('');
     expect(next.other).toBe(value.other);
     expect(Array.isArray(next.items)).toBe(true);
   });
@@ -119,6 +41,12 @@ describe('runMutation', () => {
     expect(write).not.toHaveBeenCalled();
   });
 
+  it('keys nested errors by their dotted path', () => {
+    const list = z.object({ items: z.array(z.object({ label: z.string().min(1, 'Required') })) });
+    const result = list.safeParse({ items: [{ label: 'a' }, { label: '' }] });
+    expect(fieldErrorsFrom(result.error!)).toEqual({ 'items.1.label': 'Required' });
+  });
+
   it('returns what the write returned', async () => {
     const result = await runMutation(schema, { name: 'x', extra: 1 }, async (data) => ({ saved: data }));
     expect(result).toMatchObject({ ok: true, data: { saved: { name: 'x' } } });
@@ -136,15 +64,6 @@ describe('runMutation', () => {
 });
 
 describe('repository write conventions', () => {
-  it('upserts present locales and deletes absent ones', async () => {
-    const calls: string[] = [];
-    await syncTranslations(
-      { en: { label: 'A' } },
-      { upsert: async (l) => calls.push(`upsert ${l}`), remove: async (l) => calls.push(`remove ${l}`) },
-    );
-    expect(calls).toEqual(['upsert en', 'remove es']);
-  });
-
   it('reconciles an ordered list: update known, insert new or unknown, delete the rest', async () => {
     const calls: string[] = [];
     let next = 0;

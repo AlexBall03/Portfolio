@@ -4,32 +4,27 @@ import { getHighlights } from '@/features/profile/queries';
 import { Resume } from '@/features/resume/components/Resume';
 import { getPublishedResume } from '@/features/resume/queries';
 import { getSection } from '@/features/site/queries';
-import { getDictionary } from '@/i18n/get-dictionary';
-import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
 import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
-export async function generateMetadata({ params }: LocaleParams) {
-  return topLevelPageMetadata('resume', await resolveLocale(params), '/resume');
+export async function generateMetadata() {
+  return topLevelPageMetadata('resume', '/resume');
 }
 
-export default async function ResumePage({ params }: LocaleParams) {
-  const locale = await resolveLocale(params);
-  const dict = getDictionary(locale);
+export default async function ResumePage() {
   const [resume, highlights, section, content] = await Promise.all([
     getPublishedResume(),
-    getHighlights(locale, 'resume'),
-    getSection('resume', locale),
-    resolvePageSeo('resume', locale),
+    getHighlights('resume'),
+    getSection('resume'),
+    resolvePageSeo('resume'),
   ]);
 
   return (
-    <PageShell page="resume" locale={locale}>
-      <Resume section={section} resume={resume} highlights={highlights} t={dict.resume} />
+    <PageShell page="resume">
+      <Resume section={section} resume={resume} highlights={highlights} />
       <JsonLd
         data={buildPageNode({
           type: 'WebPage',
-          locale,
           path: '/resume',
           name: content.title,
           description: content.description,

@@ -2,8 +2,8 @@
 
 import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import { useEffect, useRef, useState } from 'react';
+import { copy } from '@/config/copy';
 import { cn } from '@/lib/cn';
-import type { Dictionary } from '@/i18n/get-dictionary';
 
 /** A link annotation, positioned in percentages of the page so it scales with it. */
 interface PageLink {
@@ -27,7 +27,8 @@ const MAX_PIXEL_RATIO = 3;
  * does fetch the full file, which is fine: `src` is the published resume,
  * public in full through Download. Historical versions are never reachable here.
  */
-export function ResumeViewer({ src, t }: { src: string; t: Dictionary['resume'] }) {
+export function ResumeViewer({ src }: { src: string }) {
+  const t = copy.resume;
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [near, setNear] = useState(false);

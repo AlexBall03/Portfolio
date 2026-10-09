@@ -14,7 +14,7 @@ export interface Editor<V> {
   values: V;
   /** What the server last stored (e.g. the saved status while edits are pending). */
   baseline: V;
-  /** Server-reported errors, keyed by path (`translations.es.title`). */
+  /** Server-reported errors, keyed by path (`items.2.title`). */
   errors: FieldErrors;
   dirty: boolean;
   pending: boolean;

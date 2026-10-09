@@ -13,7 +13,7 @@ const link = (href: string, extra: Partial<{ target: string; download: boolean }
 describe('isTrackableClick', () => {
   it('tracks a plain click to another internal page', () => {
     expect(isTrackableClick(click, link('https://alexball.dev/projects'), here)).toBe(true);
-    expect(isTrackableClick(click, link('/es/about'), here)).toBe(true);
+    expect(isTrackableClick(click, link('/experience'), here)).toBe(true);
   });
 
   it('ignores clicks that do not navigate this tab to another page', () => {

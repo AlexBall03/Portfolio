@@ -1,8 +1,8 @@
 import type { IconName } from '@/components/ui/Icon';
 
 /**
- * Admin route structure (code-owned, English-only). The admin lives outside
- * the localized site: no locale prefix, its own root layout.
+ * Admin route structure (code-owned). The admin lives outside the public
+ * site, with its own root layout.
  */
 export const ADMIN_PATH = '/admin';
 export const ADMIN_SIGN_IN_PATH = '/admin/sign-in';

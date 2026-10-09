@@ -1,8 +1,4 @@
 import { integer, pgEnum, text, timestamp } from 'drizzle-orm/pg-core';
-import { LOCALES } from '../../i18n/config';
-
-/** Supported content locales. Adding one is an `ALTER TYPE ... ADD VALUE` migration. */
-export const localeEnum = pgEnum('locale', LOCALES);
 
 /**
  * Publication lifecycle for managed content. Public queries only ever return

@@ -25,8 +25,7 @@ export default async function PageContentPage({ params }: { params: Promise<{ pa
         title={label}
         lead={
           <>
-            Copy for <code className="font-mono text-label">{path}</code> (Spanish:{' '}
-            <code className="font-mono text-label">/es{path === '/' ? '' : path}</code>).{' '}
+            Copy for <code className="font-mono text-label">{path}</code>.{' '}
             <Link href={ADMIN_CONTENT_PATH} className="text-brand-fg underline-offset-4 hover:underline">
               All pages
             </Link>

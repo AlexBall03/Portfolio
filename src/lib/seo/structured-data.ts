@@ -1,10 +1,8 @@
-import { absoluteMediaUrl, absoluteUrl, PERSON_ID, SHARE_CARD_SIZE, shareCardPath, WEBSITE_ID } from '@/config/site';
+import { absoluteMediaUrl, absoluteUrl, PERSON_ID, SHARE_CARD_SIZE, shareCardPath, SITE_LANG, WEBSITE_ID } from '@/config/site';
 import type { Experience } from '@/features/experience/types';
 import type { Profile, SocialLink } from '@/features/profile/types';
 import type { Project } from '@/features/projects/types';
 import type { SkillsOverview } from '@/features/skills/types';
-import { LOCALES, type Locale } from '@/i18n/config';
-import { localizedPath } from '@/i18n/paths';
 
 /**
  * Schema.org JSON-LD builders. Pure functions over domain types, so the graph
@@ -67,7 +65,7 @@ export function buildSiteGraph({ profile, socials, experiences, skills }: SiteGr
     name: profile.fullName,
     alternateName: profile.shortName,
     description: profile.statement,
-    inLanguage: [...LOCALES],
+    inLanguage: SITE_LANG,
     creator: { '@id': PERSON_ID },
     author: { '@id': PERSON_ID },
     publisher: { '@id': PERSON_ID },
@@ -80,7 +78,6 @@ export type PageType = 'WebPage' | 'ProfilePage' | 'CollectionPage' | 'ContactPa
 
 interface PageNodeInput {
   type: PageType;
-  locale: Locale;
   path: string;
   name: string;
   description?: string | null;
@@ -88,8 +85,8 @@ interface PageNodeInput {
   primaryImage?: boolean;
 }
 
-export function buildPageNode({ type, locale, path, name, description, projects, primaryImage }: PageNodeInput): Json {
-  const url = absoluteUrl(localizedPath(locale, path));
+export function buildPageNode({ type, path, name, description, projects, primaryImage }: PageNodeInput): Json {
+  const url = absoluteUrl(path);
   return compact({
     '@context': CONTEXT,
     '@type': type,
@@ -97,11 +94,11 @@ export function buildPageNode({ type, locale, path, name, description, projects,
     url,
     name,
     description,
-    inLanguage: locale,
+    inLanguage: SITE_LANG,
     isPartOf: { '@id': WEBSITE_ID },
     ...(type === 'ProfilePage' ? { mainEntity: { '@id': PERSON_ID } } : { about: { '@id': PERSON_ID } }),
     primaryImageOfPage: primaryImage
-      ? { '@type': 'ImageObject', url: absoluteUrl(shareCardPath(locale, path)), ...SHARE_CARD_SIZE }
+      ? { '@type': 'ImageObject', url: absoluteUrl(shareCardPath(path)), ...SHARE_CARD_SIZE }
       : undefined,
     ...(projects?.length
       ? {
@@ -111,7 +108,7 @@ export function buildPageNode({ type, locale, path, name, description, projects,
             itemListElement: projects.map((p, i) => ({
               '@type': 'ListItem',
               position: i + 1,
-              item: buildProject(p, locale),
+              item: buildProject(p),
             })),
           },
         }
@@ -119,8 +116,8 @@ export function buildPageNode({ type, locale, path, name, description, projects,
   });
 }
 
-export function buildProject(p: Project, locale: Locale): Json {
-  const url = absoluteUrl(localizedPath(locale, `/projects/${p.slug}`));
+export function buildProject(p: Project): Json {
+  const url = absoluteUrl(`/projects/${p.slug}`);
   const primary = p.repositories.find((r) => r.isPrimary) ?? p.repositories[0];
   return compact({
     '@type': 'SoftwareSourceCode',
@@ -128,7 +125,7 @@ export function buildProject(p: Project, locale: Locale): Json {
     name: p.name,
     description: p.summary,
     url,
-    inLanguage: locale,
+    inLanguage: SITE_LANG,
     image: p.cover ? absoluteMediaUrl(p.cover.src) : undefined,
     codeRepository: p.links.source ?? primary?.url,
     programmingLanguage: p.technologies.map((t) => t.name),

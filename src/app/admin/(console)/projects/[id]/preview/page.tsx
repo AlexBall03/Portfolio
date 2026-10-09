@@ -4,41 +4,35 @@ import { notFound } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { adminProjectPath } from '@/config/admin';
+import { copy } from '@/config/copy';
 import { ProjectStatusPill } from '@/features/projects/components/admin/ProjectStatus';
 import { ProjectGithubSection } from '@/features/github/components/ProjectGithubSection';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
 import { pickRelated } from '@/features/projects/case-study';
 import { loadProject, loadProjectPreview, loadPublishedProjects } from '@/features/projects/service';
 import { uuidParam } from '@/features/projects/upload';
-import { DEFAULT_LOCALE, isLocale, LOCALE_TAGS, LOCALES } from '@/i18n/config';
-import { getDictionary } from '@/i18n/get-dictionary';
-import { cn } from '@/lib/cn';
 import { requireAdmin } from '@/server/auth/admin';
 
 export const metadata: Metadata = { title: 'Project preview' };
 
 interface PreviewProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ locale?: string }>;
 }
 
 /**
  * The project exactly as its public page renders it (same component, same
  * read model), whatever its status. Only the admin can reach it.
  */
-export default async function ProjectPreviewPage({ params, searchParams }: PreviewProps) {
+export default async function ProjectPreviewPage({ params }: PreviewProps) {
   await requireAdmin();
   const { id } = await params;
-  const requested = (await searchParams).locale;
-  const locale = isLocale(requested) ? requested : DEFAULT_LOCALE;
   const valid = uuidParam.safeParse(id).success;
   const [values, project, published] = valid
-    ? await Promise.all([loadProject(id), loadProjectPreview(id, locale), loadPublishedProjects(locale)])
+    ? await Promise.all([loadProject(id), loadProjectPreview(id), loadPublishedProjects()])
     : [null, null, []];
   if (!values || !project) notFound();
   const githubHidden = project.repositories.length > 0 && !project.githubAnalytics;
   const hiddenCount = [...project.sections, ...project.milestones].filter((x) => x.hidden).length + (githubHidden ? 1 : 0);
-  const dict = getDictionary(locale);
 
   return (
     <>
@@ -48,40 +42,21 @@ export default async function ProjectPreviewPage({ params, searchParams }: Previ
           {values.status === 'published' ? 'Preview of the live project page.' : 'Preview · not on the public site.'}
           {hiddenCount > 0 && ` ${hiddenCount} hidden ${hiddenCount === 1 ? 'item is' : 'items are'} shown, marked Hidden.`}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <nav aria-label="Preview language" className="flex gap-1">
-            {LOCALES.map((l) => (
-              <Link
-                key={l}
-                href={`${adminProjectPath(id, 'preview')}?locale=${l}`}
-                aria-current={l === locale ? 'page' : undefined}
-                className={cn(
-                  'inline-flex h-8 items-center rounded-full border px-3 text-body-sm transition-colors',
-                  l === locale ? 'border-brand/40 bg-brand-soft text-brand-fg' : 'border-line text-fg-muted hover:text-fg',
-                )}
-              >
-                {LOCALE_TAGS[l].label}
-              </Link>
-            ))}
-          </nav>
-          <Link href={adminProjectPath(id)} className={buttonStyles({ variant: 'secondary', size: 'sm' })}>
-            <Icon name="arrowLeft" /> Back to editor
-          </Link>
-        </div>
+        <Link href={adminProjectPath(id)} className={buttonStyles({ variant: 'secondary', size: 'sm' })}>
+          <Icon name="arrowLeft" /> Back to editor
+        </Link>
       </div>
       <div className="overflow-hidden rounded-xl border border-line pb-14">
         <ProjectDetail
           project={project}
           related={pickRelated(project.id, project.relatedIds, published)}
-          locale={locale}
-          t={dict.projects}
           github={
             project.repositories.length > 0
               ? {
-                  heading: dict.projectGithub.heading,
-                  lead: dict.projectGithub.lead,
+                  heading: copy.projectGithub.heading,
+                  lead: copy.projectGithub.lead,
                   hidden: githubHidden,
-                  content: <ProjectGithubSection repositories={project.repositories} locale={locale} t={dict.projectGithub} />,
+                  content: <ProjectGithubSection repositories={project.repositories} />,
                 }
               : null
           }

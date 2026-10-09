@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { profile, profileRoles, profileTranslations, siteSettings } from '@/db/schema';
+import { profile, profileRoles, siteSettings } from '@/db/schema';
 import { content } from '@/db/seed/content';
 import { seedContent } from '@/db/seed/seed';
 import type { Database } from '@/db/types';
@@ -77,7 +77,7 @@ describe('authorization', () => {
       await expect(call()).rejects.toThrow('404');
     }
     expect(await db.select().from(siteSettings)).toEqual(before);
-    expect((await listProfileRoles(db, 'en')).length).toBeGreaterThan(0);
+    expect((await listProfileRoles(db)).length).toBeGreaterThan(0);
     expect(tags).toEqual([]);
   });
 });
@@ -86,59 +86,29 @@ describe('profile details', () => {
   it('reports invalid input by path and writes nothing', async () => {
     const values = await detailsWith((v) => {
       v.email = 'not-an-email';
-      v.translations.en.title = '';
+      v.title = '';
       v.addressCountry = 'USA';
     });
     const result = await profileActions.saveProfileDetails(values);
     expect(result.ok).toBe(false);
-    expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual(['addressCountry', 'email', 'translations.en.title']);
+    expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual(['addressCountry', 'email', 'title']);
     expect(tags).toEqual([]);
-  });
-
-  it('rejects a half-finished Spanish translation', async () => {
-    const values = await detailsWith((v) => {
-      v.translations.es.statement = '';
-    });
-    const result = await profileActions.saveProfileDetails(values);
-    expect(!result.ok && result.fieldErrors).toEqual({ 'translations.es.statement': 'Required' });
   });
 
   it('saves, records the author, and refreshes the profile tag', async () => {
     const values = await detailsWith((v) => {
-      v.translations.en.title = 'Software Engineer & Builder';
+      v.title = 'Software Engineer & Builder';
       v.addressRegion = '';
       v.addressCountry = 'us';
     });
     const result = await profileActions.saveProfileDetails(values);
     expect(result.ok).toBe(true);
-    expect(result.ok && result.data.translations.en.title).toBe('Software Engineer & Builder');
+    expect(result.ok && result.data.title).toBe('Software Engineer & Builder');
     expect(tags).toEqual(['profile']);
 
     const [row] = await db.select().from(profile);
     expect(row).toMatchObject({ updatedBy: ADMIN_ID, addressRegion: null, addressCountry: 'US' });
-  });
-
-  it('clearing Spanish deletes it, so the Spanish site falls back to English (not a copy)', async () => {
-    const values = await detailsWith((v) => {
-      v.translations.es = {
-        title: '',
-        statement: '',
-        availabilityText: '',
-        locationLabel: '',
-        about: [''],
-        heroFocus: '',
-        heroStackLine: '',
-        heroChips: [],
-      };
-    });
-    const result = await profileActions.saveProfileDetails(values);
-    expect(result.ok).toBe(true);
-
-    const rows = await db.select().from(profileTranslations).where(eq(profileTranslations.locale, 'es'));
-    expect(rows).toEqual([]);
-    expect((await getProfile(db, 'es'))?.title).toBe('Software Engineer & Builder');
-    // The editor reloads the Spanish tab as blank, not as English.
-    expect(result.ok && result.data.translations.es.title).toBe('');
+    expect((await getProfile(db))?.title).toBe('Software Engineer & Builder');
   });
 });
 
@@ -150,7 +120,7 @@ describe('profile lists', () => {
       key: 'new-1',
       accent: 'gold' as const,
       visible: true,
-      translations: { en: { label: 'Mentor' }, es: { label: '' } },
+      label: 'Mentor',
     };
     const next = [{ ...second!, visible: false }, added, first!];
     const result = await profileActions.saveProfileRoles({ items: next });
@@ -159,18 +129,14 @@ describe('profile lists', () => {
 
     const saved = result.ok ? result.data.items : [];
     expect(saved).toHaveLength(3);
-    expect(saved.map((r) => r.translations.en.label)).toEqual([
-      second!.translations.en.label,
-      'Mentor',
-      first!.translations.en.label,
-    ]);
+    expect(saved.map((r) => r.label)).toEqual([second!.label, 'Mentor', first!.label]);
     expect(saved[1]!.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(saved[1]!.key).toBe(saved[1]!.id);
 
-    // Public read: hidden excluded, order kept, untranslated role falls back to English.
-    expect(await listProfileRoles(db, 'es')).toEqual([
+    // Public read: hidden excluded, order kept.
+    expect(await listProfileRoles(db)).toEqual([
       { label: 'Mentor', accent: 'gold' },
-      { label: expect.any(String), accent: first!.accent },
+      { label: first!.label, accent: first!.accent },
     ]);
     const [newRow] = await db.select().from(profileRoles).where(eq(profileRoles.id, saved[1]!.id!));
     expect(newRow).toMatchObject({ createdBy: ADMIN_ID, updatedBy: ADMIN_ID });
@@ -179,11 +145,11 @@ describe('profile lists', () => {
 
   it('keeps highlight kinds separate', async () => {
     const highlights = await service.loadProfileHighlights();
-    const resumeBefore = await listHighlights(db, 'en', 'resume');
+    const resumeBefore = await listHighlights(db, 'resume');
     const result = await profileActions.saveProfileHighlights({ ...highlights, differentiator: [] });
     expect(result.ok).toBe(true);
-    expect(await listHighlights(db, 'en', 'differentiator')).toEqual([]);
-    expect(await listHighlights(db, 'en', 'resume')).toEqual(resumeBefore);
+    expect(await listHighlights(db, 'differentiator')).toEqual([]);
+    expect(await listHighlights(db, 'resume')).toEqual(resumeBefore);
   });
 
   it('validates metric icons against the icon set', async () => {

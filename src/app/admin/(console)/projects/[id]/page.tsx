@@ -17,7 +17,7 @@ export default async function ProjectDetailsPage({ params }: { params: Promise<{
   return (
     <>
       <ProjectPageHeader
-        project={{ id, name: project.translations.en.name, slug: project.slug, status: project.status }}
+        project={{ id, name: project.name, slug: project.slug, status: project.status }}
         current="details"
       />
       <ProjectEditor initial={project} technologies={technologies} />

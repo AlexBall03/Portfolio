@@ -24,8 +24,8 @@ function warnUnconfigured(reason: string) {
 
 /**
  * Root layout of the private admin (a second root layout beside the public
- * `[locale]` one). English-only: it has one user. Nothing here authorizes;
- * the console layout and every admin operation call `requireAdmin()`.
+ * site's `(site)` one). Nothing here authorizes; the console layout and every
+ * admin operation call `requireAdmin()`.
  */
 
 export const metadata: Metadata = {

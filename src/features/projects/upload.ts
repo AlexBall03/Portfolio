@@ -1,6 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
-import { LOCALES } from '@/i18n/config';
+
 import { readUpload as readFileUpload } from '@/lib/cms/upload';
 import { MAX_IMAGE_BYTES } from '@/lib/image-file';
 
@@ -17,13 +17,11 @@ export const uuidParam = z.uuid();
 export const readUpload = (request: Request) =>
   readFileUpload(request, { maxBytes: MAX_IMAGE_BYTES, noun: 'image', tooLarge: 'Images can be at most 4 MB' });
 
-/** `alt.en`, `caption.es`, … → `{ translations: { en: { alt, caption } } }` for `uploadMetaInput`. */
+/** The `alt` and `caption` form fields, for `uploadMetaInput`. */
 export function uploadMeta(form: FormData) {
   const field = (name: string) => {
     const value = form.get(name);
     return typeof value === 'string' ? value : '';
   };
-  return {
-    translations: Object.fromEntries(LOCALES.map((l) => [l, { alt: field(`alt.${l}`), caption: field(`caption.${l}`) }])),
-  };
+  return { alt: field('alt'), caption: field('caption') };
 }

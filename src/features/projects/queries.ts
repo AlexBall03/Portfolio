@@ -1,15 +1,15 @@
 import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 import { getDb } from '@/db/client';
-import type { Locale } from '@/i18n/config';
+
 import { CACHE_LIFE, CACHE_TAGS } from '@/lib/cache-tags';
 import * as repo from './repository';
 
-export async function getProjects(locale: Locale) {
+export async function getProjects() {
   'use cache';
   cacheLife(CACHE_LIFE.content);
   cacheTag(CACHE_TAGS.projects);
-  return repo.listPublishedProjects(await getDb(), locale);
+  return repo.listPublishedProjects(await getDb());
 }
 
 export async function getProjectSlugs() {
@@ -28,9 +28,9 @@ export async function getProjectSitemap() {
   return rows.map((r) => ({ slug: r.slug, updatedAt: r.updatedAt.toISOString() }));
 }
 
-export async function getProjectBySlug(slug: string, locale: Locale) {
+export async function getProjectBySlug(slug: string) {
   'use cache';
   cacheLife(CACHE_LIFE.content);
   cacheTag(CACHE_TAGS.projects);
-  return repo.findProjectBySlug(await getDb(), slug, locale);
+  return repo.findProjectBySlug(await getDb(), slug);
 }

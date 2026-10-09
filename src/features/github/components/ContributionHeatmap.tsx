@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react';
-import { LOCALE_TAGS, type Locale } from '@/i18n/config';
-import type { Dictionary } from '@/i18n/get-dictionary';
-import { fill } from '@/i18n/paths';
 import type { ContributionCalendar, ContributionDay } from '../types';
+import { copy, fill } from '@/config/copy';
+import { INTL_LOCALE } from '@/config/site';
 
-function cellLabel(day: ContributionDay, dateFmt: Intl.DateTimeFormat, t: Dictionary['github']): string {
+const t = copy.github;
+
+function cellLabel(day: ContributionDay, dateFmt: Intl.DateTimeFormat): string {
   // Calendar dates are formatted in UTC so "2026-10-06" never shifts a day.
   const date = dateFmt.format(new Date(`${day.date}T00:00:00Z`));
   if (day.count === 0) return fill(t.cellNone, { date });
@@ -38,16 +39,8 @@ const COLUMNS = 'grid gap-[3px] [grid-template-columns:repeat(var(--weeks),minma
  * every row aligned to its weekday. One summarized image for assistive tech;
  * per-day detail is in hover titles, not tab stops.
  */
-export function ContributionHeatmap({
-  calendar,
-  locale,
-  t,
-}: {
-  calendar: ContributionCalendar;
-  locale: Locale;
-  t: Dictionary['github'];
-}) {
-  const intl = LOCALE_TAGS[locale].intl;
+export function ContributionHeatmap({ calendar }: { calendar: ContributionCalendar }) {
+  const intl = INTL_LOCALE;
   const dateFmt = new Intl.DateTimeFormat(intl, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   const monthFmt = new Intl.DateTimeFormat(intl, { month: 'short', timeZone: 'UTC' });
   const weeks = { '--weeks': calendar.weeks.length } as CSSProperties;
@@ -72,7 +65,7 @@ export function ContributionHeatmap({
         {calendar.weeks.flatMap((week, w) =>
           week.map((day, d) =>
             day ? (
-              <span key={day.date} className="heat-cell aspect-square rounded-[3px]" data-level={day.level} title={cellLabel(day, dateFmt, t)} />
+              <span key={day.date} className="heat-cell aspect-square rounded-[3px]" data-level={day.level} title={cellLabel(day, dateFmt)} />
             ) : (
               <span key={`pad-${w}-${d}`} className="invisible aspect-square" />
             ),
@@ -83,7 +76,7 @@ export function ContributionHeatmap({
   );
 }
 
-export function HeatmapLegend({ t }: { t: Dictionary['github'] }) {
+export function HeatmapLegend() {
   return (
     <div aria-hidden="true" className="flex items-center gap-1.5 font-mono text-micro text-fg-faint">
       <span className="mr-1">{t.less}</span>

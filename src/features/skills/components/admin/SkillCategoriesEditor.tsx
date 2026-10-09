@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { EditorForm, EditorSection } from '@/components/admin/form/EditorForm';
 import { SelectField, SwitchField, TextField } from '@/components/admin/form/fields';
-import { LocaleTabs, TranslationBadge } from '@/components/admin/form/LocaleTabs';
+
 import { newKey, RepeatableList } from '@/components/admin/form/RepeatableList';
 import { TechnologyPicker } from '@/components/admin/form/TechnologyPicker';
 import { type Editor, useEditor } from '@/components/admin/form/use-editor';
@@ -11,11 +10,10 @@ import { Icon } from '@/components/ui/Icon';
 import { Status } from '@/components/ui/Status';
 import { ACCENT_OPTIONS, ICON_OPTIONS } from '@/features/profile/components/admin/options';
 import type { Technology } from '@/features/projects/types';
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
-import { blankLocales, errorsByLocale, localeStatuses, translationStatus } from '@/lib/cms/locale';
+
 import { slugify } from '@/lib/cms/values';
 import { saveSkillCategories } from '../../mutations';
-import { skillCategoryTranslationInput } from '../../schema';
+
 import type { SkillCategoriesValues, SkillCategoryKind, SkillCategoryValues } from '../../types';
 
 const KINDS: readonly { kind: SkillCategoryKind; title: string; description: string; noun: string; max: number }[] = [
@@ -38,14 +36,14 @@ const KINDS: readonly { kind: SkillCategoryKind; title: string; description: str
 const blankCategory = (kind: SkillCategoryKind) => (): SkillCategoryValues => ({
   key: newKey(),
   slug: '',
+  name: '',
   icon: 'code',
   accent: kind === 'learning' ? 'gold' : 'blue',
   visible: true,
   technologies: [],
-  translations: blankLocales(() => ({ name: '' })),
 });
 
-/** Skill categories: both lists in one form, one language tab shared by both. */
+/** Skill categories: both lists in one form. */
 export function SkillCategoriesEditor({
   initial,
   technologies,
@@ -54,23 +52,14 @@ export function SkillCategoriesEditor({
   technologies: Technology[];
 }) {
   const editor = useEditor(initial, saveSkillCategories);
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
-  const all = [...editor.values.stack, ...editor.values.learning];
 
   return (
     <EditorForm editor={editor} label="Skill categories">
-      <LocaleTabs
-        active={locale}
-        onChange={setLocale}
-        status={localeStatuses(skillCategoryTranslationInput, all.map((c) => c.translations))}
-        errorCount={errorsByLocale(editor.errors)}
-      >
-        {KINDS.map((k) => (
-          <EditorSection key={k.kind} title={k.title} description={k.description}>
-            <CategoryList editor={editor} technologies={technologies} locale={locale} {...k} />
-          </EditorSection>
-        ))}
-      </LocaleTabs>
+      {KINDS.map((k) => (
+        <EditorSection key={k.kind} title={k.title} description={k.description}>
+          <CategoryList editor={editor} technologies={technologies} {...k} />
+        </EditorSection>
+      ))}
     </EditorForm>
   );
 }
@@ -78,14 +67,12 @@ export function SkillCategoriesEditor({
 function CategoryList({
   editor,
   technologies,
-  locale,
   kind,
   noun,
   max,
 }: {
   editor: Editor<SkillCategoriesValues>;
   technologies: Technology[];
-  locale: Locale;
   kind: SkillCategoryKind;
   noun: string;
   max: number;
@@ -100,10 +87,10 @@ function CategoryList({
       summary={(c) => (
         <>
           {c.icon && <Icon name={c.icon} className="size-4 shrink-0 text-brand-fg" />}
-          <span className="truncate font-medium text-fg">{c.translations.en.name || `Untitled ${noun}`}</span>
+          <span className="truncate font-medium text-fg">{c.name || `Untitled ${noun}`}</span>
           <span className="text-fg-faint">{c.technologies.length} technologies</span>
           {!c.visible && <Status>Hidden</Status>}
-          <TranslationBadge locale={locale} status={translationStatus(skillCategoryTranslationInput, c.translations[locale])} />
+
         </>
       )}
       addLabel={`Add ${noun}`}
@@ -111,19 +98,17 @@ function CategoryList({
       max={max}
     >
       {(c, i) => {
-        const name = editor.text(path(i, 'translations', locale, 'name'));
+        const name = editor.text(path(i, 'name'));
         return (
           <>
             <div className="grid gap-5 sm:grid-cols-[1fr_14rem]">
               <TextField
                 label="Name"
                 maxLength={80}
-                placeholder={locale === DEFAULT_LOCALE ? undefined : c.translations.en.name}
                 {...name}
                 onChange={(value) => {
-                  // A new category's slug follows its English name until edited by hand.
-                  const english = c.translations.en.name;
-                  if (locale === DEFAULT_LOCALE && !c.id && (!c.slug || c.slug === slugify(english))) {
+                  // A new category's slug follows its name until edited by hand.
+                  if (!c.id && (!c.slug || c.slug === slugify(c.name))) {
                     editor.set(path(i, 'slug'), slugify(value));
                   }
                   name.onChange(value);
