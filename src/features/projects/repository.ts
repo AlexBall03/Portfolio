@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, eq, inArray, max, ne, or, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, max, ne, or, sql, type SQL } from 'drizzle-orm';
 import {
   mediaAssets,
   mediaAssetTranslations,
@@ -21,6 +21,7 @@ import {
   technologies,
 } from '@/db/schema';
 import type { Database } from '@/db/types';
+import type { RepositoryLabel } from '@/features/github/types';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
 import { mapTranslated, pickTranslation } from '@/i18n/translations';
 import { localeRecord, translationStatus } from '@/lib/cms/locale';
@@ -49,6 +50,7 @@ import type {
   ProjectMediaValues,
   ProjectOrderValues,
   ProjectValues,
+  RepositoriesValues,
   Technology,
 } from './types';
 
@@ -88,11 +90,14 @@ function toProject(row: ProjectRow, t: ProjectRow['translations'][number], local
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder)
       .map((r) => ({
         provider: r.provider,
+        githubId: r.githubId,
         owner: r.owner,
         name: r.name,
         url: `https://github.com/${r.owner}/${r.name}`,
+        label: r.label,
         isPrimary: r.isPrimary,
       })),
+    githubAnalytics: row.githubAnalyticsVisible,
     cover: resolveMedia(media.find((m) => m.role === 'cover')?.asset, locale),
     gallery: media
       .filter((m) => m.role === 'gallery')
@@ -243,7 +248,7 @@ export async function listProjectsForAdmin(db: Database): Promise<ProjectListIte
 export async function getProjectValues(db: Database, id: string): Promise<ProjectValues | null> {
   const row = await db.query.projects.findFirst({
     where: eq(projects.id, id),
-    with: { translations: true, technologies: { with: { technology: true } }, repositories: true },
+    with: { translations: true, technologies: { with: { technology: true } } },
   });
   if (!row) return null;
   return {
@@ -258,9 +263,6 @@ export async function getProjectValues(db: Database, id: string): Promise<Projec
     technologies: [...row.technologies]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map(({ technology: t }) => ({ key: t.slug, slug: t.slug, name: t.name })),
-    repositories: [...row.repositories]
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((r) => ({ key: r.id, id: r.id, owner: r.owner, name: r.name, isPrimary: r.isPrimary })),
     translations: localeRecord(
       row.translations,
       (t) => ({ name: t.name, tagline: t.tagline, summary: t.summary, body: t.body }),
@@ -439,30 +441,6 @@ async function writeProjectContent(db: Database, projectId: string, data: Projec
       .insert(projectTechnologies)
       .values(data.technologies.map((t, sortOrder) => ({ projectId, technologyId: idOf.get(t.slug)!, sortOrder })));
   }
-
-  const existing = await db
-    .select({ id: projectRepositories.id })
-    .from(projectRepositories)
-    .where(eq(projectRepositories.projectId, projectId));
-  await reconcileList(
-    existing.map((r) => r.id),
-    data.repositories,
-    {
-      update: (id, { owner, name, isPrimary }, sortOrder) =>
-        db
-          .update(projectRepositories)
-          .set({ owner, name, isPrimary, sortOrder })
-          .where(and(eq(projectRepositories.id, id), eq(projectRepositories.projectId, projectId))),
-      insert: async ({ owner, name, isPrimary }, sortOrder) => {
-        const [row] = await db
-          .insert(projectRepositories)
-          .values({ projectId, owner, name, isPrimary, sortOrder })
-          .returning({ id: projectRepositories.id });
-        return row!.id;
-      },
-      remove: (ids) => db.delete(projectRepositories).where(inArray(projectRepositories.id, ids)),
-    },
-  );
 }
 
 /**
@@ -937,4 +915,105 @@ async function detachFromCaseStudy(db: Database, projectId: string, assetIds: st
     .update(projectMilestones)
     .set({ assetId: null })
     .where(and(eq(projectMilestones.projectId, projectId), inArray(projectMilestones.assetId, assetIds)));
+}
+
+/* ── GitHub repositories (the GitHub tab) ────────────────────────────────── */
+
+export interface StoredRepository {
+  id: string;
+  owner: string;
+  name: string;
+  githubId: number | null;
+  label: RepositoryLabel | null;
+  isPrimary: boolean;
+}
+
+export async function listProjectRepositories(db: Database, projectId: string): Promise<StoredRepository[]> {
+  return db
+    .select({
+      id: projectRepositories.id,
+      owner: projectRepositories.owner,
+      name: projectRepositories.name,
+      githubId: projectRepositories.githubId,
+      label: projectRepositories.label,
+      isPrimary: projectRepositories.isPrimary,
+    })
+    .from(projectRepositories)
+    .where(eq(projectRepositories.projectId, projectId))
+    .orderBy(asc(projectRepositories.sortOrder), asc(projectRepositories.createdAt));
+}
+
+export async function getRepositoriesValues(db: Database, projectId: string): Promise<Omit<RepositoriesValues, 'checks'> | null> {
+  const [project] = await db
+    .select({ visible: projects.githubAnalyticsVisible })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+  if (!project) return null;
+  const rows = await listProjectRepositories(db, projectId);
+  return {
+    analyticsVisible: project.visible,
+    repositories: rows.map((r) => ({
+      key: r.id,
+      id: r.id,
+      input: `${r.owner}/${r.name}`,
+      label: r.label ?? '',
+      isPrimary: r.isPrimary,
+    })),
+  };
+}
+
+/** An association ready to store: verified against GitHub by the service (or kept as it was). */
+export interface RepositoryWrite {
+  id?: string;
+  owner: string;
+  name: string;
+  githubId: number | null;
+  label: RepositoryLabel | null;
+  isPrimary: boolean;
+}
+
+/**
+ * Replaces a project's repositories (list position is display order) and its
+ * analytics switch. Every row is first parked on a name nobody can use (its
+ * own id), so renames and swaps never trip the unique indexes mid-transaction.
+ */
+export async function saveProjectRepositories(
+  db: Database,
+  projectId: string,
+  analyticsVisible: boolean,
+  rows: readonly RepositoryWrite[],
+  actor: Actor,
+): Promise<void> {
+  await lockProject(db, projectId);
+  const ofProject = eq(projectRepositories.projectId, projectId);
+  const existing = await db.select({ id: projectRepositories.id }).from(projectRepositories).where(ofProject);
+  await db
+    .update(projectRepositories)
+    .set({ name: sql`${projectRepositories.id}::text`, githubId: null })
+    .where(ofProject);
+
+  const fields = ({ owner, name, githubId, label, isPrimary }: RepositoryWrite) => ({ owner, name, githubId, label, isPrimary });
+  await reconcileList(
+    existing.map((r) => r.id),
+    rows,
+    {
+      update: (id, r, sortOrder) =>
+        db
+          .update(projectRepositories)
+          .set({ ...fields(r), sortOrder })
+          .where(and(eq(projectRepositories.id, id), ofProject)),
+      insert: async (r, sortOrder) => {
+        const [row] = await db
+          .insert(projectRepositories)
+          .values({ projectId, ...fields(r), sortOrder })
+          .returning({ id: projectRepositories.id });
+        return row!.id;
+      },
+      remove: (ids) => db.delete(projectRepositories).where(inArray(projectRepositories.id, ids)),
+    },
+  );
+  await db
+    .update(projects)
+    .set({ githubAnalyticsVisible: analyticsVisible, updatedBy: actor.userId })
+    .where(eq(projects.id, projectId));
 }

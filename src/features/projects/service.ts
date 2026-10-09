@@ -6,6 +6,9 @@ import { blankLocales } from '@/lib/cms/locale';
 import { FieldValidationError, NotFoundError } from '@/lib/errors';
 import { MAX_IMAGE_BYTES, sniffImage } from '@/lib/image-file';
 import { createLogger } from '@/lib/logger';
+import { githubConfigured, resolvePublicRepository, type RepositoryResolution } from '@/features/github/project';
+import { loadRepoMetadata, repoKey } from '@/features/github/repo-data';
+import type { RepositoryRef } from '@/lib/github-repository';
 import * as repo from './repository';
 import type {
   ProjectEditorInput,
@@ -13,6 +16,7 @@ import type {
   ProjectMilestonesInput,
   ProjectOrderInput,
   ProjectRelationsInput,
+  ProjectRepositoriesInput,
   ProjectSectionsInput,
   UploadMetaInput,
 } from './schema';
@@ -23,6 +27,8 @@ import type {
   ProjectMediaValues,
   ProjectValues,
   RelatedValues,
+  RepositoriesValues,
+  RepositoryCheck,
 } from './types';
 
 /**
@@ -50,7 +56,6 @@ export function blankProject(): ProjectValues {
     sourceUrl: '',
     detailsUrl: '',
     technologies: [],
-    repositories: [],
     translations: blankLocales(() => ({ name: '', tagline: '', summary: '', body: [] })),
     publishedAt: null,
   };
@@ -178,6 +183,99 @@ export async function saveProjectMilestones(data: ProjectMilestonesInput, actor:
 export async function saveProjectRelations(data: ProjectRelationsInput, actor: repo.Actor): Promise<RelatedValues> {
   await withTransaction((tx) => repo.saveProjectRelations(tx, data, actor));
   return repo.getRelatedValues(await getDb(), data.projectId);
+}
+
+/* ── GitHub repositories ─────────────────────────────────────────────────────
+ * Associations are verified against GitHub when they're added or changed: only
+ * public repositories, stored with GitHub's stable id and canonical name. The
+ * analytics switch keeps the Phase 4 contract: saving is public at once on a
+ * published project, and analytics start off so they can be checked in Preview.
+ */
+
+/** What GitHub currently says about each stored row (cached metadata; the same reads the public page uses). */
+async function checkRepositories(rows: readonly repo.StoredRepository[]): Promise<Record<string, RepositoryCheck>> {
+  if (!rows.length) return {};
+  if (!githubConfigured()) return Object.fromEntries(rows.map((r) => [r.id, { status: 'unconfigured' } as const]));
+  const results = await Promise.allSettled(rows.map((r) => loadRepoMetadata(repoKey(r))));
+  return Object.fromEntries(
+    rows.map((r, i): [string, RepositoryCheck] => {
+      const result = results[i]!;
+      if (result.status === 'rejected') return [r.id, { status: 'unreachable' }];
+      const meta = result.value;
+      if (meta.state !== 'public') return [r.id, { status: meta.state }];
+      const stored = `${r.owner}/${r.name}`;
+      const renamedTo = meta.repo.fullName.toLowerCase() === stored.toLowerCase() ? null : meta.repo.fullName;
+      return [r.id, { status: 'public', archived: meta.repo.archived, renamedTo }];
+    }),
+  );
+}
+
+export async function loadProjectRepositories(projectId: string): Promise<RepositoriesValues | null> {
+  const db = await getDb();
+  const values = await repo.getRepositoriesValues(db, projectId);
+  if (!values) return null;
+  return { ...values, checks: await checkRepositories(await repo.listProjectRepositories(db, projectId)) };
+}
+
+const RESOLUTION_ERRORS: Record<Exclude<RepositoryResolution['status'], 'public'>, string> = {
+  private: 'Only public repositories can be added',
+  'not-found': 'Repository not found on GitHub (or not public)',
+  unavailable: 'Couldn’t reach GitHub to verify this repository. Try again in a moment.',
+  unconfigured: 'GitHub isn’t configured, so the repository can’t be verified',
+};
+
+const sameName = (a: RepositoryRef, b: RepositoryRef) =>
+  a.owner.toLowerCase() === b.owner.toLowerCase() && a.name.toLowerCase() === b.name.toLowerCase();
+
+/**
+ * Saves the GitHub tab. New, changed, or never-verified rows are resolved
+ * through GitHub (`resolve` is injectable for tests); a row whose name is
+ * unchanged and already has an id is stored as it was. A never-verified row
+ * whose name didn't change is kept unverified if GitHub can't be reached, so
+ * an outage never blocks unrelated edits.
+ */
+export async function saveProjectRepositories(
+  data: ProjectRepositoriesInput,
+  actor: repo.Actor,
+  resolve: (ref: RepositoryRef) => Promise<RepositoryResolution> = resolvePublicRepository,
+): Promise<RepositoriesValues> {
+  const db = await getDb();
+  if (!(await repo.projectExists(db, data.projectId))) throw new NotFoundError('The project');
+  const stored = new Map((await repo.listProjectRepositories(db, data.projectId)).map((r) => [r.id, r]));
+
+  const errors: Record<string, string> = {};
+  const rows = await Promise.all(
+    data.repositories.map(async (r, i): Promise<repo.RepositoryWrite | null> => {
+      const prev = r.id ? stored.get(r.id) : undefined;
+      const unchanged = prev !== undefined && sameName(prev, r.input);
+      const keep = { id: r.id, label: r.label ?? null, isPrimary: r.isPrimary };
+      if (unchanged && prev.githubId) return { ...keep, owner: prev.owner, name: prev.name, githubId: prev.githubId };
+
+      const resolved = await resolve(r.input);
+      if (resolved.status === 'public') {
+        return { ...keep, owner: resolved.owner, name: resolved.name, githubId: resolved.id };
+      }
+      if (unchanged && (resolved.status === 'unavailable' || resolved.status === 'unconfigured')) {
+        return { ...keep, owner: prev.owner, name: prev.name, githubId: null };
+      }
+      errors[`repositories.${i}.input`] = RESOLUTION_ERRORS[resolved.status];
+      return null;
+    }),
+  );
+
+  // Two entries can name one repository (an old name and its new one): compare GitHub ids.
+  const ids = new Map<number, number>();
+  rows.forEach((r, i) => {
+    if (!r?.githubId) return;
+    if (ids.has(r.githubId)) errors[`repositories.${i}.input`] = 'This is the same repository as another entry (it may have been renamed)';
+    else ids.set(r.githubId, i);
+  });
+  if (Object.keys(errors).length) throw new FieldValidationError(errors);
+
+  await withTransaction((tx) =>
+    repo.saveProjectRepositories(tx, data.projectId, data.analyticsVisible, rows as repo.RepositoryWrite[], actor),
+  );
+  return (await loadProjectRepositories(data.projectId))!;
 }
 
 /** Checks an uploaded file by its bytes (never its name or declared type). */

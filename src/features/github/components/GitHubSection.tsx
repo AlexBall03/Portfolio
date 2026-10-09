@@ -16,28 +16,12 @@ import { fill } from '@/i18n/paths';
 import { cn } from '@/lib/cn';
 import { createLogger } from '@/lib/logger';
 import { describeActivity } from '../events';
+import { languageColor } from '../languages';
 import { getGithubOverview } from '../overview';
 import type { GithubOverview } from '../types';
 import { ContributionHeatmap, HeatmapLegend } from './ContributionHeatmap';
 
 const log = createLogger('github');
-
-const LANGUAGE_COLORS: Record<string, string> = {
-  JavaScript: '#f1e05a',
-  TypeScript: '#3178c6',
-  Python: '#3572A5',
-  'C#': '#9b6dd6',
-  Java: '#b07219',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  Shell: '#89e051',
-  Go: '#00ADD8',
-  Rust: '#dea584',
-  'C++': '#f34b7d',
-  C: '#555555',
-  PHP: '#4F5D95',
-  Ruby: '#701516',
-};
 
 const SUBHEAD = 'font-mono text-label tracking-[0.16em] text-fg-faint uppercase';
 
@@ -194,7 +178,7 @@ function GitHubContent(props: GitHubSectionProps & { overview: GithubOverview })
                           <span className="flex items-center gap-1.5">
                             <span
                               className="size-2 rounded-full bg-[var(--lang)]"
-                              style={{ '--lang': LANGUAGE_COLORS[r.language] ?? 'var(--fg-faint)' } as CSSProperties}
+                              style={{ '--lang': languageColor(r.language) } as CSSProperties}
                             />
                             {r.language}
                           </span>

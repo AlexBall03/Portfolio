@@ -1,3 +1,4 @@
+import type { RepositoryLabel } from '@/features/github/types';
 import type { Locale } from '@/i18n/config';
 import type { TranslationStatus } from '@/lib/cms/locale';
 import type { MediaAsset } from '@/lib/media';
@@ -10,9 +11,12 @@ export interface Technology {
 
 export interface ProjectRepository {
   provider: 'github';
+  /** GitHub's stable id; null only for associations saved before Phase 5B. */
+  githubId: number | null;
   owner: string;
   name: string;
   url: string;
+  label: RepositoryLabel | null;
   isPrimary: boolean;
 }
 
@@ -30,6 +34,8 @@ export interface Project {
   links: { demo: string | null; source: string | null; details: string | null };
   technologies: Technology[];
   repositories: ProjectRepository[];
+  /** The page shows GitHub analytics for `repositories` (admin switch; the admin preview shows them regardless). */
+  githubAnalytics: boolean;
   cover: MediaAsset | null;
   gallery: MediaAsset[];
 }
@@ -93,14 +99,6 @@ export interface ProjectTranslationValues {
   body: string[];
 }
 
-export interface ProjectRepositoryValues {
-  key: string;
-  id?: string;
-  owner: string;
-  name: string;
-  isPrimary: boolean;
-}
-
 export interface ProjectTechnologyValues {
   key: string;
   slug: string;
@@ -118,7 +116,6 @@ export interface ProjectValues {
   sourceUrl: string;
   detailsUrl: string;
   technologies: ProjectTechnologyValues[];
-  repositories: ProjectRepositoryValues[];
   translations: Record<Locale, ProjectTranslationValues>;
   /** Read-only (ignored on save): when the project last went live. */
   publishedAt: string | null;
@@ -234,3 +231,26 @@ export interface ProjectChoice {
   slug: string;
   status: ProjectStatus;
 }
+
+/** One repository association in the GitHub editor. `input` is owner/name or any GitHub URL. */
+export interface RepositoryRowValues {
+  key: string;
+  id?: string;
+  input: string;
+  /** '' = no label. */
+  label: RepositoryLabel | '';
+  isPrimary: boolean;
+}
+
+export interface RepositoriesValues {
+  analyticsVisible: boolean;
+  repositories: RepositoryRowValues[];
+  /** Read-only (ignored on save): what GitHub says about each stored row, by row id. */
+  checks: Record<string, RepositoryCheck>;
+}
+
+/** What GitHub currently says about a stored association (admin only). */
+export type RepositoryCheck =
+  /** `renamedTo`: GitHub's current name, when it differs from the stored one (renamed or transferred). */
+  | { status: 'public'; archived: boolean; renamedTo: string | null }
+  | { status: 'private' | 'not-found' | 'unreachable' | 'unconfigured' };

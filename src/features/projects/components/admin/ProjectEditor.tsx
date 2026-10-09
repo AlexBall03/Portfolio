@@ -4,9 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EditorForm, EditorSection } from '@/components/admin/form/EditorForm';
-import { FieldError, StringListField, SwitchField, TextField } from '@/components/admin/form/fields';
+import { StringListField, SwitchField, TextField } from '@/components/admin/form/fields';
 import { LocaleTabs } from '@/components/admin/form/LocaleTabs';
-import { newKey, RepeatableList } from '@/components/admin/form/RepeatableList';
 import { TechnologyPicker } from '@/components/admin/form/TechnologyPicker';
 import { useEditor } from '@/components/admin/form/use-editor';
 import { buttonStyles } from '@/components/ui/button-styles';
@@ -27,10 +26,10 @@ interface ProjectEditorProps {
 }
 
 /**
- * A project's details: identity, links, bilingual copy, technologies, and
- * repositories, plus its publication state. Save keeps the status (a
- * published project's edits go live immediately); Publish / Unpublish save
- * the form with the other status.
+ * A project’s details: identity, links, bilingual copy, and technologies,
+ * plus its publication state (repositories are on the GitHub tab). Save
+ * keeps the status (a published project's edits go live immediately);
+ * Publish / Unpublish save the form with the other status.
  */
 export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
   const router = useRouter();
@@ -218,41 +217,6 @@ export function ProjectEditor({ initial, technologies }: ProjectEditorProps) {
             onChange={(next) => editor.update((v) => ({ ...v, technologies: next }), ['technologies'])}
             error={editor.errorFor(['technologies'])}
           />
-        </EditorSection>
-
-        <EditorSection title="Repositories" description="GitHub repositories behind the project. The primary one is listed first.">
-          <RepeatableList
-            items={values.repositories}
-            onChange={(next) => editor.update((v) => ({ ...v, repositories: next }), ['repositories'])}
-            create={() => ({ key: newKey(), owner: '', name: '', isPrimary: values.repositories.length === 0 })}
-            itemLabel={(r, i) => (r.owner && r.name ? `${r.owner}/${r.name}` : `repository ${i + 1}`)}
-            summary={(r) => (
-              <span className="truncate font-mono text-body-sm text-fg">{r.owner && r.name ? `${r.owner}/${r.name}` : 'New repository'}</span>
-            )}
-            addLabel="Add repository"
-            emptyLabel="No repositories linked."
-            max={10}
-          >
-            {(r, i) => (
-              <>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <TextField label="Owner" placeholder="alexball" {...editor.text(['repositories', i, 'owner'])} />
-                  <TextField label="Repository" placeholder="portfolio" {...editor.text(['repositories', i, 'name'])} />
-                </div>
-                <SwitchField
-                  label="Primary repository"
-                  checked={r.isPrimary}
-                  onChange={(on) =>
-                    editor.update(
-                      (v) => ({ ...v, repositories: v.repositories.map((x, j) => ({ ...x, isPrimary: j === i ? on : on ? false : x.isPrimary })) }),
-                      ['repositories'],
-                    )
-                  }
-                />
-              </>
-            )}
-          </RepeatableList>
-          {editor.errorFor(['repositories']) && <FieldError>{editor.errorFor(['repositories'])}</FieldError>}
         </EditorSection>
       </EditorForm>
 

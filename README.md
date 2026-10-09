@@ -68,7 +68,7 @@ All variables are validated in `src/config/env.ts` and are server-only, except C
 |---|---|---|
 | `DATABASE_URL` | yes | Neon pooled connection string (or `pglite:…` locally) |
 | `DATABASE_URL_UNPOOLED` | for `db:*` and deployments | Neon direct connection string to the same database |
-| `GITHUB_TOKEN` | for GitHub section | Fine-grained personal access token, public read-only, for the GitHub REST/GraphQL APIs |
+| `GITHUB_TOKEN` | for GitHub data | Fine-grained personal access token with **Public repositories (read-only)** access, for the GitHub REST/GraphQL APIs (the global section and project analytics). The app only ever shows public repositories, whatever the token can see |
 | `RESEND_API_KEY` | for contact form | Resend API key |
 | `CONTACT_TO_EMAIL` | no | Recipient (default `contact@alexball.dev`) |
 | `CONTACT_FROM_EMAIL` | no | Sender on a Resend-verified domain (default `contact@alexball.dev`) |

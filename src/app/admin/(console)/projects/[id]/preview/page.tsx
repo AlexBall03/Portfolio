@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { buttonStyles } from '@/components/ui/button-styles';
 import { adminProjectPath } from '@/config/admin';
 import { ProjectStatusPill } from '@/features/projects/components/admin/ProjectStatus';
+import { ProjectGithubSection } from '@/features/github/components/ProjectGithubSection';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
 import { pickRelated } from '@/features/projects/case-study';
 import { loadProject, loadProjectPreview, loadPublishedProjects } from '@/features/projects/service';
@@ -35,7 +36,9 @@ export default async function ProjectPreviewPage({ params, searchParams }: Previ
     ? await Promise.all([loadProject(id), loadProjectPreview(id, locale), loadPublishedProjects(locale)])
     : [null, null, []];
   if (!values || !project) notFound();
-  const hiddenCount = [...project.sections, ...project.milestones].filter((x) => x.hidden).length;
+  const githubHidden = project.repositories.length > 0 && !project.githubAnalytics;
+  const hiddenCount = [...project.sections, ...project.milestones].filter((x) => x.hidden).length + (githubHidden ? 1 : 0);
+  const dict = getDictionary(locale);
 
   return (
     <>
@@ -71,7 +74,17 @@ export default async function ProjectPreviewPage({ params, searchParams }: Previ
           project={project}
           related={pickRelated(project.id, project.relatedIds, published)}
           locale={locale}
-          t={getDictionary(locale).projects}
+          t={dict.projects}
+          github={
+            project.repositories.length > 0
+              ? {
+                  heading: dict.projectGithub.heading,
+                  lead: dict.projectGithub.lead,
+                  hidden: githubHidden,
+                  content: <ProjectGithubSection repositories={project.repositories} locale={locale} t={dict.projectGithub} />,
+                }
+              : null
+          }
         />
       </div>
     </>

@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   check,
   date,
@@ -36,6 +37,8 @@ export const projects = pgTable(
     sourceUrl: text(),
     /** An external long-form write-up (README, article…), linked from the project page. */
     detailsUrl: text(),
+    /** Whether the project page shows its GitHub analytics. Starts off, so repositories can be checked in Preview first. */
+    githubAnalyticsVisible: boolean().notNull().default(false),
     publishedAt: timestamp({ withTimezone: true }),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
@@ -88,7 +91,24 @@ export const projectTechnologies = pgTable(
 
 export const repositoryProviderEnum = pgEnum('repository_provider', ['github']);
 
-/** Zero, one, or many source repositories per project. */
+/** What a repository is to its project (labels are translated in the dictionaries). */
+export const repositoryLabelEnum = pgEnum('repository_label', [
+  'frontend',
+  'backend',
+  'api',
+  'infrastructure',
+  'mobile',
+  'library',
+  'docs',
+  'other',
+]);
+
+/**
+ * Zero, one, or many source repositories per project. `github_id` is GitHub's
+ * stable repository id, recorded when the admin saves (null only for rows that
+ * predate Phase 5B and haven't been saved since); owner/name are the canonical
+ * names at that time. A repository may belong to several projects.
+ */
 export const projectRepositories = pgTable(
   'project_repositories',
   {
@@ -99,11 +119,18 @@ export const projectRepositories = pgTable(
     provider: repositoryProviderEnum().notNull().default('github'),
     owner: text().notNull(),
     name: text().notNull(),
+    githubId: bigint({ mode: 'number' }),
+    label: repositoryLabelEnum(),
     isPrimary: boolean().notNull().default(false),
     sortOrder: sortOrder(),
     ...timestamps,
   },
-  (t) => [uniqueIndex('project_repositories_unique_idx').on(t.projectId, t.provider, t.owner, t.name)],
+  (t) => [
+    uniqueIndex('project_repositories_unique_idx').on(t.projectId, t.provider, t.owner, t.name),
+    uniqueIndex('project_repositories_github_id_idx')
+      .on(t.projectId, t.githubId)
+      .where(sql`${t.githubId} is not null`),
+  ],
 );
 
 export const projectMediaRoleEnum = pgEnum('project_media_role', ['cover', 'gallery']);

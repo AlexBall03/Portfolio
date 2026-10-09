@@ -94,7 +94,6 @@ function draft(slug: string, patch: Partial<ProjectValues> = {}): ProjectValues 
     { key: 'typescript', slug: 'typescript', name: 'TypeScript' },
     { key: 'new-tech', slug: 'brand-new-tech', name: 'Brand New Tech' },
   ];
-  values.repositories = [{ key: 'new-1', owner: 'alexball', name: slug, isPrimary: true }];
   return { ...values, ...patch };
 }
 
@@ -230,12 +229,9 @@ describe('validation and translations', () => {
     const before = await db.select().from(projects);
     const values = draft('Bad Slug!', { demoUrl: 'javascript:alert(1)' });
     values.translations.en.name = '';
-    values.repositories.push({ key: 'new-2', owner: 'a', name: 'b', isPrimary: true });
     const result = await actions.createProject(values);
     expect(!result.ok && Object.keys(result.fieldErrors).sort()).toEqual([
       'demoUrl',
-      'repositories',
-      'repositories.0.name',
       'slug',
       'translations.en.name',
     ]);

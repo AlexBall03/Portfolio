@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { Screen } from '@/components/layout/Screen';
 import { PagerLink, PagerNav } from '@/components/layout/Pager';
 import { JsonLd } from '@/components/ui/JsonLd';
+import { ProjectGithubSection } from '@/features/github/components/ProjectGithubSection';
 import { pickRelated } from '@/features/projects/case-study';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
 import { getProjectBySlug, getProjects, getProjectSlugs } from '@/features/projects/queries';
@@ -65,7 +66,21 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   return (
     <Screen>
       <div className="flex-1">
-        <ProjectDetail project={p} related={pickRelated(p.id, p.relatedIds, all)} locale={locale} t={t} />
+        <ProjectDetail
+          project={p}
+          related={pickRelated(p.id, p.relatedIds, all)}
+          locale={locale}
+          t={t}
+          github={
+            p.githubAnalytics && p.repositories.length > 0
+              ? {
+                  heading: dict.projectGithub.heading,
+                  lead: dict.projectGithub.lead,
+                  content: <ProjectGithubSection repositories={p.repositories} locale={locale} t={dict.projectGithub} />,
+                }
+              : null
+          }
+        />
       </div>
       {(prev || next) && (
         <PagerNav label={`${t.previousProject} / ${t.nextProject}`}>

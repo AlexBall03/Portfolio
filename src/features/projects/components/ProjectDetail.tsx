@@ -31,7 +31,7 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** Glass metadata panel: renders only the rows the project has data for. */
-function ProjectMeta({ project: p, t }: { project: Project; t: Dictionary['projects'] }) {
+function ProjectMeta({ project: p, showRepositories, t }: { project: Project; showRepositories: boolean; t: Dictionary['projects'] }) {
   const linkClass =
     'inline-flex items-center gap-2 text-body-sm text-fg-muted transition-colors hover:text-fg [&_svg]:size-4 [&_svg]:text-brand-fg';
   return (
@@ -47,7 +47,7 @@ function ProjectMeta({ project: p, t }: { project: Project; t: Dictionary['proje
             <TagList items={p.technologies.map((s) => s.name)} />
           </MetaRow>
         )}
-        {p.repositories.length > 0 && (
+        {showRepositories && p.repositories.length > 0 && (
           <MetaRow label={t.repositories}>
             <ul className="flex flex-col gap-2">
               {p.repositories.map((r) => (
@@ -122,6 +122,12 @@ interface ProjectDetailProps {
   related: Project[];
   locale: Locale;
   t: Dictionary['projects'];
+  /**
+   * The project's GitHub analytics, composed by the page (a separate source
+   * from the curated milestones). It lists the verified public repositories
+   * itself, so the metadata panel then leaves its repository links out.
+   */
+  github?: { heading: string; lead: string; content: ReactNode; hidden?: boolean } | null;
 }
 
 /**
@@ -130,13 +136,14 @@ interface ProjectDetailProps {
  * Every block is optional except the overview, so a project with no case
  * study renders as it did before Phase 5A.
  */
-export function ProjectDetail({ project: p, related, locale, t }: ProjectDetailProps) {
+export function ProjectDetail({ project: p, related, locale, t, github }: ProjectDetailProps) {
   const legacyGallery = p.gallery.length > 0 && !p.sections.some((s) => s.kind === 'gallery');
   const blocks: TocEntry[] = [
     { anchor: 'project-overview', label: t.overview },
     ...p.sections.map((s) => ({ anchor: sectionAnchor(s.id), label: s.heading })),
     ...(legacyGallery ? [{ anchor: 'project-gallery', label: t.gallery }] : []),
     ...(p.milestones.length ? [{ anchor: 'project-timeline', label: t.timeline }] : []),
+    ...(github ? [{ anchor: 'project-github', label: github.heading }] : []),
   ];
   const toc = [...blocks, ...(related.length ? [{ anchor: 'project-related', label: t.related }] : [])];
   const indexOf = (anchor: string) => blocks.findIndex((b) => b.anchor === anchor) + 1;
@@ -212,12 +219,19 @@ export function ProjectDetail({ project: p, related, locale, t }: ProjectDetailP
               </Reveal>
             )}
 
-            {/* Phase 5B: the project's GitHub activity (its `repositories`) slots in here, after the curated timeline. */}
+            {github && (
+              <Reveal>
+                <CaseStudyBlock anchor="project-github" index={indexOf('project-github')} heading={github.heading} hidden={github.hidden} t={t}>
+                  <p className="-mt-3 max-w-[60ch] text-body text-fg-muted">{github.lead}</p>
+                  {github.content}
+                </CaseStudyBlock>
+              </Reveal>
+            )}
           </div>
 
           <Reveal delay={100} className="lg:sticky lg:top-28 lg:self-start">
             <div className="flex flex-col gap-8">
-              <ProjectMeta project={p} t={t} />
+              <ProjectMeta project={p} showRepositories={!github} t={t} />
               {toc.length > 2 && <OnThisPage entries={toc} t={t} />}
             </div>
           </Reveal>

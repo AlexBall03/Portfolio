@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { REPOSITORY_LABELS } from '@/features/github/labels';
+import { parseRepositoryRef } from '@/lib/github-repository';
 import { blankToNull, contentStatus, isoDate, localized, mediaInput, nullableText, slug, text, url } from '@/lib/validation';
 import {
   MAX_MILESTONES,
@@ -53,13 +55,6 @@ export const projectInput = z.object({
 });
 export type ProjectInput = z.infer<typeof projectInput>;
 
-const githubName = z
-  .string()
-  .trim()
-  .min(1, 'Required')
-  .max(100)
-  .regex(/^[A-Za-z0-9._-]+$/, 'Letters, numbers, ".", "-" and "_" only');
-
 const optionalUrl = blankToNull(url.nullable());
 
 /** The project editor (Details). Status changes ride along: Publish = save with `published`. */
@@ -76,14 +71,6 @@ export const projectEditorInput = z.object({
     .array(technologyInput)
     .max(20, 'At most 20 technologies')
     .refine((list) => new Set(list.map((t) => t.slug)).size === list.length, 'Each technology can be listed once'),
-  repositories: z
-    .array(z.object({ id: z.string().optional(), owner: githubName, name: githubName, isPrimary: z.boolean() }))
-    .max(10, 'At most 10 repositories')
-    .refine((list) => list.filter((r) => r.isPrimary).length <= 1, 'Only one repository can be primary')
-    .refine(
-      (list) => new Set(list.map((r) => `${r.owner}/${r.name}`.toLowerCase())).size === list.length,
-      'Each repository can be listed once',
-    ),
   translations: localized(projectTranslationInput),
 });
 export type ProjectEditorInput = z.infer<typeof projectEditorInput>;
@@ -216,3 +203,42 @@ export const projectRelationsInput = z
     path: ['related'],
   });
 export type ProjectRelationsInput = z.infer<typeof projectRelationsInput>;
+
+export const MAX_REPOSITORIES = 10;
+
+/**
+ * The GitHub tab: which repositories the project has, their labels and order,
+ * and whether the page shows analytics. `input` is parsed here (owner/name or
+ * a github.com URL); GitHub itself is consulted by the service.
+ */
+export const projectRepositoriesInput = z.object({
+  projectId: z.uuid(),
+  analyticsVisible: z.boolean(),
+  repositories: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        input: z
+          .string()
+          .trim()
+          .min(1, 'Required')
+          .transform((value, ctx) => {
+            const ref = parseRepositoryRef(value);
+            if (!ref) {
+              ctx.addIssue({ code: 'custom', message: 'Enter owner/name or a github.com repository URL' });
+              return z.NEVER;
+            }
+            return ref;
+          }),
+        label: blankToNull(z.enum(REPOSITORY_LABELS).nullable()),
+        isPrimary: z.boolean(),
+      }),
+    )
+    .max(MAX_REPOSITORIES, `At most ${MAX_REPOSITORIES} repositories`)
+    .refine((list) => list.filter((r) => r.isPrimary).length <= 1, 'Only one repository can be primary')
+    .refine(
+      (list) => new Set(list.map((r) => `${r.input.owner}/${r.input.name}`.toLowerCase())).size === list.length,
+      'Each repository can be listed once',
+    ),
+});
+export type ProjectRepositoriesInput = z.infer<typeof projectRepositoriesInput>;

@@ -11,6 +11,7 @@ import {
   projectMilestonesInput,
   projectOrderInput,
   projectRelationsInput,
+  projectRepositoriesInput,
   projectSectionsInput,
 } from './schema';
 import * as service from './service';
@@ -89,6 +90,15 @@ export async function saveProjectRelations(input: unknown) {
   const admin = await requireAdmin();
   return runMutation(projectRelationsInput, input, async (data) => {
     const saved = await service.saveProjectRelations(data, admin);
+    updateTag(CACHE_TAGS.projects);
+    return saved;
+  });
+}
+
+export async function saveProjectRepositories(input: unknown) {
+  const admin = await requireAdmin();
+  return runMutation(projectRepositoriesInput, input, async (data) => {
+    const saved = await service.saveProjectRepositories(data, admin);
     updateTag(CACHE_TAGS.projects);
     return saved;
   });

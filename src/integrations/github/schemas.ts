@@ -63,6 +63,58 @@ export const githubCommitSchema = z.object({
 });
 export type GithubCommit = z.infer<typeof githubCommitSchema>;
 
+/** One repository (`GET /repos/{owner}/{repo}` or `/repositories/{id}`). */
+export const githubRepoDetailSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string(),
+  full_name: z.string(),
+  owner: z.object({ login: z.string() }),
+  private: z.boolean(),
+  /** Absent on some older payloads; `private` is the authoritative flag then. */
+  visibility: z.string().optional(),
+  description: z.string().nullable(),
+  html_url: z.url(),
+  language: z.string().nullable(),
+  stargazers_count: z.number().int(),
+  forks_count: z.number().int(),
+  archived: z.boolean(),
+  fork: z.boolean(),
+  default_branch: z.string(),
+  pushed_at: z.string().nullable(),
+});
+export type GithubRepoDetail = z.infer<typeof githubRepoDetailSchema>;
+
+/** `GET /repos/{o}/{r}/stats/commit_activity`: the last 52 weeks, `week` = Sunday 00:00 UTC (unix seconds). */
+export const githubCommitActivitySchema = z.array(
+  z.object({ week: z.number().int(), total: z.number().int().nonnegative(), days: z.array(z.number().int()) }),
+);
+export type GithubCommitActivity = z.infer<typeof githubCommitActivitySchema>;
+
+/** `GET /repos/{o}/{r}/languages`: bytes of code per language, as GitHub Linguist detects it. */
+export const githubLanguagesSchema = z.record(z.string(), z.number().int().nonnegative());
+export type GithubLanguages = z.infer<typeof githubLanguagesSchema>;
+
+export const githubContributorSchema = z.object({
+  id: z.number().int(),
+  login: z.string(),
+  type: z.string(),
+  avatar_url: z.url(),
+  html_url: z.url(),
+  contributions: z.number().int(),
+});
+export type GithubContributor = z.infer<typeof githubContributorSchema>;
+
+export const githubReleaseSchema = z.object({
+  id: z.number().int(),
+  tag_name: z.string(),
+  name: z.string().nullable(),
+  draft: z.boolean(),
+  prerelease: z.boolean(),
+  published_at: z.string().nullable(),
+  html_url: z.url(),
+});
+export type GithubRelease = z.infer<typeof githubReleaseSchema>;
+
 export const contributionLevelSchema = z.enum([
   'NONE',
   'FIRST_QUARTILE',

@@ -12,6 +12,9 @@ export const CACHE_TAGS = {
   resume: 'resume',
 } as const;
 
+const HOUR = 60 * 60;
+const WEEK = 7 * 24 * HOUR;
+
 /** Cache lifetimes (seconds) for `cacheLife()`. */
 export const CACHE_LIFE = {
   // Portfolio content changes only when edited, and edits invalidate by tag,
@@ -21,4 +24,17 @@ export const CACHE_LIFE = {
   github: { stale: 300, revalidate: 900, expire: 60 * 60 * 24 },
   // A partially failed GitHub load: retry soon.
   githubDegraded: { stale: 60, revalidate: 60, expire: 300 },
+
+  // Per-repository GitHub data (project analytics), shared by every page that
+  // shows the repository. A week's `expire` lets a stale copy keep serving
+  // through a GitHub outage: loaders throw on transient failures, and a failed
+  // revalidation leaves the previous entry in place.
+  githubRepo: { stale: 300, revalidate: 6 * HOUR, expire: WEEK },
+  githubCommits: { stale: 300, revalidate: 30 * 60, expire: WEEK },
+  githubActivity: { stale: 300, revalidate: 2 * HOUR, expire: WEEK },
+  githubLanguages: { stale: 300, revalidate: 24 * HOUR, expire: WEEK },
+  githubContributors: { stale: 300, revalidate: 24 * HOUR, expire: WEEK },
+  githubReleases: { stale: 300, revalidate: 6 * HOUR, expire: WEEK },
+  // One project's composed analytics (explicit, so inner lifetimes don't leak out).
+  githubProject: { stale: 300, revalidate: 15 * 60, expire: WEEK },
 } as const;

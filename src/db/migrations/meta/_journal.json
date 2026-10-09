@@ -71,6 +71,13 @@
       "when": 1791493977490,
       "tag": "0009_case_studies",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791516326130,
+      "tag": "0010_github_analytics",
+      "breakpoints": true
     }
   ]
 }

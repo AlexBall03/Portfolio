@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
+import { BackToTop } from '@/components/layout/BackToTop';
 import { Background } from '@/components/layout/Background';
 import { getChromeData } from '@/components/layout/chrome-data';
 import { Footer } from '@/components/layout/Footer';
@@ -104,6 +105,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           {children}
         </main>
         <Footer data={chrome} ownerName={profile.fullName} statement={profile.statement} />
+        <BackToTop label={dict.nav.backToTop} />
         <JsonLd data={buildSiteGraph({ profile, socials, experiences, skills })} />
         <Analytics />
         <SpeedInsights />
