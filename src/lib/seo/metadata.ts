@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Metadata } from 'next';
-import { absoluteUrl, OG_IMAGE } from '@/config/site';
+import { absoluteUrl, SHARE_CARD_SIZE, shareCardPath } from '@/config/site';
 import { getProfile } from '@/features/profile/queries';
 import { getPageContent } from '@/features/site/queries';
 import type { PageKey } from '@/features/site/types';
@@ -25,17 +25,14 @@ interface PageMetadataInput {
   path: string;
   title: string;
   description: string;
-  /** Absolute URL of a page-specific share image (a project cover); the site image otherwise. */
-  image?: { url: string; width: number | null; height: number | null; alt: string } | null;
   /** Absolute document title (skips the "— Name" template). */
   absoluteTitle?: boolean;
 }
 
-export function pageMetadata({ locale, path, title, description, image, absoluteTitle }: PageMetadataInput): Metadata {
+export function pageMetadata({ locale, path, title, description, absoluteTitle }: PageMetadataInput): Metadata {
   const url = absoluteUrl(localizedPath(locale, path));
-  const share = image
-    ? { url: image.url, width: image.width ?? undefined, height: image.height ?? undefined, alt: image.alt || title }
-    : { url: OG_IMAGE.path, width: OG_IMAGE.width, height: OG_IMAGE.height, alt: title };
+  // Every page has its own generated share card (app/og), in the page's locale.
+  const share = { url: absoluteUrl(shareCardPath(locale, path)), ...SHARE_CARD_SIZE, alt: title, type: 'image/png' };
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,

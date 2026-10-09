@@ -132,3 +132,14 @@ export const socialLinksInput = z.object({
     .max(12, 'At most 12 links'),
 });
 export type SocialLinksInput = z.infer<typeof socialLinksInput>;
+
+/* ── Headshot ───────────────────────────────────────────────────────────────
+ * The photo itself is uploaded through a Route Handler (multipart `file`,
+ * `alt.<locale>`); its alt text is also editable on its own.
+ */
+
+export const headshotTranslationInput = z.object({ alt: text(300) });
+
+/** The headshot's alt text: required in English, optional (all or nothing) per other locale. */
+export const headshotTextInput = z.object({ translations: localized(headshotTranslationInput) });
+export type HeadshotTextInput = z.infer<typeof headshotTextInput>;

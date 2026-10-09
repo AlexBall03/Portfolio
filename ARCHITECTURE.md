@@ -40,12 +40,12 @@ src/
   app/[locale]/           routes: home, about, projects, projects/[slug], experience, resume, contact,
                           not-found, error, [...rest] (404 catch-all); layout = root layout (html/body)
   app/admin/              the private admin (English-only, its own root layout): sign-in/[[...sign-in]],
-                          (console)/ (guarded layout, dashboard, profile/{,roles,highlights,metrics},
+                          (console)/ (guarded layout, dashboard, profile/{,headshot,roles,highlights,metrics},
                           configuration, projects/{,new,order,[id]/{,case-study,media,milestones,related,github,preview}}, skills/{,technologies}, experience,
                           resume, social-links, contact, content/{,[page]}, [...rest] 404), not-found, error
   app/api/admin/          admin Route Handlers (session: the reference handler; projects/[id]/media{,/[assetId]}: image uploads;
-                          resume: PDF upload; resume/[id]: any version's PDF, admin only)
-  app/                    resume.pdf/ (public: the published resume only), sitemap.ts, robots.ts, manifest.ts, global-error.tsx
+                          profile/headshot: headshot upload; resume: PDF upload; resume/[id]: any version's PDF, admin only)
+  app/                    resume.pdf/ (public: the published resume only), og/[locale]/[...card] (generated share cards), sitemap.ts, robots.ts, manifest.ts, global-error.tsx
   proxy.ts                locale routing (public) + Clerk and the admin gate (admin, Server Actions)
   server/auth/            admin authorization: policy (the rule), gate (proxy decision), admin (requireAdmin…), route (adminRoute)
   config/                 env.ts (Zod, server-only), site.ts (URLs, ids), navigation.ts (route structure),
@@ -232,7 +232,7 @@ Never call `getAuthorization()` inside a `'use cache'` scope; `connection()` mak
 
 ## Content management
 
-The admin edits content through small, focused pieces rather than a generic CMS framework. Profile (`/admin/profile`, with Details · Roles · Highlights · Metrics tabs) and Configuration (`/admin/configuration`) are the reference implementations.
+The admin edits content through small, focused pieces rather than a generic CMS framework. Profile (`/admin/profile`, with Details · Headshot · Roles · Highlights · Metrics tabs) and Configuration (`/admin/configuration`) are the reference implementations.
 
 **Layers** (per domain):
 
@@ -277,7 +277,7 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 - *Delete* is permanent (cascades) and needs the slug typed, re-checked on the server; Unpublish is the reversible option.
 - *Technologies* are picked from the shared vocabulary; a new name adds a `technologies` row (existing names are never changed here).
 - *Images.* Upload (`POST /api/admin/projects/[id]/media`) and replace (`PUT …/media/[assetId]`) are Route Handlers (`adminRoute`): files exceed the Server Action body limit. Limits: 4 MB (under Vercel's 4.5 MB request cap); JPEG, PNG, WebP, AVIF decided from the bytes (`lib/image-file.ts`), never from the client's file name or MIME type; the server builds the object path (`projects/<project id>/<uuid>.<ext>`, public, never overwritten). Order, hero, alt text, captions, and removals are an ordinary editor save. A project's first image becomes its hero.
-- *Storage consistency* (`features/projects/service.ts`): a file is written before its transaction and deleted again if the transaction fails; files are deleted only after the transaction that dropped them commits, and only when no other row references the asset. A failed delete is logged (an orphaned file), never a failed save. `integrations/blob` deletes only URLs on a Vercel Blob public host under a known prefix. Services take a `MediaStore` (default: Blob), so tests and future callers can substitute storage.
+- *Storage consistency* (`features/projects/service.ts`; the headshot follows the same rules): a file is written before its transaction and deleted again if the transaction fails; files are deleted only after the transaction that dropped them commits (`lib/cms/media-files.ts`), and only when no other row references the asset (`deleteUnreferencedAssets` in `db/media.ts`, which checks projects and the profile). A failed delete is logged (an orphaned file), never a failed save. Static (bundled) assets are never deleted. `integrations/blob` deletes only URLs on a Vercel Blob public host under a known prefix (`projects/`, `profile/`). Services take a `MediaStore` (default: Blob), so tests and future callers can substitute storage.
 - `adminRoute` refuses non-GET requests whose `Origin` isn't the site (CSRF), on top of the admin check.
 - *Case study* (`[id]/case-study`). Optional, reorderable sections of fixed kinds: narrative, highlights, architecture, challenges & solutions, lessons, results, gallery, video. Which fields a kind uses (paragraphs required/optional/none, entries, images, video URL) is a code map, `SECTION_SPECS` in `features/projects/case-study.ts`, shared by validation, the editor, and the renderers. Fields a kind doesn't use are rejected, not ignored. Structure (kind, order, visibility, images, video) is shared by both locales; heading, paragraphs, and entries are per locale with the usual English fallback (per section and per entry). Paragraphs use a small markup (`lib/inline-markup.ts`: bold, emphasis, code, http(s)/site-path links, "- " bullets) parsed into data and rendered as React nodes by `components/ui/RichText`, with no HTML path at all. Video: YouTube/Vimeo are embedded from the parsed id only (`youtube-nocookie`, Vimeo `dnt`); any other URL is a link.
 - *Milestones* (`[id]/milestones`). Curated by hand, never inferred from commits; GitHub activity is a separate source with its own block. Public order is chronological (oldest first); editor list position only breaks same-date ties ("Sort by date" mirrors the public order). Date + precision (day/month/year) formatted with `Intl` in UTC (`features/projects/format.ts`).
@@ -285,7 +285,7 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 - *Related* (`[id]/related`). Explicit, ordered, directional picks of any other project (max 6). The page resolves them with `pickRelated` against the published list it already loads, so a draft or deleted project can't surface; it shows at most 3 as compact `ProjectCard`s.
 - *Visibility instead of staging.* These editors keep the Phase 4 contract (GitHub analytics too: the switch starts off and Preview shows the section marked Hidden): each Save is one transaction (no partial publication) and is public at once if the project is published. Every section and milestone has a `visible` switch and **new ones start hidden**, so content can be drafted on a live project and checked in Preview (which renders hidden items marked "Hidden") before switching it on. Drafts' case studies are never public: every public read starts from a `published` project.
 - *Media references.* Sections and milestones refer only to images already in the project's `project_media` (checked in the save transaction); uploads, alt text, and captions stay on the Media tab, so one image can appear in several places with no copy. Removing an image on the Media tab detaches it from that project's sections and milestones in the same transaction; files are still deleted only when no `project_media` or profile row references the asset.
-- *Page.* `ProjectDetail` composes: hero → cover → numbered blocks (Overview, each visible section, the legacy auto-gallery only when no gallery section exists, the timeline, then "Development activity" when the page passes its `github` slot) beside a sticky glass panel (metadata + "On this page") → related projects → pager. The cover is the page's Open Graph image when it has an absolute URL.
+- *Page.* `ProjectDetail` composes: hero → cover → numbered blocks (Overview, each visible section, the legacy auto-gallery only when no gallery section exists, the timeline, then "Development activity" when the page passes its `github` slot) beside a sticky glass panel (metadata + "On this page") → related projects → pager. The page's Open Graph image is its generated project share card, which shows the cover.
 
 **Skills** (`/admin/skills`: Categories · Technologies).
 - *Categories.* One form, two ordered lists: Stack (the About page's groups) and Learning next (the highlighted banners). The kind is the list a category is in; position is `sort_order`. Visible = `published`, hidden = `draft` (legacy `archived` reads as hidden). Icons come from the code-owned icon set, never stored markup. A save first parks every slug on its row id, so renames and swaps never trip the unique index mid-transaction.
@@ -310,6 +310,8 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 - *Page 1 only.* `ResumeViewer` draws page 1 to a canvas with pdf.js, not the browser's PDF viewer (an iframe `#page=1` still lets a visitor scroll every page). pdf.js fetches the whole published file, which is intended: Download serves the same file in full. Historical versions are never reachable from the public site.
 - `DocumentStore` (`integrations/blob/private-store.ts`) passes the `PRIVATE_BLOB_*` credentials explicitly (the store is connected with that env prefix) and refuses pathnames outside `resumes/`. Services take it as a parameter, so tests substitute it.
 
+**Headshot** (`/admin/profile/headshot`; `profile.headshot_asset_id` → `media_assets`). The photo used by the hero, every share card, and the JSON-LD person. Choosing a new photo and editing its alt text (per locale, English required) are one form: Save uploads the file with the alt text (`POST /api/admin/profile/headshot`, `adminRoute`) or, with no new file, saves the alt text alone (Server Action). Uploads go to `profile/headshot/<uuid>` in Blob and are JPEG or PNG only (sniffed), because the share-card renderer can't decode WebP or AVIF. Remove (confirmed) clears the photo; the hero and cards then show initials. The seeded photo is a static asset under `public/assets`; replacing it deletes its row, never the file. Every write refreshes the `profile` tag, which the share cards also use.
+
 **Configuration vs Profile.** Configuration owns `site_settings` only: brand mark, monogram, GitHub username and section switch, default theme. Personal content is Profile. Social links, contact copy, and page/section copy have their own editors (above); every content domain has exactly one owner.
 
 ## Localization
@@ -318,6 +320,11 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 - UI strings: `i18n/dictionaries/en.ts`. `es.ts` is typed as `Dictionary`, so a missing Spanish key fails `tsc`.
 - Content: translation tables with English fallback. Dates come from real values formatted with `Intl` (`features/experience/format.ts`).
 - SEO: every page sets a canonical URL plus `hreflang` alternates for `en`, `es`, and `x-default`, and the sitemap lists both locales.
+- Share cards (`lib/seo/share-card`, served by `app/og/[locale]/[...card]`). Every page's Open Graph and Twitter image is a generated 1200×630 PNG in the page's locale: `/og/en/home.png`, `/og/es/about.png`, `/og/en/projects/<slug>.png` (`shareCardPath` in `config/site.ts`, set by `pageMetadata`). The `.png` extension keeps these URLs out of the locale proxy. Cards are built from live content (profile, page and section copy, projects) and cached with the `profile`/`site`/`projects` tags, so admin saves refresh them; the response's CDN lifetime is 5 minutes.
+  - Rendering is `next/og` (Satori): flexbox and inline styles, no `oklch()` (`palette.ts` converts the dark-theme tokens to hex), no `inset` shorthand, no `backdrop-filter`. Display-face strings go through `unlig` (Space Grotesk's tt/ft ligatures otherwise leave a gap). Text is clipped to character budgets so content can't overflow.
+  - Fonts are static TTFs in `src/assets/fonts` (OFL; Satori reads neither WOFF2 nor variable fonts). They and `public/assets` (the headshot) are traced into the route by `outputFileTracingIncludes`.
+  - Images: PNG and JPEG only (sniffed). The headshot upload accepts only those; a WebP/AVIF project cover falls back to the identity art, and a missing headshot shows initials.
+  - Text: typical copy is shown in full; font sizes step down by length (`sizeFor`) and lines wrap. Only text past a generous safety budget (`clip`, in `render.tsx`) is cut with an ellipsis.
 
 ## Integrations
 
@@ -362,7 +369,7 @@ Status comes from the same schema the server saves with (`lib/cms/locale.ts`), s
 ## Future insertion points
 
 - **A new admin-managed domain** copies the shape in **Content management**: schema → repository (editor reads + writes) → `service.ts` → `mutations.ts` → editor → console page, with `authorship` columns and a migration in the same change, an `ADMIN_NAV` entry, and a cache tag.
-- **Other images** (profile headshot): reuse `ImageUploadField`/`sendUpload`, `lib/image-file.ts`, `lib/cms/upload.ts`, and `MediaStore`; `media_assets` rows stay behind `resolveMedia`.
+- **Other images**: reuse `ImageUploadField` (its `types` prop narrows formats)/`sendUpload`, `lib/image-file.ts`, `lib/cms/upload.ts`, `MediaStore`, `db/media.ts` (and add any new referencing column to `deleteUnreferencedAssets`), and `lib/cms/media-files.ts`; `media_assets` rows stay behind `resolveMedia`. The headshot is the smallest example.
 - **Cleanup:** drop the deprecated `profile.resume_asset_id` (and its orphaned `media_assets` row) in a later migration, once no deployment reads it.
 - **Public API (Phase 5):** `app/api/v1/*` route handlers calling the same `queries.ts` and mapping domain types to versioned DTOs. Nothing in the domain layer depends on HTTP. Writes, if ever exposed, call the same `service.ts` functions behind their own authorization (each service already takes an `actor` and, for files, a store).
 - **SDLC Manager (Phase 6):**

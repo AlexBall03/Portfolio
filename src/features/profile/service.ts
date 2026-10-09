@@ -1,21 +1,26 @@
 import 'server-only';
 import { getDb, withTransaction } from '@/db/client';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
+import { blobStore, type MediaStore } from '@/integrations/blob/store';
 import { translationCoverage, type TranslationCoverage } from '@/lib/cms/locale';
-import { ContentMissingError } from '@/lib/errors';
+import { removeStoredFiles } from '@/lib/cms/media-files';
+import { ContentMissingError, FieldValidationError } from '@/lib/errors';
+import { MAX_IMAGE_BYTES, sniffImage } from '@/lib/image-file';
+import { createLogger } from '@/lib/logger';
 import * as repo from './repository';
 import {
   highlightTranslationInput,
   metricTranslationInput,
   profileTranslationInput,
   roleTranslationInput,
+  type HeadshotTextInput,
   type ProfileDetailsInput,
   type ProfileHighlightsInput,
   type ProfileRolesInput,
   type SnapshotMetricsInput,
   type SocialLinksInput,
 } from './schema';
-import type { HighlightsValues, MetricValues, ProfileDetailsValues, RoleValues, SocialLinkValues } from './types';
+import type { HeadshotValues, HighlightsValues, MetricValues, ProfileDetailsValues, RoleValues, SocialLinkValues } from './types';
 
 /**
  * Profile administration: the domain operations behind the admin editors.
@@ -73,6 +78,67 @@ export async function loadSocialLinks(): Promise<SocialLinkValues[]> {
 export async function saveSocialLinks(data: SocialLinksInput, actor: repo.Actor) {
   await withTransaction((tx) => repo.replaceSocialLinks(tx, data.items, actor));
   return { items: await loadSocialLinks() };
+}
+
+/* ── Headshot ─────────────────────────────────────────────────────────────── */
+
+const log = createLogger('profile');
+
+/**
+ * Formats the headshot accepts. Narrower than project images on purpose: the
+ * photo is also drawn into the generated share cards, whose renderer decodes
+ * only JPEG and PNG.
+ */
+const HEADSHOT_TYPES = new Set(['image/jpeg', 'image/png']);
+
+export async function loadHeadshot(): Promise<HeadshotValues> {
+  const values = await repo.getHeadshotValues(await getDb());
+  if (!values) throw new ContentMissingError('The site profile');
+  return values;
+}
+
+/**
+ * Stores a new headshot (checked by its bytes) under a server-chosen path and
+ * makes it current, with its alt text. The previous photo is deleted once the
+ * transaction commits; a failed transaction deletes the new file again.
+ */
+export async function uploadHeadshot(
+  data: { bytes: Uint8Array } & HeadshotTextInput,
+  actor: repo.Actor,
+  store: MediaStore = blobStore,
+): Promise<HeadshotValues> {
+  if (!store.configured()) {
+    throw new FieldValidationError({ file: 'Image storage is not configured (connect a Vercel Blob store).' });
+  }
+  if (data.bytes.byteLength === 0) throw new FieldValidationError({ file: 'Choose an image to upload' });
+  if (data.bytes.byteLength > MAX_IMAGE_BYTES) throw new FieldValidationError({ file: 'Images can be at most 4 MB' });
+  const image = sniffImage(data.bytes);
+  if (!image || !HEADSHOT_TYPES.has(image.mimeType)) {
+    throw new FieldValidationError({ file: 'Use a JPEG or PNG image (link previews can only show those)' });
+  }
+  const src = await store.put(`profile/headshot/${crypto.randomUUID()}.${image.ext}`, data.bytes, image.mimeType);
+  let old: repo.StoredObject[];
+  try {
+    old = await withTransaction((tx) =>
+      repo.setHeadshot(tx, { src, mimeType: image.mimeType, width: image.width, height: image.height }, data.translations, actor),
+    );
+  } catch (err) {
+    await removeStoredFiles(store, [{ storage: 'blob', src }], log);
+    throw err;
+  }
+  await removeStoredFiles(store, old, log);
+  return loadHeadshot();
+}
+
+export async function saveHeadshotText(data: HeadshotTextInput, actor: repo.Actor): Promise<HeadshotValues> {
+  await withTransaction((tx) => repo.updateHeadshotText(tx, data.translations, actor));
+  return loadHeadshot();
+}
+
+export async function removeHeadshot(actor: repo.Actor, store: MediaStore = blobStore): Promise<HeadshotValues> {
+  const old = await withTransaction((tx) => repo.clearHeadshot(tx, actor));
+  await removeStoredFiles(store, old, log);
+  return loadHeadshot();
 }
 
 /** Translation coverage of every profile-owned entity, per non-default locale (dashboard). */

@@ -18,7 +18,7 @@ export interface MediaStore {
 }
 
 /** Object path prefixes this app writes to (and therefore may delete from). */
-export const MEDIA_PREFIXES = ['projects/'] as const;
+export const MEDIA_PREFIXES = ['projects/', 'profile/'] as const;
 
 const BLOB_HOST = /^[a-z0-9]+\.public\.blob\.vercel-storage\.com$/i;
 

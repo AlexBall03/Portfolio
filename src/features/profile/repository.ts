@@ -1,6 +1,8 @@
 import 'server-only';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import {
+  mediaAssets,
+  mediaAssetTranslations,
   profile,
   profileHighlights,
   profileHighlightTranslations,
@@ -11,13 +13,16 @@ import {
   snapshotMetricTranslations,
   socialLinks,
 } from '@/db/schema';
+import { deleteUnreferencedAssets, type StoredObject } from '@/db/media';
 import type { Database } from '@/db/types';
 import type { Locale } from '@/i18n/config';
 import { mapTranslated, pickTranslation } from '@/i18n/translations';
 import { localeRecord } from '@/lib/cms/locale';
 import { reconcileList, syncTranslations } from '@/lib/cms/write';
+import { NotFoundError } from '@/lib/errors';
 import { resolveMedia } from '@/lib/media';
 import type {
+  HeadshotTextInput,
   ProfileDetailsInput,
   ProfileHighlightsInput,
   ProfileRolesInput,
@@ -26,6 +31,7 @@ import type {
 } from './schema';
 import type {
   Highlight,
+  HeadshotValues,
   HighlightKind,
   HighlightsValues,
   HighlightValues,
@@ -447,4 +453,96 @@ export async function replaceSocialLinks(db: Database, items: SocialLinkItem[], 
       remove: (ids) => db.delete(socialLinks).where(inArray(socialLinks.id, ids)),
     },
   );
+}
+
+/* ── Headshot ─────────────────────────────────────────────────────────────── */
+
+export async function getHeadshotValues(db: Database): Promise<HeadshotValues | null> {
+  const row = await db.query.profile.findFirst({
+    where: eq(profile.id, PROFILE_ID),
+    columns: { id: true },
+    with: { headshot: { with: { translations: true } } },
+  });
+  if (!row) return null;
+  const asset = row.headshot;
+  return {
+    photo: asset
+      ? {
+          src: resolveMedia({ ...asset, translations: [] }, 'en')!.src,
+          width: asset.width,
+          height: asset.height,
+          uploaded: asset.storage === 'blob',
+        }
+      : null,
+    translations: localeRecord(asset?.translations ?? [], (t) => ({ alt: t.alt }), () => ({ alt: '' })),
+  };
+}
+
+const syncHeadshotAlt = (db: Database, assetId: string, translations: HeadshotTextInput['translations']) =>
+  syncTranslations(translations, {
+    upsert: (locale, t) =>
+      db
+        .insert(mediaAssetTranslations)
+        .values({ assetId, locale, alt: t.alt })
+        .onConflictDoUpdate({ target: [mediaAssetTranslations.assetId, mediaAssetTranslations.locale], set: { alt: t.alt } }),
+    remove: (locale) =>
+      db
+        .delete(mediaAssetTranslations)
+        .where(and(eq(mediaAssetTranslations.assetId, assetId), eq(mediaAssetTranslations.locale, locale))),
+  });
+
+async function currentHeadshotId(db: Database): Promise<string | null> {
+  const [row] = await db
+    .select({ assetId: profile.headshotAssetId })
+    .from(profile)
+    .where(eq(profile.id, PROFILE_ID))
+    .for('update');
+  if (!row) throw new Error('The site profile row is missing');
+  return row.assetId;
+}
+
+export type { StoredObject };
+
+export interface NewHeadshot {
+  src: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+}
+
+/**
+ * Points the profile at a newly uploaded photo with its alt text. The old
+ * asset is deleted unless something else uses it; its file is returned for
+ * removal after commit.
+ */
+export async function setHeadshot(
+  db: Database,
+  image: NewHeadshot,
+  translations: HeadshotTextInput['translations'],
+  actor: Actor,
+): Promise<StoredObject[]> {
+  const previous = await currentHeadshotId(db);
+  const [asset] = await db
+    .insert(mediaAssets)
+    .values({ storage: 'blob', ...image, createdBy: actor.userId, updatedBy: actor.userId })
+    .returning({ id: mediaAssets.id });
+  await syncHeadshotAlt(db, asset!.id, translations);
+  await db.update(profile).set({ headshotAssetId: asset!.id, updatedBy: actor.userId }).where(eq(profile.id, PROFILE_ID));
+  return deleteUnreferencedAssets(db, [previous]);
+}
+
+/** Updates the current photo's alt text. */
+export async function updateHeadshotText(db: Database, translations: HeadshotTextInput['translations'], actor: Actor) {
+  const assetId = await currentHeadshotId(db);
+  if (!assetId) throw new NotFoundError('The headshot');
+  await syncHeadshotAlt(db, assetId, translations);
+  await db.update(mediaAssets).set({ updatedBy: actor.userId }).where(eq(mediaAssets.id, assetId));
+}
+
+/** Removes the photo (the site then shows its placeholder). Returns the file to remove after commit. */
+export async function clearHeadshot(db: Database, actor: Actor): Promise<StoredObject[]> {
+  const previous = await currentHeadshotId(db);
+  if (!previous) return [];
+  await db.update(profile).set({ headshotAssetId: null, updatedBy: actor.userId }).where(eq(profile.id, PROFILE_ID));
+  return deleteUnreferencedAssets(db, [previous]);
 }

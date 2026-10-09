@@ -10,6 +10,7 @@ import { Status } from '@/components/ui/Status';
 import { LOCALE_TAGS, type Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/get-dictionary';
 import { localizedPath } from '@/i18n/paths';
+import { displayName, initials } from '../display-name';
 import type { Profile } from '../types';
 
 interface HeroProps {
@@ -17,12 +18,6 @@ interface HeroProps {
   monogram: string;
   locale: Locale;
   t: Dictionary['hero'];
-}
-
-/** Splits "Alexander D. Ball" into "Alexander" / "D. Ball" for the two-line display name. */
-function displayName(fullName: string): [string, string] {
-  const [first = fullName, ...rest] = fullName.split(' ');
-  return [first, rest.join(' ')];
 }
 
 /** Small L-shaped registration marks on the portrait frame. */
@@ -111,6 +106,11 @@ export function Hero({ profile, monogram, locale, t }: HeroProps) {
             <Corner className="-top-1.5 -left-1.5 border-t-2 border-l-2 border-brand/70" />
             <Corner className="-right-1.5 -bottom-1.5 border-r-2 border-b-2 border-accent/70" />
             <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-surface-inset">
+              {!profile.headshot && (
+                <span aria-hidden="true" className="absolute inset-0 grid place-items-center font-display text-display-xl text-fg/25">
+                  {initials(profile.fullName)}
+                </span>
+              )}
               {profile.headshot && (
                 <Image
                   src={profile.headshot.src}

@@ -4,18 +4,25 @@ import { type DragEvent, useEffect, useId, useMemo, useRef, useState } from 'rea
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/cn';
 import type { MutationResult } from '@/lib/cms/result';
-import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '@/lib/image-file';
+import { IMAGE_TYPES, type ImageMimeType, MAX_IMAGE_BYTES } from '@/lib/image-file';
 import { FieldError } from './fields';
 
-const ACCEPT = Object.keys(IMAGE_TYPES).join(',');
+const ALL_TYPES = Object.keys(IMAGE_TYPES) as ImageMimeType[];
+const LABELS: Record<ImageMimeType, string> = { 'image/jpeg': 'JPEG', 'image/png': 'PNG', 'image/webp': 'WebP', 'image/avif': 'AVIF' };
+
+/** "JPEG, PNG, WebP, or AVIF" */
+const formatList = (types: readonly ImageMimeType[]) => {
+  const names = types.map((t) => LABELS[t]);
+  return names.length < 3 ? names.join(' or ') : `${names.slice(0, -1).join(', ')}, or ${names.at(-1)}`;
+};
 const formatSize = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
 /**
  * A quick check before uploading, so an obviously wrong file fails instantly.
  * The server decides from the file's bytes; this only reads what the browser reports.
  */
-export function checkImageFile(file: File): string | null {
-  if (!(file.type in IMAGE_TYPES)) return 'Use a JPEG, PNG, WebP, or AVIF image';
+export function checkImageFile(file: File, types: readonly ImageMimeType[] = ALL_TYPES): string | null {
+  if (!(types as readonly string[]).includes(file.type)) return `Use a ${formatList(types)} image`;
   if (file.size > MAX_IMAGE_BYTES) return `Images can be at most 4 MB (this one is ${formatSize(file.size)})`;
   return null;
 }
@@ -42,13 +49,15 @@ interface ImageUploadFieldProps {
   error?: string;
   disabled?: boolean;
   hint?: string;
+  /** Accepted formats (default: every supported image type). */
+  types?: readonly ImageMimeType[];
 }
 
 /**
  * Choose or drop one image, with a local preview before anything is sent.
  * Reusable by any editor that uploads a single image.
  */
-export function ImageUploadField({ label, file, onChange, error, disabled, hint }: ImageUploadFieldProps) {
+export function ImageUploadField({ label, file, onChange, error, disabled, hint, types = ALL_TYPES }: ImageUploadFieldProps) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -63,7 +72,7 @@ export function ImageUploadField({ label, file, onChange, error, disabled, hint 
 
   const pick = (next: File | null | undefined) => {
     if (!next) return;
-    const problem = checkImageFile(next);
+    const problem = checkImageFile(next, types);
     setLocalError(problem);
     onChange(problem ? null : next);
   };
@@ -128,7 +137,7 @@ export function ImageUploadField({ label, file, onChange, error, disabled, hint 
             ref={input}
             id={id}
             type="file"
-            accept={ACCEPT}
+            accept={types.join(',')}
             disabled={disabled}
             aria-labelledby={`${id}-label`}
             aria-describedby={`${id}-hint`}
@@ -140,7 +149,7 @@ export function ImageUploadField({ label, file, onChange, error, disabled, hint 
       </div>
       {shownError && <FieldError>{shownError}</FieldError>}
       <p id={`${id}-hint`} className="text-micro text-fg-faint">
-        {hint ?? 'JPEG, PNG, WebP, or AVIF, up to 4 MB.'}
+        {hint ?? `${formatList(types)}, up to 4 MB.`}
       </p>
     </div>
   );

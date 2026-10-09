@@ -3,6 +3,7 @@ import { getDb, withTransaction } from '@/db/client';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { blobStore, type MediaStore } from '@/integrations/blob/store';
 import { blankLocales } from '@/lib/cms/locale';
+import { removeStoredFiles } from '@/lib/cms/media-files';
 import { FieldValidationError, NotFoundError } from '@/lib/errors';
 import { MAX_IMAGE_BYTES, sniffImage } from '@/lib/image-file';
 import { createLogger } from '@/lib/logger';
@@ -333,13 +334,4 @@ export async function replaceProjectImage(
   return (await loadProjectMedia(data.projectId)) ?? { items: [] };
 }
 
-/** Best-effort removal of uploaded files the database no longer references. */
-async function removeFiles(store: MediaStore, files: readonly repo.StoredObject[]) {
-  const urls = files.filter((f) => f.storage === 'blob').map((f) => f.src);
-  if (!urls.length) return;
-  try {
-    await store.remove(urls);
-  } catch (err) {
-    log.error('Could not delete stored images; they are orphaned', err, { urls });
-  }
-}
+const removeFiles = (store: MediaStore, files: readonly repo.StoredObject[]) => removeStoredFiles(store, files, log);

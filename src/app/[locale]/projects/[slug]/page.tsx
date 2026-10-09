@@ -41,14 +41,11 @@ async function resolve(params: ProjectPageProps['params']) {
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { locale, project } = await resolve(params);
-  const cover = project.cover;
   return pageMetadata({
     locale,
     path: `/projects/${project.slug}`,
     title: project.name,
     description: project.tagline,
-    // Only absolute (uploaded or external) covers: a crawler can't resolve a site-relative path here.
-    image: cover && /^https?:\/\//.test(cover.src) ? { url: cover.src, width: cover.width, height: cover.height, alt: cover.alt } : null,
   });
 }
 

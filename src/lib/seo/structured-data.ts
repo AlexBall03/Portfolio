@@ -1,4 +1,4 @@
-import { absoluteUrl, OG_IMAGE, PERSON_ID, WEBSITE_ID } from '@/config/site';
+import { absoluteUrl, PERSON_ID, SHARE_CARD_SIZE, shareCardPath, WEBSITE_ID } from '@/config/site';
 import type { Experience } from '@/features/experience/types';
 import type { Profile, SocialLink } from '@/features/profile/types';
 import type { Project } from '@/features/projects/types';
@@ -100,7 +100,7 @@ export function buildPageNode({ type, locale, path, name, description, projects,
     isPartOf: { '@id': WEBSITE_ID },
     ...(type === 'ProfilePage' ? { mainEntity: { '@id': PERSON_ID } } : { about: { '@id': PERSON_ID } }),
     primaryImageOfPage: primaryImage
-      ? { '@type': 'ImageObject', url: absoluteUrl(OG_IMAGE.path), width: OG_IMAGE.width, height: OG_IMAGE.height }
+      ? { '@type': 'ImageObject', url: absoluteUrl(shareCardPath(locale, path)), ...SHARE_CARD_SIZE }
       : undefined,
     ...(projects?.length
       ? {

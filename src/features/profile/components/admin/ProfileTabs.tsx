@@ -3,6 +3,7 @@ import { ADMIN_PROFILE_PATH } from '@/config/admin';
 
 const TABS = [
   { key: 'details', label: 'Details', href: ADMIN_PROFILE_PATH },
+  { key: 'headshot', label: 'Headshot', href: `${ADMIN_PROFILE_PATH}/headshot` },
   { key: 'roles', label: 'Roles', href: `${ADMIN_PROFILE_PATH}/roles` },
   { key: 'highlights', label: 'Highlights', href: `${ADMIN_PROFILE_PATH}/highlights` },
   { key: 'metrics', label: 'Metrics', href: `${ADMIN_PROFILE_PATH}/metrics` },

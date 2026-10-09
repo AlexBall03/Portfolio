@@ -1,9 +1,8 @@
 import 'server-only';
-import { and, asc, eq, inArray, max, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, max, ne, sql, type SQL } from 'drizzle-orm';
 import {
   mediaAssets,
   mediaAssetTranslations,
-  profile,
   projectMedia,
   projectMilestones,
   projectMilestoneTranslations,
@@ -20,6 +19,7 @@ import {
   projectTranslations,
   technologies,
 } from '@/db/schema';
+import { deleteUnreferencedAssets, type StoredObject } from '@/db/media';
 import type { Database } from '@/db/types';
 import type { RepositoryLabel } from '@/features/github/types';
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
@@ -27,7 +27,7 @@ import { mapTranslated, pickTranslation } from '@/i18n/translations';
 import { localeRecord, translationStatus } from '@/lib/cms/locale';
 import { reconcileList, syncTranslations } from '@/lib/cms/write';
 import { FieldValidationError, NotFoundError } from '@/lib/errors';
-import { type MediaStorage, resolveMedia } from '@/lib/media';
+import { resolveMedia } from '@/lib/media';
 import {
   projectTranslationInput,
   type ProjectEditorInput,
@@ -329,11 +329,7 @@ export interface Actor {
   userId: string;
 }
 
-/** A stored file the caller must delete from object storage after the transaction commits. */
-export interface StoredObject {
-  storage: MediaStorage;
-  src: string;
-}
+export type { StoredObject };
 
 const SLUG_TAKEN = { slug: 'Another project uses (or used) this URL' };
 
@@ -474,23 +470,6 @@ export async function deleteProject(db: Database, id: string): Promise<StoredObj
     db,
     links.map((l) => l.assetId),
   );
-}
-
-/** Deletes the given assets unless another project or the profile still uses them. */
-async function deleteUnreferencedAssets(db: Database, ids: string[]): Promise<StoredObject[]> {
-  if (!ids.length) return [];
-  const linked = await db.select({ id: projectMedia.assetId }).from(projectMedia).where(inArray(projectMedia.assetId, ids));
-  const profileRefs = await db
-    .select({ headshot: profile.headshotAssetId, resume: profile.resumeAssetId })
-    .from(profile)
-    .where(or(inArray(profile.headshotAssetId, ids), inArray(profile.resumeAssetId, ids)));
-  const stillUsed = new Set([...linked.map((r) => r.id), ...profileRefs.flatMap((r) => [r.headshot, r.resume])]);
-  const orphaned = ids.filter((id) => !stillUsed.has(id));
-  if (!orphaned.length) return [];
-  return db
-    .delete(mediaAssets)
-    .where(inArray(mediaAssets.id, orphaned))
-    .returning({ storage: mediaAssets.storage, src: mediaAssets.src });
 }
 
 export interface NewImage {

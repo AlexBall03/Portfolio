@@ -69,6 +69,12 @@ export interface ProfileTranslationValues {
   heroChips: string[];
 }
 
+/** Headshot editor values: the current photo (null when none) and its alt text per locale. */
+export interface HeadshotValues {
+  photo: { src: string; width: number | null; height: number | null; uploaded: boolean } | null;
+  translations: Record<Locale, { alt: string }>;
+}
+
 export interface ProfileDetailsValues {
   fullName: string;
   shortName: string;

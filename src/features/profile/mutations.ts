@@ -1,10 +1,12 @@
 'use server';
 
 import { updateTag } from 'next/cache';
+import { z } from 'zod';
 import { CACHE_TAGS } from '@/lib/cache-tags';
 import { runMutation } from '@/lib/cms/mutation';
 import { requireAdmin } from '@/server/auth/admin';
 import {
+  headshotTextInput,
   profileDetailsInput,
   profileHighlightsInput,
   profileRolesInput,
@@ -60,6 +62,24 @@ export async function saveSocialLinks(input: unknown) {
   const admin = await requireAdmin();
   return runMutation(socialLinksInput, input, async (data) => {
     const saved = await service.saveSocialLinks(data, admin);
+    updateTag(CACHE_TAGS.profile);
+    return saved;
+  });
+}
+
+export async function saveHeadshotText(input: unknown) {
+  const admin = await requireAdmin();
+  return runMutation(headshotTextInput, input, async (data) => {
+    const saved = await service.saveHeadshotText(data, admin);
+    updateTag(CACHE_TAGS.profile);
+    return saved;
+  });
+}
+
+export async function removeHeadshot() {
+  const admin = await requireAdmin();
+  return runMutation(z.object({}), {}, async () => {
+    const saved = await service.removeHeadshot(admin);
     updateTag(CACHE_TAGS.profile);
     return saved;
   });
