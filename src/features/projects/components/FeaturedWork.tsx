@@ -48,7 +48,8 @@ export function FeaturedWork({ section, projects, locale, t, labels }: FeaturedW
         )}
       >
         {featured.map((p, i) => (
-          <li key={p.id} className={cn(featured.length === 3 && i === 2 && 'md:col-span-2 lg:col-span-1')}>
+          // Three cards in two columns: the lead project takes the full-width row.
+          <li key={p.id} className={cn(featured.length === 3 && i === 0 && 'md:col-span-2 lg:col-span-1')}>
             <ProjectCard project={p} index={i} locale={locale} t={t} layout="tile" headingLevel="h3" cta={labels.readCaseStudy} />
           </li>
         ))}

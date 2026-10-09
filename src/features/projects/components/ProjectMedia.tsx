@@ -39,7 +39,7 @@ export function ProjectMedia({ project, size = 'card', sizes, priority, classNam
     >
       <div
         className={cn(
-          'absolute inset-x-5 top-6 bottom-0 flex flex-col overflow-hidden rounded-t-lg border border-b-0 border-line-strong bg-surface/80 shadow-lg transition-transform duration-500 ease-out group-hover:-translate-y-1 sm:inset-x-8 sm:top-8',
+          'absolute inset-x-5 top-6 -bottom-2 flex flex-col overflow-hidden rounded-t-lg border border-b-0 border-line-strong bg-surface/80 shadow-lg transition-transform duration-500 ease-out group-hover:-translate-y-1 sm:inset-x-8 sm:top-8',
           detail && 'lg:inset-x-12 lg:top-12',
         )}
       >
