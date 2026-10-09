@@ -201,8 +201,8 @@ async function checkRepositories(rows: readonly repo.StoredRepository[]): Promis
   return Object.fromEntries(
     rows.map((r, i): [string, RepositoryCheck] => {
       const result = results[i]!;
-      if (result.status === 'rejected') return [r.id, { status: 'unreachable' }];
-      const meta = result.value;
+      if (result.status === 'rejected' || !result.value.ok) return [r.id, { status: 'unreachable' }];
+      const meta = result.value.value;
       if (meta.state !== 'public') return [r.id, { status: meta.state }];
       const stored = `${r.owner}/${r.name}`;
       const renamedTo = meta.repo.fullName.toLowerCase() === stored.toLowerCase() ? null : meta.repo.fullName;

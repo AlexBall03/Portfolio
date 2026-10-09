@@ -173,7 +173,8 @@
      boot script (src/lib/splash-script.ts); it is a registered integer
      so it animates and can feed the percentage counter.
      ------------------------------------------------------------------ */
-  html { transition: --boot 700ms var(--ease-out); }
+  /* The boot script writes --boot every frame; this only smooths its whole-number steps. */
+  html { transition: --boot 140ms linear; }
 
   :root {
     /* Blue-led, with brass only as a hint at the leading edge. */
@@ -216,6 +217,11 @@
   .nav-progress[data-phase='idle'] { transition: none; }
 
   #splash {
+    /* The glow under the mark: deep on the dark canvas, a light wash on the pale one. */
+    --splash-glow: color-mix(in oklab, var(--brand) 55%, transparent);
+    --splash-glow-accent: color-mix(in oklab, var(--accent) 35%, transparent);
+    /* The completion flash: soft brass. */
+    --splash-flash: color-mix(in oklab, var(--accent) 80%, transparent);
     position: fixed;
     inset: 0;
     z-index: 80;
@@ -223,17 +229,23 @@
     place-items: center;
     background: var(--canvas);
   }
+  :root[data-theme='light'] #splash {
+    --splash-glow: color-mix(in oklab, var(--brand) 16%, transparent);
+    --splash-glow-accent: color-mix(in oklab, var(--accent) 14%, transparent);
+    --splash-flash: color-mix(in oklab, var(--accent) 55%, transparent);
+  }
   html[data-splash='on'] #splash {
     display: grid;
     /* Safety net: even if scripts never run to completion, get out of the way. */
     animation: splash-out 0s linear 10s forwards;
   }
-  html[data-splash='on']:not([data-booted]) { overflow: hidden; }
+  /* Scrolling is blocked by the boot script while the screen is up (not overflow:
+     hidden, which would hide the scrollbar and shift the page sideways when it returns). */
   html[data-booted] #splash {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 600ms var(--ease-standard) 120ms, visibility 0s linear 720ms;
+    transition: opacity 480ms var(--ease-standard), visibility 0s linear 480ms;
   }
 
   .splash-body {
@@ -242,62 +254,70 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: transform 700ms var(--ease-out), filter 500ms var(--ease-standard), opacity 450ms var(--ease-standard);
+    transition: transform 600ms var(--ease-out), filter 420ms var(--ease-standard), opacity 380ms var(--ease-standard);
   }
-  /* Exit: the content lifts toward the viewer and dissolves. */
-  html[data-booted] .splash-body { transform: scale(1.06); filter: blur(6px); opacity: 0; }
+  html[data-booted] .splash-body { transform: scale(1.04); filter: blur(4px); opacity: 0; }
 
   .splash-core {
     position: relative;
     display: grid;
     place-items: center;
   }
-  /* A soft light behind the wordmark that breathes while loading. */
+
   .splash-halo {
     position: absolute;
     top: 50%;
     left: 50%;
     z-index: -1;
-    width: 22rem;
-    height: 11rem;
+    width: 26rem;
+    height: 13rem;
     translate: -50% -50%;
     border-radius: 50%;
-    background: radial-gradient(closest-side, color-mix(in oklab, var(--brand) 70%, transparent), transparent);
-    filter: blur(26px);
+    background: radial-gradient(closest-side, var(--splash-glow), transparent);
+    filter: blur(32px);
     pointer-events: none;
-    animation: splash-breathe 2.6s ease-in-out infinite;
+    animation: splash-glow-in 900ms var(--ease-out) both, splash-breathe 3.2s ease-in-out 900ms infinite;
   }
   .splash-halo-accent {
-    width: 9rem;
-    height: 5rem;
-    translate: -10% -30%;
-    background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 40%, transparent), transparent);
-    animation-delay: -1.3s;
+    width: 10rem;
+    height: 5.5rem;
+    translate: -8% -24%;
+    background: radial-gradient(closest-side, var(--splash-glow-accent), transparent);
+    animation-delay: 0ms, -1.6s;
   }
-  /* Exit: the light flares open into the page. */
-  html[data-booted] .splash-halo { animation: splash-flare 700ms var(--ease-out) forwards; }
+  html[data-booted] .splash-halo { animation: splash-flare 600ms var(--ease-out) forwards; }
 
   .splash-mark {
-    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
-    animation: splash-mark-in 720ms var(--ease-out) both;
+    font-size: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+    animation: splash-mark-in 640ms var(--ease-out) both;
   }
   .splash-mark [data-part] {
     display: inline-block;
-    animation: splash-bracket-in 820ms var(--ease-out) 80ms both;
+    animation: splash-bracket-in 760ms var(--ease-out) 60ms both;
   }
   .splash-mark [data-part='open'] { --from: -0.5em; }
   .splash-mark [data-part='close'] { --from: 0.5em; }
 
+  /* Track and label share one width, so the label's ends line up with the bar's. */
+  .splash-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    width: min(15rem, 64vw);
+    margin-top: 1.9rem;
+  }
+  .splash-bar {
+    /* A drop-shadow follows the visible fill exactly: a soft glow with no clipped edges. */
+    filter: drop-shadow(0 0 5px color-mix(in oklab, var(--brand) 70%, transparent)) drop-shadow(0 0 1px color-mix(in oklab, var(--brand) 50%, transparent));
+  }
   .splash-track {
     position: relative;
-    width: min(13rem, 60vw);
     height: 2px;
-    margin-top: 1.75rem;
     border-radius: 999px;
     background: var(--line-strong);
-    /* Clip sideways (the fill slides in from the left) but let the glow spill vertically. */
-    clip-path: inset(-8px 0 -8px 0 round 999px);
-    animation: splash-fade 500ms var(--ease-standard) 160ms both;
+    /* Clips the fill as it slides in from the left; the glow is on .splash-bar. */
+    overflow: hidden;
+    animation: splash-rise 420ms var(--ease-out) 90ms both;
   }
   .splash-fill {
     position: absolute;
@@ -305,60 +325,94 @@
     overflow: hidden;
     border-radius: inherit;
     background: var(--load-gradient);
-    box-shadow: 0 0 12px color-mix(in oklab, var(--brand) 75%, transparent);
     transform: translateX(calc((var(--boot) / 100 - 1) * 100%));
   }
-  /* A light sweep so the line feels alive between milestones. */
+  /* A light glint travelling along the fill. */
   .splash-fill::after {
     content: '';
     position: absolute;
     inset: 0;
     width: 40%;
-    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.75), transparent);
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.7), transparent);
     animation: splash-shimmer 1.6s ease-in-out infinite;
   }
 
   .splash-label {
     display: flex;
-    gap: 0.6em;
-    margin-top: 1rem;
+    justify-content: space-between;
     font-family: var(--font-mono);
     font-size: var(--text-micro);
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--fg-muted);
-    animation: splash-fade 500ms var(--ease-standard) 260ms both;
+    animation: splash-rise 420ms var(--ease-out) 150ms both;
   }
   .splash-pct::after {
     counter-reset: boot var(--boot);
     content: counter(boot) '%';
     display: inline-block;
     min-width: 4ch;
+    /* The tracking would push the % off the bar's end. */
+    margin-right: -0.22em;
+    text-align: right;
     font-variant-numeric: tabular-nums;
     color: var(--fg);
   }
 
-  /* The page settles in as the splash dissolves (only on loads that showed it). */
+  /*
+   * The page settles in as the screen dissolves (only on loads that showed it):
+   * the chrome and footer fade up, and the content's own staggered reveals are
+   * held until now, so the hero's entrance is seen rather than played behind
+   * the screen.
+   */
   html[data-splash='on'] :is(.chrome-bar, #main, body > footer) {
     transition:
-      opacity 700ms var(--ease-out) 180ms,
-      transform 900ms var(--ease-out) 180ms,
-      filter 700ms var(--ease-out) 180ms,
+      opacity 600ms var(--ease-out) 80ms,
+      transform 700ms var(--ease-out) 80ms,
       background-color 300ms var(--ease-standard),
       border-color 300ms var(--ease-standard),
       box-shadow 300ms var(--ease-standard);
   }
-  html[data-splash='on']:not([data-booted]) :is(.chrome-bar, #main, body > footer) {
+  html[data-splash='on']:not([data-booted]) :is(.chrome-bar, body > footer) {
     opacity: 0;
-    transform: translateY(12px) scale(0.99);
-    filter: blur(4px);
+    transform: translateY(-6px);
   }
+  html[data-splash='on']:not([data-booted]) #main { opacity: 0; }
+  html[data-splash='on'][data-anim-ready]:not([data-booted]) .reveal[data-revealed] {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  /*
+   * Completion: a soft brass flash once the bar reaches 100% (`data-boot-done`,
+   * held by the boot script until it has played). A brass layer warms the blue
+   * fill, the glow swells and settles, one brass glint sweeps the bar, the
+   * percentage turns brass, and the small brass halo blooms.
+   */
+  .splash-fill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, color-mix(in oklab, var(--accent) 45%, var(--brand)), var(--accent));
+    opacity: 0;
+  }
+  /* Each starts 140ms late: the displayed bar finishes easing (the --boot smoothing) into 100% first. */
+  html[data-boot-done] .splash-bar { animation: splash-complete-glow 560ms var(--ease-out) 140ms forwards; }
+  html[data-boot-done] .splash-fill::before { animation: splash-complete-tint 560ms var(--ease-out) 140ms forwards; }
+  html[data-boot-done] .splash-fill::after {
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent) 35%, oklch(1 0 0)), transparent);
+    animation: splash-complete-sweep 520ms var(--ease-out) 140ms both;
+  }
+  .splash-pct::after { transition: color 240ms var(--ease-standard); }
+  html[data-boot-done] .splash-pct::after { color: var(--accent-fg); transition-delay: 140ms; }
+  html[data-boot-done]:not([data-booted]) .splash-halo-accent { animation: splash-bloom 560ms var(--ease-out) 140ms forwards; }
 
   @media (prefers-reduced-motion: reduce) {
     .splash-halo,
     .splash-fill::after { animation: none; }
     html[data-booted] .splash-body { transform: none; filter: none; }
-    html[data-splash='on']:not([data-booted]) :is(.chrome-bar, #main, body > footer) { transform: none; filter: none; }
+    html[data-splash='on']:not([data-booted]) :is(.chrome-bar, body > footer) { transform: none; }
   }
 
   @keyframes splash-mark-in {
@@ -367,21 +421,48 @@
   @keyframes splash-bracket-in {
     from { opacity: 0; transform: translateX(var(--from)); }
   }
-  @keyframes splash-fade {
-    from { opacity: 0; }
+  @keyframes splash-rise {
+    from { opacity: 0; transform: translateY(4px); }
+  }
+  @keyframes splash-glow-in {
+    from { opacity: 0; scale: 0.7; }
   }
   @keyframes splash-breathe {
-    0%, 100% { opacity: 0.5; scale: 0.9; }
-    50% { opacity: 1; scale: 1.08; }
+    0%, 100% { opacity: 1; scale: 1; }
+    50% { opacity: 0.65; scale: 0.92; }
   }
   @keyframes splash-flare {
     0% { opacity: 1; scale: 1; }
     35% { opacity: 1; }
-    100% { opacity: 0; scale: 1.8; }
+    100% { opacity: 0; scale: 1.7; }
   }
   @keyframes splash-shimmer {
     from { transform: translateX(-100%); }
     to { transform: translateX(260%); }
+  }
+  @keyframes splash-complete-glow {
+    0% {
+      filter: drop-shadow(0 0 5px color-mix(in oklab, var(--brand) 70%, transparent))
+        drop-shadow(0 0 1px color-mix(in oklab, var(--brand) 50%, transparent));
+    }
+    35% { filter: drop-shadow(0 0 9px var(--splash-flash)) drop-shadow(0 0 2px var(--splash-flash)); }
+    100% {
+      filter: drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 45%, transparent))
+        drop-shadow(0 0 1px color-mix(in oklab, var(--accent) 35%, transparent));
+    }
+  }
+  @keyframes splash-complete-tint {
+    35% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
+  @keyframes splash-complete-sweep {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(260%); }
+  }
+  @keyframes splash-bloom {
+    0% { opacity: 1; scale: 1; }
+    40% { opacity: 1; scale: 1.45; filter: blur(32px) brightness(1.5); }
+    100% { opacity: 0.9; scale: 1.25; }
   }
   @keyframes splash-out {
     to { opacity: 0; visibility: hidden; pointer-events: none; }
@@ -453,7 +534,8 @@
 
   /* ------------------------------------------------------------------
      Background atmosphere: grid, two ambient glows, vignette, noise.
-     Static (no parallax, no perpetual motion) and confined to the top.
+     No perpetual motion; the two glows only drift gently with the
+     pointer (--pointer-x/-y from PointerGlow, eased over 1.8s so they float).
      ------------------------------------------------------------------ */
   .atmosphere {
     position: fixed;
@@ -477,8 +559,14 @@
     position: absolute;
     border-radius: 50%;
     filter: blur(70px);
+    translate: calc(var(--pointer-x, 0) * var(--drift-x)) calc(var(--pointer-y, 0) * var(--drift-y));
+    transition: translate 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: translate;
   }
   .atmosphere-glow-brand {
+    /* Follows the pointer. */
+    --drift-x: 1.8vw;
+    --drift-y: 1.8vh;
     top: -22vw;
     left: 50%;
     width: 60vw;
@@ -487,12 +575,18 @@
     background: radial-gradient(closest-side, var(--atmo-glow-brand), transparent);
   }
   .atmosphere-glow-accent {
+    /* Moves the other way, a little less: a hint of depth. */
+    --drift-x: -1.3vw;
+    --drift-y: -1.5vh;
     right: -12vw;
     bottom: -18vw;
     width: 44vw;
     height: 40vw;
     background: radial-gradient(closest-side, var(--atmo-glow-accent), transparent);
   }
+  /* The pale canvas shows the glows' movement less, so they travel a little further there. */
+  [data-theme='light'] .atmosphere-glow-brand { --drift-x: 3vw; --drift-y: 3vh; }
+  [data-theme='light'] .atmosphere-glow-accent { --drift-x: -2.2vw; --drift-y: -2.4vh; }
   .atmosphere-vignette {
     position: absolute;
     inset: 0;

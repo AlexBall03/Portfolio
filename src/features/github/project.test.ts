@@ -23,7 +23,7 @@ const lives = vi.hoisted(() => [] as unknown[]);
 vi.mock('next/cache', () => ({ cacheLife: (life: unknown) => lives.push(life), cacheTag: () => {} }));
 
 const { getProjectGithub, resolvePublicRepository } = await import('./project');
-const { loadRepoActivity, loadRepoMetadata, StatsPendingError } = await import('./repo-data');
+const { loadRepoActivity, loadRepoMetadata } = await import('./repo-data');
 
 const ref = (githubId: number | null, owner: string, name: string, over: Partial<ProjectRepoRef> = {}): ProjectRepoRef => ({
   githubId,
@@ -151,14 +151,17 @@ describe('getProjectGithub', () => {
 });
 
 describe('loader failure contract', () => {
-  it('returns definitive answers and throws on transient failures (so a stale copy keeps serving)', async () => {
+  it('returns definitive answers, and transient failures as values cached for a minute (never thrown)', async () => {
     github = mockGithub((p) =>
       p === '/repositories/5' ? json({ message: 'Not Found' }, 404) : p.endsWith('/stats/commit_activity') ? (p.includes('busy') ? noContent(202) : json({}, 503)) : undefined,
     );
-    expect(await loadRepoMetadata('id:5')).toEqual({ state: 'not-found' });
-    expect(await loadRepoMetadata('name:../x')).toEqual({ state: 'not-found' });
-    await expect(loadRepoActivity('x/busy')).rejects.toBeInstanceOf(StatsPendingError);
-    await expect(loadRepoActivity('x/down')).rejects.toMatchObject({ kind: 'upstream' });
+    expect(await loadRepoMetadata('id:5')).toEqual({ ok: true, value: { state: 'not-found' } });
+    expect(await loadRepoMetadata('name:../x')).toEqual({ ok: true, value: { state: 'not-found' } });
+    lives.length = 0;
+    // Throwing inside 'use cache' would fail the page's prerender (and a deployment) even when caught.
+    await expect(loadRepoActivity('x/busy')).resolves.toMatchObject({ ok: false, pending: true });
+    await expect(loadRepoActivity('x/down')).resolves.toMatchObject({ ok: false, pending: false });
+    expect(lives).toEqual([CACHE_LIFE.githubDegraded, CACHE_LIFE.githubDegraded]);
   });
 });
 

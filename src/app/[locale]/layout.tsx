@@ -9,6 +9,7 @@ import { Background } from '@/components/layout/Background';
 import { getChromeData } from '@/components/layout/chrome-data';
 import { Footer } from '@/components/layout/Footer';
 import { NavigationProgress } from '@/components/layout/NavigationProgress';
+import { PointerGlow } from '@/components/layout/PointerGlow';
 import { SiteChrome } from '@/components/layout/SiteChrome';
 import { Splash } from '@/components/layout/Splash';
 import { JsonLd } from '@/components/ui/JsonLd';
@@ -99,6 +100,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
         </a>
         <Splash text={settings.brandMark} label={dict.loading.label} />
         <Background />
+        <PointerGlow />
         <NavigationProgress />
         <SiteChrome data={chrome} />
         <main id="main" tabIndex={-1}>

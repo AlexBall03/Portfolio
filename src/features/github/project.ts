@@ -14,7 +14,7 @@ import {
   loadRepoMetadata,
   loadRepoReleases,
   repoKey,
-  StatsPendingError,
+  type Loaded,
 } from './repo-data';
 import type { ProjectGithub, ProjectRepoRef, RepoActivity, RepoAnalytics, RepoMetadata } from './types';
 
@@ -68,42 +68,40 @@ export async function getProjectGithub(refs: readonly ProjectRepoRef[]): Promise
   }
 
   let degraded = false;
-  const metadata = await Promise.allSettled(refs.map((ref) => loadRepoMetadata(repoKey(ref))));
+  const metadata = await Promise.all(refs.map((ref) => loadRepoMetadata(repoKey(ref))));
   let unavailable = 0;
   const visible: { ref: ProjectRepoRef; repo: RepoMetadata }[] = [];
   metadata.forEach((result, i) => {
-    if (result.status === 'fulfilled' && result.value.state === 'public') {
+    if (result.ok && result.value.state === 'public') {
       visible.push({ ref: refs[i]!, repo: result.value.repo });
       return;
     }
     unavailable++;
-    if (result.status === 'rejected') {
+    if (!result.ok) {
       degraded = true;
-      log.warn('GitHub repository unavailable', { repository: repoKey(refs[i]!), reason: reason(result.reason) });
+      log.warn('GitHub repository unavailable', { repository: repoKey(refs[i]!), reason: result.reason });
     }
   });
 
-  const part = <T,>(result: PromiseSettledResult<T>, what: string, repository: string): T | null => {
-    if (result.status === 'fulfilled') return result.value;
+  const part = <T,>(result: Loaded<T>, what: string, repository: string): T | null => {
+    if (result.ok) return result.value;
     degraded = true;
-    if (!(result.reason instanceof StatsPendingError)) {
-      log.warn(`GitHub ${what} unavailable`, { repository, reason: reason(result.reason) });
-    }
+    if (!result.pending) log.warn(`GitHub ${what} unavailable`, { repository, reason: result.reason });
     return null;
   };
 
   const analytics: RepoAnalytics[] = await Promise.all(
     visible.map(async ({ ref, repo }) => {
       const name = repo.fullName;
-      const [commits, activity, languages, contributors, releases] = await Promise.allSettled([
+      const [commits, activity, languages, contributors, releases] = await Promise.all([
         loadRepoCommits(name),
         loadRepoActivity(name),
         loadRepoLanguages(name),
         loadRepoContributors(name),
         loadRepoReleases(name),
       ]);
-      const pending = activity.status === 'rejected' && activity.reason instanceof StatsPendingError;
-      // Retry soon: GitHub usually finishes computing within a minute.
+      // Still computing: shown as such, and retried soon (GitHub usually finishes within a minute).
+      const pending = !activity.ok && activity.pending;
       if (pending) degraded = true;
       return {
         repo,

@@ -26,15 +26,35 @@ import type { ProjectRepoRef, RepoActivity, RepoCommit, RepoContributor, RepoMet
  * shares one entry. Keys are GitHub's canonical full name (from the metadata),
  * so two projects listing the same repository make one set of requests.
  *
- * Failure contract: definitive answers (not found, private, empty) are
- * returned and cached. Transient failures (rate limit, outage, timeout,
- * malformed response, statistics still computing) throw: nothing is cached,
- * and a stale entry from an earlier success keeps serving until it expires.
+ * Failure contract: loaders never throw. Definitive answers (not found,
+ * private, empty) are ordinary values cached for the resource's lifetime.
+ * Transient failures (rate limit, outage, timeout, malformed response,
+ * statistics still computing) come back as `{ ok: false }`, cached for only a
+ * minute (`githubDegraded`) so they retry soon. They must not throw: an error
+ * thrown inside `'use cache'` fails the page's prerender even when the caller
+ * catches it, which would fail a deployment whenever GitHub is busy or down.
  */
 
 /** GitHub is still computing a repository's statistics (HTTP 202). */
 export class StatsPendingError extends Error {
   override name = 'StatsPendingError';
+}
+
+/** A loader's answer: the value, or a transient failure (`pending`: GitHub is still computing it). */
+export type Loaded<T> = { ok: true; value: T } | { ok: false; pending: boolean; reason: string };
+
+type Lifetime = (typeof CACHE_LIFE)[keyof typeof CACHE_LIFE];
+
+/** Runs a load inside the caller's cache scope and picks that entry's lifetime from the outcome. */
+async function settle<T>(life: Lifetime, run: () => Promise<T>): Promise<Loaded<T>> {
+  try {
+    const value = await run();
+    cacheLife(life);
+    return { ok: true, value };
+  } catch (err) {
+    cacheLife(CACHE_LIFE.githubDegraded);
+    return { ok: false, pending: err instanceof StatsPendingError, reason: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /** Cache key of an association: its stable id when known, else its name. */
@@ -50,60 +70,62 @@ function fromKey(key: string): { id: number } | { owner: string; name: string } 
 }
 
 /** Public metadata, or `private` / `not-found` with nothing else. */
-export async function loadRepoMetadata(key: string): Promise<RepoMetadataResult> {
+export async function loadRepoMetadata(key: string): Promise<Loaded<RepoMetadataResult>> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
-  cacheLife(CACHE_LIFE.githubRepo);
-  const ref = fromKey(key);
-  if (!ref) return { state: 'not-found' };
-  try {
-    return normalizeRepository(await fetchRepository(ref));
-  } catch (err) {
-    // Deleted, renamed beyond GitHub's redirect, or blocked: a definitive answer.
-    if (err instanceof GithubError && (err.kind === 'not-found' || err.kind === 'forbidden')) return { state: 'not-found' };
-    throw err;
-  }
+  return settle(CACHE_LIFE.githubRepo, async (): Promise<RepoMetadataResult> => {
+    const ref = fromKey(key);
+    if (!ref) return { state: 'not-found' };
+    try {
+      return normalizeRepository(await fetchRepository(ref));
+    } catch (err) {
+      // Deleted, renamed beyond GitHub's redirect, or blocked: a definitive answer.
+      if (err instanceof GithubError && (err.kind === 'not-found' || err.kind === 'forbidden')) return { state: 'not-found' };
+      throw err;
+    }
+  });
 }
 
-export async function loadRepoCommits(fullName: string): Promise<RepoCommit[]> {
+export async function loadRepoCommits(fullName: string): Promise<Loaded<RepoCommit[]>> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
-  cacheLife(CACHE_LIFE.githubCommits);
-  const result = await fetchDefaultBranchCommits(fullName);
-  if (result.status === 'empty') return [];
-  if (result.status === 'pending') throw new GithubError('upstream', 'Commits not ready');
-  return result.data.flatMap((c) => normalizeRepoCommit(c, fullName) ?? []);
+  return settle(CACHE_LIFE.githubCommits, async () => {
+    const result = await fetchDefaultBranchCommits(fullName);
+    if (result.status === 'empty') return [];
+    if (result.status === 'pending') throw new StatsPendingError(`Commits for ${fullName} are not ready`);
+    return result.data.flatMap((c) => normalizeRepoCommit(c, fullName) ?? []);
+  });
 }
 
-export async function loadRepoActivity(fullName: string): Promise<RepoActivity> {
+export async function loadRepoActivity(fullName: string): Promise<Loaded<RepoActivity>> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
-  cacheLife(CACHE_LIFE.githubActivity);
-  const result = await fetchCommitActivity(fullName);
-  if (result.status === 'pending') throw new StatsPendingError(`Statistics for ${fullName} are being computed`);
-  return { status: 'ok', weeks: result.status === 'empty' ? [] : normalizeActivity(result.data) };
+  return settle(CACHE_LIFE.githubActivity, async (): Promise<RepoActivity> => {
+    const result = await fetchCommitActivity(fullName);
+    if (result.status === 'pending') throw new StatsPendingError(`Statistics for ${fullName} are being computed`);
+    return { status: 'ok', weeks: result.status === 'empty' ? [] : normalizeActivity(result.data) };
+  });
 }
 
-export async function loadRepoLanguages(fullName: string): Promise<Record<string, number>> {
+export async function loadRepoLanguages(fullName: string): Promise<Loaded<Record<string, number>>> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
-  cacheLife(CACHE_LIFE.githubLanguages);
-  return fetchLanguages(fullName);
+  return settle(CACHE_LIFE.githubLanguages, () => fetchLanguages(fullName));
 }
 
-export async function loadRepoContributors(fullName: string): Promise<RepoContributor[]> {
+export async function loadRepoContributors(fullName: string): Promise<Loaded<RepoContributor[]>> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
-  cacheLife(CACHE_LIFE.githubContributors);
-  const result = await fetchContributors(fullName);
-  if (result.status === 'empty') return [];
-  if (result.status === 'pending') throw new StatsPendingError(`Contributors for ${fullName} are being computed`);
-  return normalizeContributors(result.data);
+  return settle(CACHE_LIFE.githubContributors, async () => {
+    const result = await fetchContributors(fullName);
+    if (result.status === 'empty') return [];
+    if (result.status === 'pending') throw new StatsPendingError(`Contributors for ${fullName} are being computed`);
+    return normalizeContributors(result.data);
+  });
 }
 
-export async function loadRepoReleases(fullName: string): Promise<{ items: RepoRelease[]; capped: boolean }> {
+export async function loadRepoReleases(fullName: string): Promise<Loaded<{ items: RepoRelease[]; capped: boolean }>> {
   'use cache';
   cacheTag(CACHE_TAGS.github);
-  cacheLife(CACHE_LIFE.githubReleases);
-  return normalizeReleases(await fetchReleases(fullName), fullName);
+  return settle(CACHE_LIFE.githubReleases, async () => normalizeReleases(await fetchReleases(fullName), fullName));
 }
