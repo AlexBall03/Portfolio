@@ -105,7 +105,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           {children}
         </main>
         <Footer data={chrome} ownerName={profile.fullName} statement={profile.statement} />
-        <BackToTop label={dict.nav.backToTop} />
+        <BackToTop label={dict.nav.backToTop} shortLabel={dict.nav.backToTopShort} />
         <JsonLd data={buildSiteGraph({ profile, socials, experiences, skills })} />
         <Analytics />
         <SpeedInsights />

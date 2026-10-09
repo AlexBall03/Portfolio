@@ -18,6 +18,8 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
 
   return (
     <Screen>
+      {/* A failed render must never be indexed in place of the page. */}
+      <meta name="robots" content="noindex" />
       <SystemState
         code="500"
         title={t.title}

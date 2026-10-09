@@ -12,6 +12,9 @@ export const SECTION_KEYS = [
   'experience',
   'resume',
   'contact',
+  'featured',
+  'toolkit',
+  'cta',
 ] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
@@ -72,6 +75,12 @@ export const SECTIONS: Record<SectionKey, SectionDescriptor> = {
   github: { label: 'GitHub activity', fields: HEADER_FIELDS },
   experience: { label: 'Experience', fields: PAGE_HEADER_FIELDS },
   resume: { label: 'Resume', fields: PAGE_HEADER_FIELDS },
+  featured: { label: 'Selected work (home)', fields: HEADER_FIELDS },
+  toolkit: { label: 'Toolkit (home)', fields: HEADER_FIELDS },
+  cta: {
+    label: 'Closing call to action (home)',
+    fields: { eyebrow: 'Small label above the line', title: 'Closing line', subtitle: 'Line under it' },
+  },
   contact: {
     label: 'Contact',
     fields: { eyebrow: 'Small label above the heading', title: 'Page heading (h1)', body: 'Introduction under the heading' },
@@ -87,7 +96,7 @@ export interface PageDescriptor {
 }
 
 export const PAGES: Record<PageKey, PageDescriptor> = {
-  home: { label: 'Home', path: '/', sections: [] },
+  home: { label: 'Home', path: '/', sections: ['featured', 'toolkit', 'cta'] },
   about: { label: 'About', path: '/about', sections: ['snapshot', 'about', 'stack'] },
   projects: { label: 'Projects', path: '/projects', sections: ['projects', 'github'] },
   experience: { label: 'Experience', path: '/experience', sections: ['experience'] },
@@ -119,4 +128,12 @@ export interface PageCopyValues {
   page: PageKey;
   seo: { translations: Record<Locale, SeoValues> };
   sections: Partial<Record<SectionKey, SectionCopyEditorValues>>;
+}
+
+/**
+ * A section's stored copy, or the interface's fallback when the section has no
+ * row yet (a database from before the section existed). Edited in Page content.
+ */
+export function sectionOr(section: SectionContent, fallback: Pick<SectionContent, 'eyebrow' | 'title' | 'subtitle'>): SectionContent {
+  return section.title ? section : { ...fallback, body: null, aside: null };
 }

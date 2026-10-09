@@ -1,4 +1,4 @@
-import { absoluteUrl, PERSON_ID, SHARE_CARD_SIZE, shareCardPath, WEBSITE_ID } from '@/config/site';
+import { absoluteMediaUrl, absoluteUrl, PERSON_ID, SHARE_CARD_SIZE, shareCardPath, WEBSITE_ID } from '@/config/site';
 import type { Experience } from '@/features/experience/types';
 import type { Profile, SocialLink } from '@/features/profile/types';
 import type { Project } from '@/features/projects/types';
@@ -38,7 +38,8 @@ export function buildSiteGraph({ profile, socials, experiences, skills }: SiteGr
     name: profile.fullName,
     alternateName: profile.shortName,
     url: absoluteUrl('/'),
-    image: profile.headshot ? absoluteUrl(profile.headshot.src) : undefined,
+    // Uploaded headshots are absolute Blob URLs; only static ones are site paths.
+    image: profile.headshot ? absoluteMediaUrl(profile.headshot.src) : undefined,
     jobTitle: profile.title,
     description: profile.statement,
     email: profile.email,
@@ -119,12 +120,17 @@ export function buildPageNode({ type, locale, path, name, description, projects,
 }
 
 export function buildProject(p: Project, locale: Locale): Json {
+  const url = absoluteUrl(localizedPath(locale, `/projects/${p.slug}`));
+  const primary = p.repositories.find((r) => r.isPrimary) ?? p.repositories[0];
   return compact({
     '@type': 'SoftwareSourceCode',
+    '@id': `${url}#project`,
     name: p.name,
     description: p.summary,
-    url: absoluteUrl(localizedPath(locale, `/projects/${p.slug}`)),
-    codeRepository: p.links.source ?? p.repositories[0]?.url,
+    url,
+    inLanguage: locale,
+    image: p.cover ? absoluteMediaUrl(p.cover.src) : undefined,
+    codeRepository: p.links.source ?? primary?.url,
     programmingLanguage: p.technologies.map((t) => t.name),
     author: { '@id': PERSON_ID },
   });

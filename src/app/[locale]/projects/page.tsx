@@ -4,10 +4,10 @@ import { GitHubSection } from '@/features/github/components/GitHubSection';
 import { getProfile } from '@/features/profile/queries';
 import { Projects } from '@/features/projects/components/Projects';
 import { getProjects } from '@/features/projects/queries';
-import { getPageContent, getSection, getSiteSettings } from '@/features/site/queries';
+import { getSection, getSiteSettings } from '@/features/site/queries';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
-import { topLevelPageMetadata } from '@/lib/seo/metadata';
+import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
 export async function generateMetadata({ params }: LocaleParams) {
@@ -23,7 +23,7 @@ export default async function ProjectsPage({ params }: LocaleParams) {
     getProfile(locale),
     getSection('projects', locale),
     getSection('github', locale),
-    getPageContent('projects', locale),
+    resolvePageSeo('projects', locale),
   ]);
   const github = settings.showGithubSection ? settings.githubUsername : null;
 
@@ -50,8 +50,8 @@ export default async function ProjectsPage({ params }: LocaleParams) {
           type: 'CollectionPage',
           locale,
           path: '/projects',
-          name: dict.nav.projects,
-          description: content?.seoDescription,
+          name: content.title,
+          description: content.description,
           projects,
         })}
       />

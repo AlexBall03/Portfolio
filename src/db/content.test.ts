@@ -85,7 +85,7 @@ describe('content repositories', () => {
     expect((await getPageContent(db, 'contact', 'es'))?.seoDescription).toMatch(/^Escríbeme/);
     const sections = await getSectionContent(db, 'en');
     expect(sections.contact?.title).toBe("Let's talk.");
-    expect(Object.keys(sections)).toHaveLength(8);
+    expect(Object.keys(sections)).toHaveLength(11);
   });
 
   it('groups skills by kind and shares technologies across locales', async () => {

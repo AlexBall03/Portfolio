@@ -121,6 +121,36 @@ export async function listPublishedProjectSlugs(db: Database): Promise<string[]>
 }
 
 /**
+ * Published projects for the sitemap: slug and the time its public page last
+ * changed (the project row, which every editor save touches, or its newest
+ * case-study section or milestone). Never a guessed timestamp.
+ */
+export async function listPublishedProjectSitemap(db: Database): Promise<{ slug: string; updatedAt: Date }[]> {
+  const sectionsAt = db
+    .select({ projectId: projectSections.projectId, at: max(projectSections.updatedAt).as('sections_at') })
+    .from(projectSections)
+    .groupBy(projectSections.projectId)
+    .as('s');
+  const milestonesAt = db
+    .select({ projectId: projectMilestones.projectId, at: max(projectMilestones.updatedAt).as('milestones_at') })
+    .from(projectMilestones)
+    .groupBy(projectMilestones.projectId)
+    .as('m');
+  const rows = await db
+    .select({
+      slug: projects.slug,
+      updatedAt: sql<Date | string>`greatest(${projects.updatedAt}, ${sectionsAt.at}, ${milestonesAt.at})`,
+    })
+    .from(projects)
+    .leftJoin(sectionsAt, eq(sectionsAt.projectId, projects.id))
+    .leftJoin(milestonesAt, eq(milestonesAt.projectId, projects.id))
+    .where(published)
+    .orderBy(asc(projects.sortOrder));
+  // Raw SQL bypasses Drizzle's column mapping, so drivers may return a string.
+  return rows.map((r) => ({ slug: r.slug, updatedAt: new Date(r.updatedAt) }));
+}
+
+/**
  * Resolves a public slug: the current slug renders the project, a retired slug
  * redirects to the current one, anything else (including drafts) is not found.
  */

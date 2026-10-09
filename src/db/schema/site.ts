@@ -63,6 +63,9 @@ export const sectionKeyEnum = pgEnum('section_key', [
   'experience',
   'resume',
   'contact',
+  'featured',
+  'toolkit',
+  'cta',
 ]);
 
 /** Per-section, per-locale heading copy (eyebrow, title, subtitle, optional lead, optional secondary heading). */

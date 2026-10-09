@@ -4,6 +4,7 @@ import { Screen } from '@/components/layout/Screen';
 import { PagerLink, PagerNav } from '@/components/layout/Pager';
 import { JsonLd } from '@/components/ui/JsonLd';
 import { ProjectGithubSection } from '@/features/github/components/ProjectGithubSection';
+import { getProfile } from '@/features/profile/queries';
 import { pickRelated } from '@/features/projects/case-study';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
 import { getProjectBySlug, getProjects, getProjectSlugs } from '@/features/projects/queries';
@@ -11,6 +12,7 @@ import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { localizedPath } from '@/i18n/paths';
 import { pageMetadata } from '@/lib/seo/metadata';
+import { shareCardVersion } from '@/lib/seo/share-card/inputs';
 import { buildPageNode, buildProject } from '@/lib/seo/structured-data';
 
 /**
@@ -41,11 +43,17 @@ async function resolve(params: ProjectPageProps['params']) {
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { locale, project } = await resolve(params);
+  const [profile, shareVersion] = await Promise.all([
+    getProfile(locale),
+    shareCardVersion(locale, { kind: 'project', slug: project.slug }),
+  ]);
   return pageMetadata({
     locale,
     path: `/projects/${project.slug}`,
     title: project.name,
     description: project.tagline,
+    siteName: profile.fullName,
+    shareVersion,
   });
 }
 

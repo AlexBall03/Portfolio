@@ -28,4 +28,22 @@ export function absoluteUrl(path = '/'): string {
   return trimmed ? `${SITE_URL}/${trimmed}` : `${SITE_URL}/`;
 }
 
+/**
+ * Absolute URL for a resolved media `src`: uploaded (Blob) and external assets
+ * are already absolute and pass through unchanged; static assets are site paths.
+ */
+export function absoluteMediaUrl(src: string): string {
+  return /^https?:\/\//i.test(src) ? src : absoluteUrl(src);
+}
+
+/**
+ * A share card's URL, with an optional content version. Social platforms cache
+ * a scraped image per URL, so a new `v` (a hash of everything the card shows)
+ * makes them fetch the updated card; the route itself ignores the query.
+ */
+export function shareCardUrl(locale: Locale, path: string, version?: string | null): string {
+  const url = absoluteUrl(shareCardPath(locale, path));
+  return version ? `${url}?v=${version}` : url;
+}
+
 export const GOOGLE_ANALYTICS_ID = 'G-YFKW4W2PS4';

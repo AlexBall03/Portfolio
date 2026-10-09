@@ -19,6 +19,15 @@ export async function getProjectSlugs() {
   return repo.listPublishedProjectSlugs(await getDb());
 }
 
+/** Published projects' slugs and last-change times (ISO), for the sitemap. */
+export async function getProjectSitemap() {
+  'use cache';
+  cacheLife(CACHE_LIFE.content);
+  cacheTag(CACHE_TAGS.projects);
+  const rows = await repo.listPublishedProjectSitemap(await getDb());
+  return rows.map((r) => ({ slug: r.slug, updatedAt: r.updatedAt.toISOString() }));
+}
+
 export async function getProjectBySlug(slug: string, locale: Locale) {
   'use cache';
   cacheLife(CACHE_LIFE.content);

@@ -2,10 +2,10 @@ import { PageShell } from '@/components/layout/PageShell';
 import { JsonLd } from '@/components/ui/JsonLd';
 import { Experience } from '@/features/experience/components/Experience';
 import { getExperiences } from '@/features/experience/queries';
-import { getPageContent, getSection } from '@/features/site/queries';
+import { getSection } from '@/features/site/queries';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
-import { topLevelPageMetadata } from '@/lib/seo/metadata';
+import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
 export async function generateMetadata({ params }: LocaleParams) {
@@ -18,7 +18,7 @@ export default async function ExperiencePage({ params }: LocaleParams) {
   const [items, section, content] = await Promise.all([
     getExperiences(locale),
     getSection('experience', locale),
-    getPageContent('experience', locale),
+    resolvePageSeo('experience', locale),
   ]);
 
   return (
@@ -29,8 +29,8 @@ export default async function ExperiencePage({ params }: LocaleParams) {
           type: 'WebPage',
           locale,
           path: '/experience',
-          name: dict.nav.experience,
-          description: content?.seoDescription,
+          name: content.title,
+          description: content.description,
         })}
       />
     </PageShell>

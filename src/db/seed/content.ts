@@ -259,6 +259,18 @@ export const content: z.input<typeof contentSeedSchema> = {
       en: { eyebrow: 'Resume', title: 'Resume', subtitle: 'View my current resume here or download a copy.' },
       es: { eyebrow: 'Currículum', title: 'Currículum', subtitle: 'Consulta aquí mi currículum actual o descarga una copia.' },
     },
+    featured: {
+      en: { eyebrow: 'Selected Work', title: 'Projects worth a closer look', subtitle: 'Case studies of what I built, how I built it, and why.' },
+      es: { eyebrow: 'Trabajo Destacado', title: 'Proyectos que vale la pena ver', subtitle: 'Casos de estudio de lo que construí, cómo lo construí y por qué.' },
+    },
+    toolkit: {
+      en: { eyebrow: 'Toolkit', title: 'What I build with', subtitle: 'The stack I work in. Pick a technology to see the projects that use it.' },
+      es: { eyebrow: 'Herramientas', title: 'Con qué construyo', subtitle: 'El stack con el que trabajo. Elige una tecnología para ver los proyectos que la usan.' },
+    },
+    cta: {
+      en: { eyebrow: 'Next', title: 'Want the full picture?', subtitle: 'Read the experience, grab the resume, or get in touch.' },
+      es: { eyebrow: 'Siguiente', title: '¿Quieres ver el panorama completo?', subtitle: 'Revisa mi experiencia, descarga el currículum o ponte en contacto.' },
+    },
     contact: {
       en: {
         eyebrow: 'Contact',

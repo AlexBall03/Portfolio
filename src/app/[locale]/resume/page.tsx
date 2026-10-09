@@ -3,10 +3,10 @@ import { JsonLd } from '@/components/ui/JsonLd';
 import { getHighlights } from '@/features/profile/queries';
 import { Resume } from '@/features/resume/components/Resume';
 import { getPublishedResume } from '@/features/resume/queries';
-import { getPageContent, getSection } from '@/features/site/queries';
+import { getSection } from '@/features/site/queries';
 import { getDictionary } from '@/i18n/get-dictionary';
 import { resolveLocale, type LocaleParams } from '@/i18n/route-params';
-import { topLevelPageMetadata } from '@/lib/seo/metadata';
+import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
 export async function generateMetadata({ params }: LocaleParams) {
@@ -20,7 +20,7 @@ export default async function ResumePage({ params }: LocaleParams) {
     getPublishedResume(),
     getHighlights(locale, 'resume'),
     getSection('resume', locale),
-    getPageContent('resume', locale),
+    resolvePageSeo('resume', locale),
   ]);
 
   return (
@@ -31,8 +31,8 @@ export default async function ResumePage({ params }: LocaleParams) {
           type: 'WebPage',
           locale,
           path: '/resume',
-          name: dict.nav.resume,
-          description: content?.seoDescription,
+          name: content.title,
+          description: content.description,
         })}
       />
     </PageShell>

@@ -78,7 +78,7 @@ describe('page content', () => {
   it('loads only the sections the page editor owns', async () => {
     expect(Object.keys((await service.loadPageCopy('about')).sections)).toEqual(['snapshot', 'about', 'stack']);
     expect((await service.loadPageCopy('contact')).sections).toEqual({});
-    expect((await service.loadPageCopy('home')).sections).toEqual({});
+    expect(Object.keys((await service.loadPageCopy('home')).sections)).toEqual(['featured', 'toolkit', 'cta']);
   });
 
   it('validates by path and refuses sections owned elsewhere', async () => {

@@ -530,6 +530,15 @@
   }
 
   /* ------------------------------------------------------------------
+     Back to top: the reading-progress ring. `--progress` is the remaining
+     dash offset, set by the component in whole-percent steps.
+     ------------------------------------------------------------------ */
+  .back-to-top-ring {
+    stroke-dashoffset: var(--progress, 0);
+    transition: stroke-dashoffset 160ms linear;
+  }
+
+  /* ------------------------------------------------------------------
      Contribution heatmap intensity levels (0–4).
      ------------------------------------------------------------------ */
   .heat-cell { background: color-mix(in oklab, var(--fg) 7%, transparent); }

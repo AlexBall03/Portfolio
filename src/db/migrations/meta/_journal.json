@@ -78,6 +78,13 @@
       "when": 1791516326130,
       "tag": "0010_github_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791523670595,
+      "tag": "0011_home_sections",
+      "breakpoints": true
     }
   ]
 }
