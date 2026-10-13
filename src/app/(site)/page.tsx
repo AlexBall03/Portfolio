@@ -13,6 +13,9 @@ import { getSection, getSiteSettings } from '@/features/site/queries';
 import { sectionOr } from '@/features/site/types';
 import { Toolkit } from '@/features/skills/components/Toolkit';
 import { getSkills } from '@/features/skills/queries';
+import { SponsorPreview, SponsorSection } from '@/features/sponsorship/components/SponsorSection';
+import { getSponsorshipSettings } from '@/features/sponsorship/queries';
+import { sponsorshipVisibility } from '@/features/sponsorship/sponsors';
 import { resolvePageSeo, topLevelPageMetadata } from '@/lib/seo/metadata';
 import { buildPageNode } from '@/lib/seo/structured-data';
 
@@ -21,12 +24,13 @@ export async function generateMetadata() {
 }
 
 /**
- * Home: the hero, then three short sections (featured work, the toolkit with a
- * GitHub pulse, next steps). Everything comes from cached reads the other pages
- * share; GitHub streams in its own boundary and can only remove its card.
+ * Home: the hero, then short sections (featured work, the toolkit with a GitHub
+ * pulse, sponsorship when it is switched on, next steps). Everything comes from
+ * cached reads the other pages share; GitHub data streams in its own boundaries
+ * and can only remove its own card or row.
  */
 export default async function HomePage() {
-  const [profile, settings, seo, projects, skills, featured, toolkit, cta] = await Promise.all([
+  const [profile, settings, seo, projects, skills, featured, toolkit, cta, sponsorship] = await Promise.all([
     getProfile(),
     getSiteSettings(),
     resolvePageSeo('home'),
@@ -35,6 +39,7 @@ export default async function HomePage() {
     getSection('featured'),
     getSection('toolkit'),
     getSection('cta'),
+    getSponsorshipSettings(),
   ]);
   const github = settings.showGithubSection ? settings.githubUsername : null;
 
@@ -54,6 +59,16 @@ export default async function HomePage() {
           github && (
             <Suspense fallback={<GithubPulseSkeleton />}>
               <GithubPulse username={github} />
+            </Suspense>
+          )
+        }
+      />
+      <SponsorSection
+        settings={sponsorship}
+        preview={
+          sponsorshipVisibility(sponsorship).sponsors && (
+            <Suspense fallback={null}>
+              <SponsorPreview settings={sponsorship} />
             </Suspense>
           )
         }

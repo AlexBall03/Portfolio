@@ -11,10 +11,13 @@ const handlers: CommandHandlers = {
   toggleTheme: vi.fn(),
 };
 
-const build = () =>
+const support = { key: 'support', href: '/support', label: copy.nav.support, icon: 'heart', description: null } as const;
+
+const build = (withSupport = false) =>
   buildCommands(
     {
       pages: PAGES.map((p) => ({ ...p, href: p.path, label: copy.nav[p.key], description: null })),
+      support: withSupport ? support : null,
       email: 'contact@alexball.dev',
       resume: { href: '/resume.pdf?v=0123abcd', fileName: 'Alexander-Ball-Resume.pdf' },
       socials: [{ platform: 'github', label: 'GitHub', url: 'https://github.com/AlexBall03', handle: '@AlexBall03' }],
@@ -41,6 +44,15 @@ describe('command palette', () => {
 
   it('ignores accents and case', () => {
     expect(filterCommands([{ ...build()[0]!, label: 'Currículum' }], 'CURRICULUM')).toHaveLength(1);
+  });
+
+  it('offers the support page only while it is available', () => {
+    expect(filterCommands(build(), 'sponsor')).toEqual([]);
+    const [command, ...rest] = filterCommands(build(true), 'sponsor');
+    expect(rest).toEqual([]);
+    expect(command).toMatchObject({ id: 'nav-support', group: 'nav', label: 'Support' });
+    command!.run();
+    expect(handlers.navigate).toHaveBeenCalledWith('/support');
   });
 
   it('builds profile commands from social links', () => {

@@ -17,6 +17,7 @@ describe('parseShareCard', () => {
       const segments = shareCardPath(path).split('/').slice(2);
       expect(parseShareCard(segments)).toEqual({ kind: 'page', page: key });
     }
+    expect(parseShareCard(['support.png'])).toEqual({ kind: 'page', page: 'support' });
     expect(parseShareCard(['projects', 'my-app.png'])).toEqual({ kind: 'project', slug: 'my-app' });
   });
 

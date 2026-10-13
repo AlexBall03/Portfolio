@@ -12,7 +12,10 @@ import {
   githubReleaseSchema,
   githubRepoDetailSchema,
   githubRepoSchema,
+  githubSponsorshipSchema,
   githubUserSchema,
+  graphqlErrorsSchema,
+  sponsorshipsResponseSchema,
   type ContributionCalendarResponse,
   type GithubCommit,
   type GithubCommitActivity,
@@ -22,6 +25,7 @@ import {
   type GithubRelease,
   type GithubRepo,
   type GithubRepoDetail,
+  type GithubSponsorship,
   type GithubUser,
 } from './schemas';
 
@@ -37,8 +41,16 @@ const API_VERSION = '2022-11-28';
 const TIMEOUT_MS = 8_000;
 const MAX_REPO_PAGES = 5;
 const MAX_CONTRIBUTOR_PAGES = 5;
+const MAX_SPONSOR_PAGES = 10;
 
-export type GithubErrorKind = 'config' | 'rate-limited' | 'forbidden' | 'not-found' | 'upstream' | 'invalid-response';
+export type GithubErrorKind =
+  | 'config'
+  | 'unauthorized'
+  | 'rate-limited'
+  | 'forbidden'
+  | 'not-found'
+  | 'upstream'
+  | 'invalid-response';
 
 export class GithubError extends Error {
   override name = 'GithubError';
@@ -71,6 +83,7 @@ export function classifyFailure(res: Pick<Response, 'status' | 'headers'>): Gith
     res.status === 429 ||
     (res.status === 403 && (res.headers.get('x-ratelimit-remaining') === '0' || res.headers.has('retry-after')));
   if (limited) return new GithubError('rate-limited', `GitHub rate limit (${res.status})`);
+  if (res.status === 401) return new GithubError('unauthorized', 'GitHub rejected the token (401)');
   if (res.status === 403 || res.status === 451) return new GithubError('forbidden', `GitHub refused access (${res.status})`);
   if (res.status === 404 || res.status === 410) return new GithubError('not-found', 'GitHub resource not found');
   return new GithubError('upstream', `GitHub responded ${res.status}`);
@@ -216,7 +229,36 @@ export async function fetchReleases(fullName: string): Promise<GithubRelease[]> 
   return request(`${repoPath(fullName)}/releases?per_page=100`, z.array(githubReleaseSchema));
 }
 
-/* ── GraphQL (the global section's contribution calendar) ───────────────── */
+/* ── GraphQL (the contribution calendar, public sponsors) ───────────────── */
+
+/** GraphQL error types that mean the token may not read the field. */
+const DENIED = new Set(['FORBIDDEN', 'INSUFFICIENT_SCOPES']);
+
+/**
+ * One GraphQL query. GitHub answers 200 even when a query fails, and may send
+ * partial `data` beside `errors`: any error fails the request, so a partial
+ * result is never passed off as the whole one.
+ */
+async function graphql<T extends z.ZodType>(query: string, variables: Record<string, unknown>, schema: T): Promise<z.infer<T>> {
+  const body = await request('/graphql', z.unknown(), { method: 'POST', body: JSON.stringify({ query, variables }) });
+  const failed = graphqlErrorsSchema.safeParse(body);
+  if (failed.success) {
+    const { type = '', message } = failed.data.errors[0]!;
+    const kind: GithubErrorKind = DENIED.has(type)
+      ? 'forbidden'
+      : type === 'NOT_FOUND'
+        ? 'not-found'
+        : type === 'RATE_LIMITED'
+          ? 'rate-limited'
+          : 'upstream';
+    throw new GithubError(kind, `GraphQL error: ${message}`);
+  }
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    throw new GithubError('invalid-response', `Unexpected GitHub response: ${parsed.error.issues[0]?.message}`);
+  }
+  return parsed.data;
+}
 
 const CONTRIBUTIONS_QUERY = /* GraphQL */ `
   query ($login: String!, $from: DateTime!, $to: DateTime!) {
@@ -242,18 +284,76 @@ export async function fetchContributionCalendar(
   from: Date,
   to: Date,
 ): Promise<NonNullable<ContributionCalendarResponse['data']['user']>> {
-  const body = await request(
-    '/graphql',
-    contributionCalendarResponseSchema.or(z.object({ errors: z.array(z.object({ message: z.string() })) })),
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        query: CONTRIBUTIONS_QUERY,
-        variables: { login: username, from: from.toISOString(), to: to.toISOString() },
-      }),
-    },
+  const body = await graphql(
+    CONTRIBUTIONS_QUERY,
+    { login: username, from: from.toISOString(), to: to.toISOString() },
+    contributionCalendarResponseSchema,
   );
-  if ('errors' in body) throw new GithubError('upstream', `GraphQL error: ${body.errors[0]?.message}`);
   if (!body.data.user) throw new GithubError('not-found', 'GitHub user not found');
   return body.data.user;
+}
+
+/**
+ * Active, public sponsorships only: `includePrivate: false` leaves private
+ * sponsors out at the source, whatever the token could see. The selection is
+ * presentation data; tiers, amounts, and emails are never requested.
+ */
+export const SPONSORSHIPS_QUERY = /* GraphQL */ `
+  query ($login: String!, $after: String) {
+    user(login: $login) {
+      sponsorshipsAsMaintainer(first: 100, after: $after, includePrivate: false, activeOnly: true) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          createdAt
+          isActive
+          privacyLevel
+          sponsorEntity {
+            __typename
+            ... on User {
+              databaseId
+              login
+              name
+              avatarUrl
+              url
+            }
+            ... on Organization {
+              databaseId
+              login
+              name
+              avatarUrl
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * The account's active public sponsorships (paginated). Entries with no
+ * readable sponsor are dropped; callers must still check `privacyLevel`.
+ */
+export async function fetchPublicSponsorships(login: string): Promise<GithubSponsorship[]> {
+  const all: GithubSponsorship[] = [];
+  let after: string | null = null;
+  for (let page = 1; page <= MAX_SPONSOR_PAGES; page++) {
+    const body: z.infer<typeof sponsorshipsResponseSchema> = await graphql(
+      SPONSORSHIPS_QUERY,
+      { login, after },
+      sponsorshipsResponseSchema,
+    );
+    if (!body.data.user) throw new GithubError('not-found', 'GitHub user not found');
+    const { nodes, pageInfo } = body.data.user.sponsorshipsAsMaintainer;
+    for (const node of nodes) {
+      const parsed = githubSponsorshipSchema.safeParse(node);
+      if (parsed.success) all.push(parsed.data);
+    }
+    if (!pageInfo.hasNextPage || !pageInfo.endCursor) break;
+    after = pageInfo.endCursor;
+  }
+  return all;
 }

@@ -148,3 +148,41 @@ export const contributionCalendarResponseSchema = z.object({
   }),
 });
 export type ContributionCalendarResponse = z.infer<typeof contributionCalendarResponseSchema>;
+
+/** A failed GraphQL request: HTTP 200 with `errors` (and possibly partial `data`). */
+export const graphqlErrorsSchema = z.object({
+  errors: z.array(z.object({ message: z.string(), type: z.string().optional() })).min(1),
+});
+
+/**
+ * One sponsorship of the maintainer (GraphQL `Sponsorship`). Only presentation
+ * fields are requested: never the tier, the amount, or an email address.
+ */
+export const githubSponsorshipSchema = z.object({
+  createdAt: z.string().nullable().optional(),
+  isActive: z.boolean(),
+  privacyLevel: z.string(),
+  sponsorEntity: z.object({
+    __typename: z.enum(['User', 'Organization']),
+    databaseId: z.number().int().positive(),
+    login: z.string(),
+    name: z.string().nullable(),
+    avatarUrl: z.url(),
+    url: z.url(),
+  }),
+});
+export type GithubSponsorship = z.infer<typeof githubSponsorshipSchema>;
+
+export const sponsorshipsResponseSchema = z.object({
+  data: z.object({
+    user: z
+      .object({
+        sponsorshipsAsMaintainer: z.object({
+          pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
+          // Validated one by one, so an entry this app can't read is dropped rather than failing the list.
+          nodes: z.array(z.unknown()),
+        }),
+      })
+      .nullable(),
+  }),
+});

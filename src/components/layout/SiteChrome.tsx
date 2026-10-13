@@ -101,6 +101,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
   }, [menuOpen]);
 
   const home = data.pages.find((p) => p.key === 'home');
+  const drawerPages = data.support ? [...data.pages, data.support] : data.pages;
 
   return (
     <>
@@ -229,7 +230,8 @@ export function SiteChrome({ data }: { data: ChromeData }) {
             each page's one-line description; the active page is a brand-tinted card. */}
         <ScrollFade className="flex-1">
           <ul className="flex flex-col gap-1 px-gutter pb-4">
-            {data.pages.map((p, i) => {
+            {/* The drawer has room for the support page; the command bar stays the primary pages only. */}
+            {drawerPages.map((p, i) => {
               const active = current === p.key;
               return (
                 <li key={p.key} style={stagger(2 + i)} className="drawer-item -mx-2.5">
@@ -264,7 +266,7 @@ export function SiteChrome({ data }: { data: ChromeData }) {
         </ScrollFade>
 
         <div
-          style={stagger(2 + data.pages.length)}
+          style={stagger(2 + drawerPages.length)}
           className="drawer-item flex shrink-0 flex-col gap-4 border-t border-line px-gutter pt-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
         >
           <div className="grid grid-cols-2 gap-2">

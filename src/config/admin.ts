@@ -16,6 +16,7 @@ export const ADMIN_SOCIAL_LINKS_PATH = '/admin/social-links';
 export const ADMIN_CONTACT_PATH = '/admin/contact';
 export const ADMIN_CONTENT_PATH = '/admin/content';
 export const ADMIN_RESUME_PATH = '/admin/resume';
+export const ADMIN_SPONSORSHIP_PATH = '/admin/sponsorship';
 
 /** A project's admin pages: the Details editor, or one of its tabs. */
 export const adminProjectPath = (id: string, tab?: 'case-study' | 'media' | 'milestones' | 'related' | 'github' | 'preview') =>
@@ -61,6 +62,7 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
       { label: 'Social links', href: ADMIN_SOCIAL_LINKS_PATH, icon: 'globe' },
       { label: 'Contact', href: ADMIN_CONTACT_PATH, icon: 'mail' },
       { label: 'Page content', href: ADMIN_CONTENT_PATH, icon: 'file' },
+      { label: 'Sponsorship', href: ADMIN_SPONSORSHIP_PATH, icon: 'heart' },
       { label: 'Configuration', href: ADMIN_CONFIGURATION_PATH, icon: 'gauge' },
     ],
   },

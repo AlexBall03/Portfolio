@@ -33,7 +33,7 @@ export interface CommandHandlers {
  * effects are injected so this stays pure data assembly.
  */
 export function buildCommands(
-  data: Pick<ChromeData, 'pages' | 'email' | 'resume' | 'socials'>,
+  data: Pick<ChromeData, 'pages' | 'support' | 'email' | 'resume' | 'socials'>,
   theme: 'dark' | 'light',
   handlers: CommandHandlers,
 ): Command[] {
@@ -41,7 +41,7 @@ export function buildCommands(
   const resume = data.resume;
   const kw = T.keywords;
 
-  const nav: Command[] = data.pages.map((p) => ({
+  const nav: Command[] = [...data.pages, ...(data.support ? [data.support] : [])].map((p) => ({
     id: `nav-${p.key}`,
     group: 'nav',
     label: p.label,

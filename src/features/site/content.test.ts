@@ -123,7 +123,7 @@ describe('page content', () => {
 
   it('lists every page and whether its search copy exists', async () => {
     const pages = await service.listPageCopy();
-    expect(pages.map((p) => p.page)).toEqual(['home', 'about', 'projects', 'experience', 'resume', 'contact']);
+    expect(pages.map((p) => p.page)).toEqual(['home', 'about', 'projects', 'experience', 'resume', 'contact', 'support']);
     expect(pages.every((p) => p.complete)).toBe(true);
   });
 });

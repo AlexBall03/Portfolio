@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { json, mockGithub, noContent, repoPayload } from '@/test/github';
+import { json, mockGithub, noContent, repoPayload, sponsorshipPayload, sponsorshipsPage } from '@/test/github';
 import {
   classifyFailure,
   fetchCommitActivity,
   fetchContributors,
   fetchDefaultBranchCommits,
+  fetchPublicSponsorships,
   fetchRepository,
   GithubError,
+  SPONSORSHIPS_QUERY,
 } from './client';
 
 /** The REST client's status handling, against a mocked GitHub (no network). */
@@ -32,6 +34,7 @@ describe('failure classification', () => {
   });
 
   it('maps missing and server errors', () => {
+    expect(failure(401)).toBe('unauthorized');
     expect(failure(404)).toBe('not-found');
     expect(failure(410)).toBe('not-found');
     expect(failure(500)).toBe('upstream');
@@ -128,5 +131,63 @@ describe('requests', () => {
 
     github = mockGithub((path) => (/[?&]page=1$/.test(path) ? json(page(1, 100)) : noContent(202)));
     expect(await kindOf(fetchContributors('a/b'))).toBe('upstream');
+  });
+});
+
+describe('public sponsorships (GraphQL)', () => {
+  const bodies = () =>
+    vi.mocked(globalThis.fetch).mock.calls.map(([, init]) => JSON.parse(String(init!.body)) as { query: string; variables: Record<string, unknown> });
+
+  it('asks only for active public sponsorships, and never for tiers, amounts, or emails', () => {
+    expect(SPONSORSHIPS_QUERY).toMatch(/includePrivate:\s*false/);
+    expect(SPONSORSHIPS_QUERY).toMatch(/activeOnly:\s*true/);
+    expect(SPONSORSHIPS_QUERY).not.toMatch(/tier|amount|price|cents|email|paymentSource/i);
+  });
+
+  it('follows the cursor across pages on the GraphQL endpoint', async () => {
+    let page = 0;
+    github = mockGithub(() =>
+      ++page === 1
+        ? json(sponsorshipsPage([sponsorshipPayload(1, 'one'), sponsorshipPayload(2, 'two')], 'cursor-1'))
+        : json(sponsorshipsPage([sponsorshipPayload(3, 'three', {}, { __typename: 'Organization' })])),
+    );
+    const all = await fetchPublicSponsorships('AlexBall03');
+    expect(all.map((s) => s.sponsorEntity.login)).toEqual(['one', 'two', 'three']);
+    expect(github.calls).toEqual(['/graphql', '/graphql']);
+    expect(bodies().map((b) => b.variables)).toEqual([
+      { login: 'AlexBall03', after: null },
+      { login: 'AlexBall03', after: 'cursor-1' },
+    ]);
+  });
+
+  it('drops entries without a readable sponsor instead of failing the list', async () => {
+    github = mockGithub(() =>
+      json(sponsorshipsPage([sponsorshipPayload(1, 'one'), { ...sponsorshipPayload(2, 'ghost'), sponsorEntity: null }, null])),
+    );
+    expect((await fetchPublicSponsorships('AlexBall03')).map((s) => s.sponsorEntity.login)).toEqual(['one']);
+  });
+
+  it('never passes a partial list off as complete', async () => {
+    let page = 0;
+    github = mockGithub(() =>
+      ++page === 1 ? json(sponsorshipsPage([sponsorshipPayload(1, 'one')], 'cursor-1')) : json({ message: 'Server Error' }, 502),
+    );
+    expect(await kindOf(fetchPublicSponsorships('AlexBall03'))).toBe('upstream');
+  });
+
+  it('classifies a rejected token, a token without access, and GraphQL failures', async () => {
+    const respond = { current: json({}) };
+    github = mockGithub(() => respond.current);
+    respond.current = json({ message: 'Bad credentials' }, 401);
+    expect(await kindOf(fetchPublicSponsorships('AlexBall03'))).toBe('unauthorized');
+    respond.current = json({ errors: [{ type: 'FORBIDDEN', message: 'Resource not accessible by personal access token' }] });
+    expect(await kindOf(fetchPublicSponsorships('AlexBall03'))).toBe('forbidden');
+    respond.current = json({ errors: [{ type: 'INSUFFICIENT_SCOPES', message: 'Your token has not been granted the required scopes' }] });
+    expect(await kindOf(fetchPublicSponsorships('AlexBall03'))).toBe('forbidden');
+    // Partial data beside an error is still a failure.
+    respond.current = json({ ...sponsorshipsPage([sponsorshipPayload(1, 'one')]), errors: [{ message: 'Something went wrong' }] });
+    expect(await kindOf(fetchPublicSponsorships('AlexBall03'))).toBe('upstream');
+    respond.current = json({ data: { user: null } });
+    expect(await kindOf(fetchPublicSponsorships('nobody'))).toBe('not-found');
   });
 });

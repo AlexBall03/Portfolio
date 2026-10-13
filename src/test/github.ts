@@ -64,7 +64,34 @@ export const contributorPayload = (id: number, login: string, contributions: num
   html_url: `https://github.com/${login}`,
 });
 
-export const releasePayload = (id: number, tag: string, publishedAt: string | null, over: Record<string, unknown> = {}) => ({
+/** One node of GraphQL `sponsorshipsAsMaintainer`: public and active unless overridden. */
+export const sponsorshipPayload = (
+  id: number,
+  login: string,
+  over: Partial<{ createdAt: string | null; isActive: boolean; privacyLevel: string }> = {},
+  entity: Partial<{ __typename: 'User' | 'Organization'; name: string | null }> = {},
+) => ({
+  createdAt: '2026-06-01T00:00:00Z' as string | null,
+  isActive: true,
+  privacyLevel: 'PUBLIC',
+  ...over,
+  sponsorEntity: {
+    __typename: 'User' as 'User' | 'Organization',
+    databaseId: id,
+    login,
+    name: null as string | null,
+    avatarUrl: `https://avatars.githubusercontent.com/u/${id}`,
+    url: `https://github.com/${login}`,
+    ...entity,
+  },
+});
+
+/** A GraphQL response page of sponsorships (`cursor` = there is another page). */
+export const sponsorshipsPage = (nodes: unknown[], cursor: string | null = null) => ({
+  data: { user: { sponsorshipsAsMaintainer: { pageInfo: { hasNextPage: cursor !== null, endCursor: cursor }, nodes } } },
+});
+
+export const releasePayload =(id: number, tag: string, publishedAt: string | null, over: Record<string, unknown> = {}) => ({
   id,
   tag_name: tag,
   name: tag,

@@ -31,7 +31,15 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
 /** Glass metadata panel: renders only the rows the project has data for. */
 const t = copy.projects;
 
-function ProjectMeta({ project: p, showRepositories }: { project: Project; showRepositories: boolean }) {
+function ProjectMeta({
+  project: p,
+  showRepositories,
+  supportHref,
+}: {
+  project: Project;
+  showRepositories: boolean;
+  supportHref?: string | null;
+}) {
   const linkClass =
     'inline-flex items-center gap-2 text-body-sm text-fg-muted transition-colors hover:text-fg [&_svg]:size-4 [&_svg]:text-brand-fg';
   return (
@@ -80,6 +88,13 @@ function ProjectMeta({ project: p, showRepositories }: { project: Project; showR
             </ul>
           </MetaRow>
         )}
+        {supportHref && (
+          <MetaRow label={copy.sponsorship.eyebrow}>
+            <Link className={linkClass} href={supportHref}>
+              <Icon name="heart" /> {copy.sponsorship.projectLink}
+            </Link>
+          </MetaRow>
+        )}
       </dl>
     </Surface>
   );
@@ -126,6 +141,8 @@ interface ProjectDetailProps {
    * itself, so the metadata panel then leaves its repository links out.
    */
   github?: { heading: string; lead: string; content: ReactNode; hidden?: boolean } | null;
+  /** The support page's path while it is switched on: adds a sponsorship link to the metadata panel. */
+  supportHref?: string | null;
 }
 
 /**
@@ -134,7 +151,7 @@ interface ProjectDetailProps {
  * Every block is optional except the overview, so a project with no case
  * study renders as it did before Phase 5A.
  */
-export function ProjectDetail({ project: p, related, github }: ProjectDetailProps) {
+export function ProjectDetail({ project: p, related, github, supportHref }: ProjectDetailProps) {
   const legacyGallery = p.gallery.length > 0 && !p.sections.some((s) => s.kind === 'gallery');
   const blocks: TocEntry[] = [
     { anchor: 'project-overview', label: t.overview },
@@ -229,7 +246,7 @@ export function ProjectDetail({ project: p, related, github }: ProjectDetailProp
 
           <Reveal delay={100} className="lg:sticky lg:top-28 lg:self-start">
             <div className="flex flex-col gap-8">
-              <ProjectMeta project={p} showRepositories={!github} />
+              <ProjectMeta project={p} showRepositories={!github} supportHref={supportHref} />
               {toc.length > 2 && <OnThisPage entries={toc} />}
             </div>
           </Reveal>

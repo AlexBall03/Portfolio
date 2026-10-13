@@ -161,6 +161,7 @@ export const content: z.input<typeof contentSeedSchema> = {
     experience: { seoDescription: 'My professional software development experience and education.' },
     resume: { seoDescription: 'View or download my current software engineering resume.' },
     contact: { seoDescription: 'Get in touch about software engineering opportunities, projects, or anything else.' },
+    support: { seoDescription: 'Support my software development work through GitHub Sponsors.' },
   },
 
   sections: {

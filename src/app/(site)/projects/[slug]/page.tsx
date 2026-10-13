@@ -7,7 +7,10 @@ import { copy } from '@/config/copy';
 import { ProjectGithubSection } from '@/features/github/components/ProjectGithubSection';
 import { getProfile } from '@/features/profile/queries';
 import { pickRelated } from '@/features/projects/case-study';
+import { SUPPORT_PATH } from '@/config/navigation';
 import { ProjectDetail } from '@/features/projects/components/ProjectDetail';
+import { getSponsorshipSettings } from '@/features/sponsorship/queries';
+import { sponsorshipVisibility } from '@/features/sponsorship/sponsors';
 import { getProjectBySlug, getProjects, getProjectSlugs } from '@/features/projects/queries';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { shareCardVersion } from '@/lib/seo/share-card/inputs';
@@ -53,7 +56,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const p = await resolve(params);
   const t = copy.projects;
-  const all = await getProjects();
+  const [all, sponsorship] = await Promise.all([getProjects(), getSponsorshipSettings()]);
   const index = Math.max(0, all.findIndex((x) => x.id === p.id));
   const prev = all[index - 1];
   const next = all[index + 1];
@@ -66,6 +69,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <ProjectDetail
           project={p}
           related={pickRelated(p.id, p.relatedIds, all)}
+          supportHref={sponsorshipVisibility(sponsorship).supportPage ? SUPPORT_PATH : null}
           github={
             p.githubAnalytics && p.repositories.length > 0
               ? {

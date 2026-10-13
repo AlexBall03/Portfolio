@@ -10,6 +10,7 @@ export const CACHE_TAGS = {
   site: 'site',
   github: 'github',
   resume: 'resume',
+  sponsorship: 'sponsorship',
 } as const;
 
 const HOUR = 60 * 60;
@@ -37,4 +38,6 @@ export const CACHE_LIFE = {
   githubReleases: { stale: 300, revalidate: 6 * HOUR, expire: WEEK },
   // One project's composed analytics (explicit, so inner lifetimes don't leak out).
   githubProject: { stale: 300, revalidate: 15 * 60, expire: WEEK },
+  // Public GitHub sponsors: refreshed every half hour, or at once from the admin.
+  githubSponsors: { stale: 300, revalidate: 30 * 60, expire: WEEK },
 } as const;

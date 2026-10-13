@@ -11,6 +11,8 @@ import { hueFor } from '@/features/projects/identity';
 import { getProjectBySlug } from '@/features/projects/queries';
 import { getPageContent, getSection, getSiteSettings } from '@/features/site/queries';
 import type { PageKey, SectionKey } from '@/features/site/types';
+import { getSponsorshipSettings } from '@/features/sponsorship/queries';
+import { sponsorshipVisibility } from '@/features/sponsorship/sponsors';
 import { CACHE_LIFE, CACHE_TAGS } from '@/lib/cache-tags';
 import type { MediaAsset } from '@/lib/media';
 import { clip, type ShareCard } from './card';
@@ -19,10 +21,10 @@ import type { HomeCardProps, PageCardProps, ProjectCardProps } from './cards';
 const DOMAIN = new URL(SITE_URL).host;
 
 /** Tags of everything a card reads: an admin save under any of them refreshes cards and their versions. */
-export const SHARE_CARD_TAGS = [CACHE_TAGS.profile, CACHE_TAGS.site, CACHE_TAGS.projects] as const;
+export const SHARE_CARD_TAGS = [CACHE_TAGS.profile, CACHE_TAGS.site, CACHE_TAGS.projects, CACHE_TAGS.sponsorship] as const;
 
 /** The section whose heading a top-level page's card borrows. */
-const PAGE_SECTION: Record<Exclude<PageKey, 'home'>, SectionKey> = {
+const PAGE_SECTION: Record<Exclude<PageKey, 'home' | 'support'>, SectionKey> = {
   about: 'about',
   projects: 'projects',
   experience: 'experience',
@@ -47,7 +49,13 @@ export type CardSpec =
  */
 const availability = (profile: Profile) => (profile.openToWork ? clip(profile.availabilityText, 64) : null);
 
-/** A card's content, or null when the card names nothing (unknown or unpublished project). */
+async function supportHeading(): Promise<{ title: string; subtitle: string } | null> {
+  const sponsorship = await getSponsorshipSettings();
+  if (!sponsorshipVisibility(sponsorship).supportPage) return null;
+  return { title: sponsorship.supportTitle, subtitle: copy.sponsorship.seoDescription };
+}
+
+/** A card's content, or null when the card names nothing (unknown or unpublished project, a page that is switched off). */
 export async function cardInputs(card: ShareCard): Promise<CardSpec | null> {
   const [profile, settings] = await Promise.all([getProfile(), getSiteSettings()]);
 
@@ -95,20 +103,25 @@ export async function cardInputs(card: ShareCard): Promise<CardSpec | null> {
     };
   }
 
-  const [content, section] = await Promise.all([
-    getPageContent(card.page),
-    getSection(PAGE_SECTION[card.page]),
+  const page = card.page;
+  // The support page's heading is sponsorship copy; while the page is off it has no card.
+  const [content, heading] = await Promise.all([
+    getPageContent(page),
+    page === 'support' ? supportHeading() : getSection(PAGE_SECTION[page]),
   ]);
-  const label = copy.nav[card.page];
-  const index = String(PAGES.findIndex((p) => p.key === card.page)).padStart(2, '0');
+  if (!heading) return null;
+  const label = copy.nav[page];
+  // Pages outside the primary navigation are numbered after it.
+  const position = PAGES.findIndex((p) => p.key === page);
+  const index = String(position === -1 ? PAGES.length : position).padStart(2, '0');
   return {
     kind: 'page',
     image: profile.headshot,
     props: {
       index,
       label,
-      title: clip(section.title || content?.seoTitle || label, 80),
-      description: clip(content?.seoDescription || section.subtitle || profile.statement, 260),
+      title: clip(heading.title || content?.seoTitle || label, 80),
+      description: clip(content?.seoDescription || heading.subtitle || profile.statement, 260),
       brandMark: settings.brandMark,
       domain: DOMAIN,
       fullName: profile.fullName,

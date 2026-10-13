@@ -14,6 +14,8 @@ export interface NavPage {
 export interface ChromeData {
   brandMark: string;
   pages: NavPage[];
+  /** The support page, while it is switched on (footer and palette only, never the primary navigation). */
+  support: NavPage | null;
   email: string;
   /** The published resume's public URL and file name; null when none is published. */
   resume: { href: string; fileName: string } | null;

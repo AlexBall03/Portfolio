@@ -15,10 +15,12 @@ export interface SitemapProject {
  * none rather than a guess. No priority/changefreq: search engines ignore them
  * and they'd be arbitrary.
  */
-export function sitemapEntries(projects: readonly SitemapProject[]): MetadataRoute.Sitemap {
+export function sitemapEntries(projects: readonly SitemapProject[], extraPaths: readonly string[] = []): MetadataRoute.Sitemap {
   const newest = projects.reduce<string | undefined>((a, p) => (!a || p.updatedAt > a ? p.updatedAt : a), undefined);
   const paths: { path: string; lastModified?: string }[] = [
     ...PAGES.map((p) => ({ path: p.path, lastModified: p.path === '/projects' ? newest : undefined })),
+    // Pages outside the primary navigation that are currently available (the support page).
+    ...extraPaths.map((path) => ({ path })),
     ...projects.map((p) => ({ path: `/projects/${p.slug}`, lastModified: p.updatedAt })),
   ];
 

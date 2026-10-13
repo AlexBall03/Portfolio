@@ -1,4 +1,4 @@
-export const PAGE_KEYS = ['home', 'about', 'projects', 'experience', 'resume', 'contact'] as const;
+export const PAGE_KEYS = ['home', 'about', 'projects', 'experience', 'resume', 'contact', 'support'] as const;
 export type PageKey = (typeof PAGE_KEYS)[number];
 
 export const SECTION_KEYS = [
@@ -100,6 +100,8 @@ export const PAGES: Record<PageKey, PageDescriptor> = {
   experience: { label: 'Experience', path: '/experience', sections: ['experience'] },
   resume: { label: 'Resume', path: '/resume', sections: ['resume'] },
   contact: { label: 'Contact', path: '/contact', sections: ['contact'] },
+  // The page's own copy is edited in Sponsorship; only its SEO copy lives here.
+  support: { label: 'Support', path: '/support', sections: [] },
 };
 
 /** Sections a page's content editor edits (sections owned by another editor are excluded). */

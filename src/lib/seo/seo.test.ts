@@ -144,6 +144,12 @@ describe('sitemapEntries', () => {
     expect(entries.every((e) => e.alternates === undefined)).toBe(true);
   });
 
+  it('adds the support page only when it is passed as available', () => {
+    expect(entries.map((e) => e.url)).not.toContain('https://alexball.dev/support');
+    const withSupport = sitemapEntries([], ['/support']);
+    expect(withSupport.at(-1)).toEqual({ url: 'https://alexball.dev/support' });
+  });
+
   it('uses real timestamps only, and no arbitrary priority', () => {
     expect(byUrl.get('https://alexball.dev/projects/older')?.lastModified).toBe('2026-01-01T00:00:00.000Z');
     expect(byUrl.get('https://alexball.dev/projects')?.lastModified).toBe('2026-05-01T00:00:00.000Z');

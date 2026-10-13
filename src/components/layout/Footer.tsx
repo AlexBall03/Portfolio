@@ -42,7 +42,7 @@ export function Footer({ data, ownerName, statement }: FooterProps) {
             <p className="max-w-[38ch] text-body-sm text-fg-muted">{statement}</p>
           </div>
 
-          <FooterNav pages={data.pages} label={T.site} titleClassName={COLUMN_TITLE} />
+          <FooterNav pages={data.support ? [...data.pages, data.support] : data.pages} label={T.site} titleClassName={COLUMN_TITLE} />
 
           <div className="flex flex-col gap-4">
             <span className={COLUMN_TITLE}>{T.connect}</span>

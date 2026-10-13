@@ -70,7 +70,7 @@ export async function resolvePageSeo(page: PageKey): Promise<PageSeo> {
   const isHome = page === 'home';
   return {
     title: content?.seoTitle || (isHome ? `${profile.fullName} — ${profile.title}` : copy.nav[page]),
-    description: content?.seoDescription || profile.statement,
+    description: content?.seoDescription || (page === 'support' ? copy.sponsorship.seoDescription : profile.statement),
     absoluteTitle: isHome,
     siteName: profile.fullName,
   };

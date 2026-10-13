@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { ReadMore } from '@/components/ui/ReadMore';
 import { InlineText, RichText } from '@/components/ui/RichText';
 import { Status } from '@/components/ui/Status';
 import { copy } from '@/config/copy';
@@ -57,13 +58,23 @@ export function CaseStudyBlock({
   );
 }
 
+/** Narratives longer than this many paragraphs collapse behind "Read more". */
+const COLLAPSE_AFTER = 4;
+
 /** A case-study section's content, by kind. Parts a section leaves empty simply don't render. */
 export function CaseStudyContent({ section: s, title }: { section: Section; title: string }) {
   const intro = s.body.length > 0 && <RichText paragraphs={s.body} lead={s.kind === 'narrative'} />;
 
   switch (s.kind) {
     case 'narrative':
-      return intro;
+      // A long story starts collapsed partway through its third paragraph.
+      return s.body.length > COLLAPSE_AFTER ? (
+        <ReadMore moreLabel={t.readMore} lessLabel={t.readLess}>
+          {intro}
+        </ReadMore>
+      ) : (
+        intro
+      );
 
     case 'architecture':
       return (

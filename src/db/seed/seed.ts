@@ -34,6 +34,7 @@ const CONTENT_TABLES = [
   s.sectionContent,
   s.pageContent,
   s.siteSettings,
+  s.sponsorshipSettings,
   s.mediaAssets,
 ];
 

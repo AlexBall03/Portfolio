@@ -28,7 +28,7 @@ export const siteSettings = pgTable(
   (t) => [check('site_settings_singleton', sql`${t.id} = 1`)],
 );
 
-/** Top-level public pages. Mirrors the route structure in src/config/navigation.ts. */
+/** Top-level public pages. Mirrors the route structure in src/config/navigation.ts (plus `support`, which is outside the primary navigation). */
 export const pageKeyEnum = pgEnum('page_key', [
   'home',
   'about',
@@ -36,6 +36,7 @@ export const pageKeyEnum = pgEnum('page_key', [
   'experience',
   'resume',
   'contact',
+  'support',
 ]);
 
 /** Per-page SEO copy. */

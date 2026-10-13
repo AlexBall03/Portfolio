@@ -92,6 +92,13 @@
       "when": 1791560863149,
       "tag": "0012_english_only",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791869060522,
+      "tag": "0013_sponsorship",
+      "breakpoints": true
     }
   ]
 }

@@ -37,12 +37,12 @@ Pages are thin compositions: call cached query functions, render feature compone
 
 ```
 src/
-  app/(site)/             routes: home, about, projects, projects/[slug], experience, resume, contact,
+  app/(site)/             routes: home, about, projects, projects/[slug], experience, resume, contact, support,
                           not-found, error, [...rest] (404 catch-all); layout = root layout (html/body)
   app/admin/              the private admin (English-only, its own root layout): sign-in/[[...sign-in]],
                           (console)/ (guarded layout, dashboard, profile/{,headshot,roles,highlights,metrics},
                           configuration, projects/{,new,order,[id]/{,case-study,media,milestones,related,github,preview}}, skills/{,technologies}, experience,
-                          resume, social-links, contact, content/{,[page]}, [...rest] 404), not-found, error
+                          resume, social-links, contact, content/{,[page]}, sponsorship, [...rest] 404), not-found, error
   app/api/admin/          admin Route Handlers (session: the reference handler; projects/[id]/media{,/[assetId]}: image uploads;
                           profile/headshot: headshot upload; resume: PDF upload; resume/[id]: any version's PDF, admin only)
   app/                    resume.pdf/ (public: the published resume only), og/[...card] (generated share cards), sitemap.ts, robots.ts, manifest.ts, global-error.tsx
@@ -58,7 +58,7 @@ src/
                           admin-managed domains add: service.ts (editor loads + transactional saves) ·
                           mutations.ts (Server Actions) · components/admin/ (editor islands) · upload.ts (projects: image upload specifics; projects also has case-study.ts: section kinds, milestone kinds, video embeds, related picking)
                           resume adds delivery.ts (read-only file access + PDF response for the two delivery routes)
-      projects  skills  experience  resume  profile  site  github  contact  admin (dashboard facts)
+      projects  skills  experience  resume  profile  site  github  sponsorship  contact  admin (dashboard facts)
   integrations/           github/ (typed API client + Zod response schemas), resend/,
                           blob/ (store.ts: MediaStore over the public store; private-store.ts: DocumentStore over the private store)
   components/layout/      site chrome: SiteChrome (command bar + drawer + palette), BackToTop, Preferences, Footer, Pager, PageShell, Screen
@@ -81,7 +81,7 @@ src/
 - Repositories return **domain types** (`features/*/types.ts`), never Drizzle rows.
 - `integrations/*` know nothing about UI or the domain model; they validate and normalize upstream data.
 - Every server-only module imports `server-only`.
-- Client Components are limited to interactive islands: nav/drawer/palette, the back-to-top button, the theme toggle, the contact form, the experience tabs, the role cycler, the project gallery lightbox (`GalleryLightbox`, native `<dialog>`), the projects explorer (`ProjectExplorer`: search and filters over server-rendered cards), `PointerGlow` (renders nothing: writes `--pointer-x/-y` so the two background glows drift a few pixels toward the mouse; fine pointers only, off under reduced motion), and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. In the admin: the nav (active state), the mobile drawer, the account actions, Clerk's own sign-in, and the editors (`features/*/components/admin`). Server children pass through client wrappers unchanged.
+- Client Components are limited to interactive islands: nav/drawer/palette, the back-to-top button, the theme toggle, the contact form, the experience tabs, the role cycler, the project gallery lightbox (`GalleryLightbox`, native `<dialog>`), `ReadMore` (a narrative case-study section longer than four paragraphs starts collapsed halfway through its third, faded out, with the full text still in the document), the projects explorer (`ProjectExplorer`: search and filters over server-rendered cards), `PointerGlow` (renders nothing: writes `--pointer-x/-y` so the two background glows drift a few pixels toward the mouse; fine pointers only, off under reduced motion), and the small `Reveal`/`CountUp`/`RelativeTime`/`LocalTime` primitives. In the admin: the nav (active state), the mobile drawer, the account actions, Clerk's own sign-in, and the editors (`features/*/components/admin`). Server children pass through client wrappers unchanged.
 - Nothing public imports Clerk or `server/auth`; the public site has no auth-aware components. The one feature file allowed the guard is `features/*/mutations.ts`. Public routes (every `app/` route outside `app/admin` and `app/api/admin`, including `resume.pdf`) and chrome never import mutations, services, or admin UI, and client modules reach the server only through Server Actions (all enforced by `server/auth/boundaries.test.ts`).
 
 ## Domain model (Neon)
@@ -96,6 +96,7 @@ Every field is stored once, in English, on its own row: a project's name and sum
 | Profile | `profile` (single row: identity, title, statement, about[], hero copy) · `social_links` · `profile_roles` (label) · `profile_highlights` (differentiator/resume; title, body) · `snapshot_metrics` (`source` static/published_projects/technologies: derived values are counted from published content at read time) |
 | Site | `site_settings` (single row: brand, GitHub username, feature switch, default theme) · `page_content` (per-page SEO copy, one row per page) · `section_content` (section headings: eyebrow, title, subtitle, body, and `aside`, a secondary heading: About's differentiators heading, Stack's learning-banner label) |
 | Media | `media_assets` (`storage` static/blob/external, src, MIME type, dimensions, alt text, optional caption) |
+| Sponsorship | `sponsorship_settings` (single optional row: switches, home and support-page copy, button label and Sponsors URL, preview limit, `sponsor_sort`, `hidden_sponsors` as `{ githubId, login }[]`, `support_items`). No sponsor data |
 | Resume | `resume_versions` (private Blob `pathname`, sanitized `file_name`, size, optional admin `label`, `is_published` + `published_at`; a partial unique index allows at most one published row). `profile.resume_asset_id` is **deprecated** (nothing reads it since 4D; drop it in a later release) |
 | System | `content_bootstrap` (single row: this database has received its initial content) |
 
@@ -258,7 +259,7 @@ The admin edits content through small, focused pieces rather than a generic CMS 
 - `SortableList` adds drag-and-drop by a handle (native DnD) to the same move buttons and announces moves. `ConfirmDialog` (native `<dialog>`, Cancel focused, optional type-to-confirm) guards destructive actions. `ImageUploadField` picks or drops one image with a local preview; the server decides what the file is.
 - A service throws `FieldValidationError` for rules only the database can check (a slug in use) and `NotFoundError` for a vanished row; `runMutation` reports them as field / form errors.
 
-**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, metrics, and social links; metrics are also tagged `projects`/`skills` for derived counts), `site` (settings, page and section copy, contact copy), `projects` (every project write, including order and media), `skills` (categories; technology renames and removals also refresh `projects`), `experience`, and `resume` (publish, unpublish, delete; read by the resume page, footer, palette, and dashboard). `updateTag` exists only in Server Actions, so the upload Route Handlers use `revalidateTag(tag, { expire: 0 })`, which serves no stale content either. Editor reads are uncached.
+**Cache invalidation.** Each action calls `updateTag` for the tag its public reads use: `profile` (profile, roles, highlights, metrics, and social links; metrics are also tagged `projects`/`skills` for derived counts), `site` (settings, page and section copy, contact copy), `projects` (every project write, including order and media), `skills` (categories; technology renames and removals also refresh `projects`), `experience`, `resume` (publish, unpublish, delete; read by the resume page, footer, palette, and dashboard), and `sponsorship` (settings and the cached GitHub sponsor read; also a share-card tag). `updateTag` exists only in Server Actions, so the upload Route Handlers use `revalidateTag(tag, { expire: 0 })`, which serves no stale content either. Editor reads are uncached.
 
 **Projects** (`/admin/projects`: list · new · order · `[id]` Details · `[id]/case-study` · `[id]/media` · `[id]/milestones` · `[id]/related` · `[id]/github` · `[id]/preview`).
 - *Publication.* Draft and Published (legacy `archived` rows read as Archived). Save keeps the status, so a published project's edits go live on save; Publish / Unpublish are the same save with the other status (`submit({ status })`). Going live stamps `published_at`. No staged revisions. Every public read (list, slug lookup, retired slugs, sitemap slugs) filters `published`; the admin preview renders the real `ProjectDetail` from an unfiltered read.
@@ -302,6 +303,8 @@ The admin edits content through small, focused pieces rather than a generic CMS 
 
 **Headshot** (`/admin/profile/headshot`; `profile.headshot_asset_id` → `media_assets`). The photo used by the hero, every share card, and the JSON-LD person. Choosing a new photo and editing its alt text are one form: Save uploads the file with the alt text (`POST /api/admin/profile/headshot`, `adminRoute`) or, with no new file, saves the alt text alone (Server Action). Uploads go to `profile/headshot/<uuid>` in Blob and are JPEG or PNG only (sniffed), because the share-card renderer can't decode WebP or AVIF. Remove (confirmed) clears the photo; the hero and cards then show initials. The seeded photo is a static asset under `public/assets`; replacing it deletes its row, never the file. Every write refreshes the `profile` tag, which the share cards also use.
 
+**Sponsorship** (`/admin/sponsorship`; `features/sponsorship`). One editor for the switches (sponsorship, home section, support page, sponsor lists, count), the home heading and message, the button label and Sponsors URL, the preview limit and order, the support page's heading, introduction, and items, and a Shown/Hidden switch per current public sponsor (hidden ids no longer on GitHub stay listed so they can be un-hidden). Above it, a read-only status from the same cached read the public site uses: on/off, GitHub data (connected / not configured / access refused / unavailable), last retrieval, and counts; nothing operational is stored. **Refresh from GitHub** is a Server Action that only expires the `sponsorship` tag. Saving is one upsert. The page's SEO copy is in Page content → Support. See **Integrations → GitHub Sponsors**.
+
 **Configuration vs Profile.** Configuration owns `site_settings` only: brand mark, monogram, GitHub username and section switch, default theme. Personal content is Profile. Social links, contact copy, and page/section copy have their own editors (above); every content domain has exactly one owner.
 
 ## Public experience
@@ -309,6 +312,7 @@ The admin edits content through small, focused pieces rather than a generic CMS 
 - **Home** (`app/(site)/page.tsx`): the Hero (admin headshot, initials fallback), then three short sections:
   - *Selected work* (`FeaturedWork`): the first three featured published projects in CMS order as `ProjectCard layout="tile"`, linking to their case studies. Omitted when nothing is featured.
   - *Toolkit* (`Toolkit`): the stack categories as a hairline list, beside a small `GithubPulse` card (contributions, public repositories, last activity) streamed in `<Suspense>`. The pulse reads the same cached `getGithubOverview` as the Projects page, so it adds no GitHub requests, and it renders nothing when GitHub is off or down.
+  - *Sponsorship* (`SponsorSection`): the configurable heading, message, and GitHub Sponsors button in one glass panel, with a row of public sponsor avatars streamed in `<Suspense>` when there are any. Omitted when switched off.
   - *Closing band* (`ClosingBand`): one line and links to contact, experience, and resume.
 - **Projects index**: `Projects` server-renders every card, and `ProjectExplorer` (client) only chooses which to show:
   - search over name, tagline, summary, and technologies (case- and accent-insensitive)
@@ -383,6 +387,13 @@ The admin edits content through small, focused pieces rather than a generic CMS 
 - The Server Action works without JavaScript (`useActionState`). It also handles the honeypot, rejects header injection, HTML-escapes the email body, and sends the visitor's address as Reply-To (never From).
 - Secrets and addresses are read only in `integrations/resend/client.ts` through `config/env.ts`.
 
+**GitHub Sponsors** (`features/sponsorship`; the same client and token)
+- *Ownership.* GitHub processes sponsorships and is the record of who sponsors. The site presents them: a home section (`SponsorSection`, a glass panel between the toolkit and the closing band), the `/support` page, and the recognition of **public** sponsors. Neon holds only configuration (`sponsorship_settings`, one optional row; the defaults in `types.ts` apply until the first save) and the accounts the admin hid. No sponsor is ever copied into Postgres.
+- *Read.* `fetchPublicSponsorships(login)` (GraphQL `user.sponsorshipsAsMaintainer`, `includePrivate: false`, `activeOnly: true`, paginated) selects presentation fields only: account id, login, name, avatar, profile URL, kind, start date. Tiers, amounts, and emails are never requested, so they can't leak. `normalizeSponsors` then keeps only nodes that are active **and** `privacyLevel: PUBLIC` (a second check), one per account. The login comes from the configured Sponsors URL, which validation restricts to `https://github.com/sponsors/<login>`.
+- *Cache and failure.* `loadPublicSponsors` is cached under the `sponsorship` tag for 30 minutes (`CACHE_LIFE.githubSponsors`) and never throws: it returns `ok` (with `fetchedAt`), `unconfigured` (no token), `unauthorized` (401, or a GraphQL `FORBIDDEN`/`INSUFFICIENT_SCOPES`), or `unavailable` (with the error kind), the last three cached for a minute. A GraphQL response with `errors` is a failure even when it also carries `data`. The public site sees three states (`getSponsorList`): `disabled`, `unavailable`, `ok`. A failure is never shown as "no sponsors": home drops its sponsor row; `/support` says the list is unavailable; the button works in every state.
+- *Presentation rules* (`sponsors.ts`, pure and unit-tested): hidden accounts are matched by GitHub's stable account id; order is newest, oldest, or alphabetical (a sponsorship without a date sorts last, never with an invented one); `sponsorshipVisibility` applies the master switch to the home section, the page, and the lists in one place.
+- *Switched off.* `/support` is the site's 404, and it leaves the footer, the palette, the sitemap, and `/og/support.png`. The page is a `PageKey` (SEO copy in Page content, a generated share card) but not part of `config/navigation.ts` `PAGES`, so it never appears in the command bar or the pager.
+
 **Observability.** `lib/logger.ts` writes one structured JSON line per event (`scope`, `level`). Integrations log their failures there. It's the single place to attach an error-reporting service later.
 
 ## Future insertion points
@@ -415,7 +426,7 @@ The admin edits content through small, focused pieces rather than a generic CMS 
   - the reveal states, the background atmosphere, the project identity art, and the heatmap levels
 
   Everything else is utilities in components. Inline `style` is only for runtime custom properties (`--d`, `--weeks`, `--lang`, `--hue`) and `global-error.tsx`.
-- **Glass budget.** Command bar, drawer, palette, back-to-top pill, hero portrait, featured project cards, data panels (snapshot, contributions, project commit activity, the home GitHub pulse), project metadata, resume header, contact form, current role. Lists, timelines, and stacks use hairlines and type instead of boxes.
+- **Glass budget.** Command bar, drawer, palette, back-to-top pill, hero portrait, featured project cards, data panels (snapshot, contributions, project commit activity, the home GitHub pulse), the home sponsorship panel, project metadata, resume header, contact form, current role. Lists, timelines, and stacks use hairlines and type instead of boxes.
 - **Primitives** (`components/ui`). One `Surface` (variants plain / raised / inset / glass / glass-strong) instead of card variants, and `buttonStyles()` shared by `<button>`, `<a>`, and `<Link>` (variants primary / secondary / ghost / quiet / danger, the last outlined so the danger hue only carries text). `Status`, `Tag`/`TagList`, `Stat` (+ `statDividers`), `Eyebrow`, `SectionHeader`, `Section`/`Container`, `Prose`, and `SystemState` complete the set.
 - **Class composition.** `cn()` joins classes but does not merge conflicts. Don't pass a utility that fights a component's own (e.g. `hidden` against an `inline-flex`). Wrap the element or add a prop instead.
 - **Motion.** Interactions take 160–220ms; entrances take 520ms with opacity and a 12px rise. Nothing loops. `prefers-reduced-motion` disables transitions and animations globally.
