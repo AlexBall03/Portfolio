@@ -73,7 +73,7 @@ export function Footer({ data, ownerName, statement }: FooterProps) {
 
         <div className="flex flex-col gap-2 border-t border-line py-6 font-mono text-micro text-fg-faint sm:flex-row sm:items-center sm:justify-between">
           <span>
-            © {built?.getUTCFullYear()} {ownerName}
+            {built?.getUTCFullYear()} {ownerName}
           </span>
           {updated && (
             <span>
